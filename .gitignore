@@ -1,0 +1,6 @@
+data/carrefour
+*.warc.gz
+p.*
+p
+node_modules/
+*.db
