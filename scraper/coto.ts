@@ -19,9 +19,9 @@ function getEanFromText({ document }: Window) {
 }
 function getPriceFromText({ document }: Window) {
   const el = document.querySelector(".atg_store_newPrice");
-  if (!el) throw new Error("no encuentro el precio");
-  const nStr = el
-    .textContent!.trim()
+  if (!el?.textContent) throw new Error("no encuentro el precio");
+  const nStr = el.textContent
+    .trim()
     .replace("$", "")
     .replaceAll(".", "")
     .replace(",", ".");
