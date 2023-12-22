@@ -12,6 +12,7 @@ import { getCarrefourProduct } from "./carrefour.js";
 import { getDiaProduct } from "./dia.js";
 import { getCotoProduct } from "./coto.js";
 import { join } from "path";
+import pMap from "p-map";
 
 const sqlite = new Database("sqlite.db");
 const db = drizzle(sqlite);
@@ -33,9 +34,9 @@ create table precios(
 );
 `);
 
-for (const path of process.argv.slice(2)) {
-  await parseWarc(path);
-}
+await pMap(process.argv.slice(2), (path) => parseWarc(path), {
+  concurrency: 40,
+});
 
 const DEBUG = false;
 
