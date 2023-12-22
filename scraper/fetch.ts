@@ -8,6 +8,7 @@ export async function getHtml(url: string) {
       "Accept-Encoding": "gzip, deflate, br",
     },
     throwOnError: true,
+    bodyTimeout: 10 * 60 * 1000,
   });
   let output: Buffer;
   switch (res.headers["content-encoding"]) {
