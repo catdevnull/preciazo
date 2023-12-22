@@ -4,7 +4,10 @@ import { pipeline } from "node:stream/promises";
 
 export async function getHtml(url: string) {
   const res = await request(url, {
-    headers: {},
+    headers: {
+      "Accept-Encoding": "gzip, deflate, br",
+    },
+    throwOnError: true,
   });
   let output: Buffer;
   switch (res.headers["content-encoding"]) {
