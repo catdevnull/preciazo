@@ -1,5 +1,4 @@
 import puppeteer from "puppeteer";
-import { blockImages } from "../puppeteer-utils";
 
 (async () => {
   const browser = await puppeteer.launch({
@@ -7,8 +6,6 @@ import { blockImages } from "../puppeteer-utils";
     defaultViewport: { height: 4000, width: 1920 },
   });
   const page = await browser.newPage();
-
-  await blockImages(page);
 
   await page.goto("https://diaonline.supermercadosdia.com.ar/almacen/");
 

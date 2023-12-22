@@ -12,7 +12,6 @@
   "license": "ISC",
   "dependencies": {
     "puppeteer": "^21.6.1",
-    "puppeteer-utils": "workspace:^",
     "tsx": "^4.7.0"
   }
 }
