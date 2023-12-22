@@ -24,6 +24,16 @@
       "runtimeArgs": ["--import", "tsx/esm"],
       "program": "${workspaceFolder}/coto-link-scraper/index.ts",
       "outFiles": ["${workspaceFolder}/**/*.js"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "dia-link-scraper",
+      "skipFiles": ["<node_internals>/**"],
+      "cwd": "${workspaceFolder}/dia-link-scraper",
+      "runtimeArgs": ["--import", "tsx/esm"],
+      "program": "${workspaceFolder}/dia-link-scraper/index.ts",
+      "outFiles": ["${workspaceFolder}/**/*.js"]
     }
   ]
 }
