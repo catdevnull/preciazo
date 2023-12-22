@@ -7,7 +7,7 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "Launch Program",
+      "name": "scraper",
       "skipFiles": ["<node_internals>/**"],
       "cwd": "${workspaceFolder}/scraper",
       "runtimeArgs": ["--import", "tsx/esm"],
@@ -24,6 +24,6 @@
       "runtimeArgs": ["--import", "tsx/esm"],
       "program": "${workspaceFolder}/coto-link-scraper/index.ts",
       "outFiles": ["${workspaceFolder}/**/*.js"]
-    },
+    }
   ]
 }

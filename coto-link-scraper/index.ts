@@ -1,4 +1,3 @@
-// Import puppeteer
 import puppeteer from "puppeteer";
 
 (async () => {
