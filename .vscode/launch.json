@@ -1,0 +1,29 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Launch Program",
+      "skipFiles": ["<node_internals>/**"],
+      "cwd": "${workspaceFolder}/scraper",
+      "runtimeArgs": ["--import", "tsx/esm"],
+      "program": "${workspaceFolder}/scraper/scrap.ts",
+      "args": ["carrefour.warc.gz"],
+      "outFiles": ["${workspaceFolder}/**/*.js"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "coto-link-scraper",
+      "skipFiles": ["<node_internals>/**"],
+      "cwd": "${workspaceFolder}/coto-link-scraper",
+      "runtimeArgs": ["--import", "tsx/esm"],
+      "program": "${workspaceFolder}/coto-link-scraper/index.ts",
+      "outFiles": ["${workspaceFolder}/**/*.js"]
+    },
+  ]
+}
