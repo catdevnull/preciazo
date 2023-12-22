@@ -17,6 +17,12 @@ const sqlite = new Database("sqlite.db");
 const db = drizzle(sqlite);
 
 sqlite.run(`
+pragma journal_mode = WAL;
+pragma synchronous = normal;
+pragma temp_store = memory;
+pragma mmap_size = 30000000000;
+`);
+sqlite.run(`
 create table precios(
   id integer primary key autoincrement,
   ean text not null,
