@@ -1,37 +1,59 @@
-import puppeteer from "puppeteer";
+import { getHtml } from "../scraper/fetch.js";
+import { parseHTML } from "linkedom";
+import PQueue from "p-queue";
 
-(async () => {
-  const browser = await puppeteer.launch();
-  const page = await browser.newPage();
-  await page.goto(
-    "https://www.cotodigital3.com.ar/sitios/cdigi/browse/catalogo-almac%C3%A9n/"
+// let fetched = new Set<string>();
+{
+  const initial =
+    "https://www.cotodigital3.com.ar/sitios/cdigi/browse?Nf=product.endDate%7CGTEQ+1.7032032E12%7C%7Cproduct.startDate%7CLTEQ+1.7032032E12&No=2200&Nr=AND%28product.sDisp_200%3A1004%2Cproduct.language%3Aespa%C3%B1ol%2COR%28product.siteId%3ACotoDigital%29%29&Nrpp=200";
+
+  const queue = new PQueue({ concurrency: 2 });
+
+  const pageSize = 300; // hasta 1000
+  const links = Array.from({ length: Math.ceil(29000 / 300) }, (x, i) => i).map(
+    (i) => {
+      const url = new URL(initial);
+      url.searchParams.set("No", `${i * pageSize}`);
+      url.searchParams.set("Nrpp", `${pageSize}`);
+      return url.toString();
+    }
   );
 
-  async function getHrefs() {
-    const element = await page.waitForSelector(".product_info_container a");
-    await element?.dispose();
-    const hrefs = await page.evaluate(() =>
-      Array.from(
-        document.querySelectorAll<HTMLAnchorElement>(
-          ".product_info_container a"
-        ),
-        (a) => new URL(a.href).toString()
-      )
-    );
-    return hrefs;
-  }
-  try {
-    while (true) {
-      const hrefs = await getHrefs();
-      hrefs.forEach((href) => console.log(href));
+  const promises = links.map((l) => queue.add(getPage(l)));
+  await Promise.all(promises);
+}
 
-      const btn = await page.waitForSelector('a[title="Siguiente"]', {
-        timeout: 5000,
-      });
-      await btn?.click();
-      await btn?.dispose();
+function getPage(url: string) {
+  return async () => {
+    let html;
+    try {
+      html = await getHtml(url);
+    } catch (error) {
+      await getPage(url)();
+      return;
     }
-  } finally {
-    await browser.close();
-  }
-})();
+    const { document } = parseHTML(html.toString("utf-8"));
+
+    const hrefs = Array.from(
+      document.querySelectorAll<HTMLAnchorElement>(".product_info_container a"),
+      (a) => new URL(a.href, url).toString()
+    );
+    hrefs.forEach((h) => process.stdout.write(h + "\n"));
+
+    // const nextLinks = Array.from(
+    //   document.querySelectorAll<HTMLAnchorElement>(
+    //     "#atg_store_pagination a[href]"
+    //   ),
+    //   (a) => new URL(a.href, url).toString()
+    // );
+
+    // await Promise.all(
+    //   nextLinks
+    //     .filter((l) => !fetched.has(l))
+    //     .map((l) => {
+    //       fetched.add(l);
+    //       return queue.add(getPage(l));
+    //     })
+    // );
+  };
+}

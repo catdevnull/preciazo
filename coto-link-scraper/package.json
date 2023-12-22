@@ -11,7 +11,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "puppeteer": "^21.6.1",
-    "tsx": "^4.7.0"
+    "linkedom": "^0.16.5",
+    "p-queue": "^8.0.1",
+    "tsx": "^4.7.0",
+    "undici": "^6.2.0"
   }
 }
