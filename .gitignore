@@ -4,6 +4,8 @@ p.*
 p
 node_modules/
 *.db
+*.db-shm
+*.db-wal
 scraper/debug/
 scraper/x.tsv
 *.tmp
