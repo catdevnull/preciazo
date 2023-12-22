@@ -8,7 +8,6 @@ import { WARCParser } from "warcio";
 import { createReadStream, createWriteStream } from "fs";
 import { writeFile } from "fs/promises";
 import { createHash } from "crypto";
-import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import { getCarrefourProduct } from "./carrefour.js";
 import { getDiaProduct } from "./dia.js";
 import { getCotoProduct } from "./coto.js";
@@ -17,7 +16,22 @@ import { join } from "path";
 const sqlite = new Database("sqlite.db");
 const db = drizzle(sqlite);
 
-const DEBUG = true;
+sqlite.run(`
+create table precios(
+  id integer primary key autoincrement,
+  ean text not null,
+  fetched_at text not null,
+  precio_centavos integer,
+  in_stock integer,
+  url text
+);
+`);
+
+for (const path of process.argv.slice(2)) {
+  await parseWarc(path);
+}
+
+const DEBUG = false;
 
 export type Precio = typeof precios.$inferInsert;
 export type Precioish = Omit<Precio, "fetchedAt" | "url" | "id">;
@@ -26,17 +40,13 @@ async function storePrecioPoint(point: Precio) {
   await db.insert(precios).values(point);
 }
 
-(async () => {
-  const o = createWriteStream("x.tsv");
-  o.write(`ean\tfetchedAt\tprecioCentavos\tinStock\turl\n`);
-
-  const warc = createReadStream(process.argv[2]);
+async function parseWarc(path: string) {
+  const warc = createReadStream(path);
   const parser = new WARCParser(warc);
   let progress = { done: 0, errors: 0 };
   for await (const record of parser) {
     if (record.warcType === "response") {
       if (!record.warcTargetURI) throw new Error("no uri");
-      console.log(record.warcTargetURI);
       const html = await record.contentText();
 
       const url = new URL(record.warcTargetURI);
@@ -56,10 +66,7 @@ async function storePrecioPoint(point: Precio) {
           url: record.warcTargetURI,
         };
 
-        if (ish)
-          o.write(
-            `${p.ean}\t${p.fetchedAt}\t${p.precioCentavos}\t${p.inStock}\t${p.url}\n`
-          );
+        if (ish) await storePrecioPoint(p);
 
         // console.log(product);
         progress.done++;
@@ -76,8 +83,8 @@ async function storePrecioPoint(point: Precio) {
           console.error(`wrote html to ${output}`);
         }
       } finally {
-        console.debug(progress);
+        console.debug(`done: ${progress.done}; errored: ${progress.errors}`);
       }
     }
   }
-})();
+}
