@@ -4,3 +4,5 @@ p.*
 p
 node_modules/
 *.db
+scraper/debug/
+scraper/x.tsv
