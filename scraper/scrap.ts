@@ -11,6 +11,7 @@ import { createHash } from "crypto";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import { getCarrefourProduct } from "./carrefour.js";
 import { getDiaProduct } from "./dia.js";
+import { getCotoProduct } from "./coto.js";
 import { join } from "path";
 
 const sqlite = new Database("sqlite.db");
@@ -19,7 +20,7 @@ const db = drizzle(sqlite);
 const DEBUG = true;
 
 export type Precio = typeof precios.$inferInsert;
-export type Precioish = Omit<Precio, "fetchedAt" | "url">;
+export type Precioish = Omit<Precio, "fetchedAt" | "url" | "id">;
 
 async function storePrecioPoint(point: Precio) {
   await db.insert(precios).values(point);
@@ -45,7 +46,9 @@ async function storePrecioPoint(point: Precio) {
           ish = getCarrefourProduct(html);
         else if (url.hostname === "diaonline.supermercadosdia.com.ar")
           ish = getDiaProduct(html);
-        else console.error(`Unknown host ${url.hostname}`);
+        else if (url.hostname === "www.cotodigital3.com.ar")
+          ish = getCotoProduct(html);
+        else throw new Error(`Unknown host ${url.hostname}`);
 
         const p: Precio = {
           ...ish,
