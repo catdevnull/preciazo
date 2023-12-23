@@ -99,6 +99,9 @@ importers:
       svelte:
         specifier: ^4.2.7
         version: 4.2.8
+      svelte-adapter-bun:
+        specifier: ^0.5.1
+        version: 0.5.1
       svelte-check:
         specifier: ^3.6.0
         version: 3.6.2(postcss-load-config@5.0.2)(postcss@8.4.32)(svelte@4.2.8)
@@ -1851,6 +1854,12 @@ packages:
   /supports-preserve-symlinks-flag@1.0.0:
     resolution: {integrity: sha512-ot0WnXS9fgdkgIcePe6RHNk1WA8+muPa6cSjeR3V8K27q9BB1rTE3R1p7Hv0z1ZyAc8s6Vvv8DIyWf681MAt0w==}
     engines: {node: '>= 0.4'}
+    dev: true
+
+  /svelte-adapter-bun@0.5.1:
+    resolution: {integrity: sha512-eLbkKuoCaZPzVN20dg/oZOUybO16oEQCOQuzAI2jVLU90VbJ1P099bAlA+7H4KPGI2r2sdkfD1MppGAbk7PdMw==}
+    dependencies:
+      tiny-glob: 0.2.9
     dev: true
 
   /svelte-check@3.6.2(postcss-load-config@5.0.2)(postcss@8.4.32)(svelte@4.2.8):
