@@ -29,7 +29,10 @@ await pMap(process.argv.slice(2), (path) => parseWarc(path), {
 });
 
 export type Precio = typeof schema.precios.$inferInsert;
-export type Precioish = Omit<Precio, "fetchedAt" | "url" | "id">;
+export type Precioish = Omit<
+  Precio,
+  "fetchedAt" | "url" | "id" | "warcRecordId" | "parserVersion"
+>;
 
 async function storePrecioPoint(point: Precio) {
   await db.insert(schema.precios).values(point);
@@ -63,6 +66,8 @@ async function parseWarc(path: string) {
           ...ish,
           fetchedAt: new Date(record.warcDate!),
           url: record.warcTargetURI,
+          warcRecordId: record.warcHeader("WARC-Record-ID"),
+          parserVersion: PARSER_VERSION,
         };
 
         if (ish) await storePrecioPoint(p);

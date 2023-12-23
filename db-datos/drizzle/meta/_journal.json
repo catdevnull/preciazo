@@ -8,6 +8,13 @@
       "when": 1703373860006,
       "tag": "0000_blushing_sabretooth",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1703374278842,
+      "tag": "0001_spotty_red_hulk",
+      "breakpoints": true
     }
   ]
 }
