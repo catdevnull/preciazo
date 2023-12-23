@@ -3,7 +3,7 @@
 /// <reference types="node" />
 import { Database } from "bun:sqlite";
 import { drizzle } from "drizzle-orm/bun-sqlite";
-import { precios } from "./db/schema.js";
+import { precios } from "db-datos/schema.js";
 import { WARCParser } from "warcio";
 import { createReadStream, createWriteStream } from "fs";
 import { writeFile } from "fs/promises";
@@ -20,10 +20,8 @@ const sqlite = new Database("sqlite.db");
 const db = drizzle(sqlite);
 
 sqlite.run(`
-pragma journal_mode = OFF;
-pragma synchronous = 0;
-pragma cache_size = 1000000;
-pragma locking_mode = exclusive;
+pragma journal_mode = WAL;
+PRAGMA synchronous = NORMAL;
 `);
 sqlite.run(`
 create table if not exists precios(

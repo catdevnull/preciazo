@@ -1,4 +1,4 @@
-import { integer, sqliteTable, text, b } from "drizzle-orm/sqlite-core";
+import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const precios = sqliteTable("precios", {
   id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
@@ -6,5 +6,7 @@ export const precios = sqliteTable("precios", {
   fetchedAt: integer("fetched_at", { mode: "timestamp" }).notNull(),
   precioCentavos: integer("precio_centavos"),
   inStock: integer("in_stock", { mode: "boolean" }),
-  url: text("url"),
+  url: text("url").notNull(),
 });
+
+export type Precio = typeof precios.$inferSelect;

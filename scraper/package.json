@@ -11,6 +11,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "db-datos": "workspace:^",
     "drizzle-orm": "^0.29.1",
     "linkedom": "^0.16.5",
     "nanoid": "^5.0.4",

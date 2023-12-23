@@ -3,3 +3,4 @@ packages:
   - "coto-link-scraper"
   - "scraper"
   - "sitio"
+  - "db-datos"
