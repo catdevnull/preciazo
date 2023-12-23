@@ -1,7 +1,7 @@
 data/carrefour
-*.warc.gz
+*.gz
 *.warc
-*.warc.zst
+*.zst
 p.*
 p
 node_modules/
