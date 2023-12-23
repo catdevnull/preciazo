@@ -49,6 +49,9 @@ async function parseWarc(path: string) {
   for await (const record of parser) {
     if (record.warcType === "response") {
       if (!record.warcTargetURI) continue;
+
+      // TODO: saltear si ya existe el record-id con el mismo parser version
+      // y sobreescribir si existe el mismo record-id pero con version mas bajo?
       const html = await record.contentText();
 
       const url = new URL(record.warcTargetURI);
