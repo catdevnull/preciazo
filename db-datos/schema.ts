@@ -7,6 +7,8 @@ export const precios = sqliteTable("precios", {
   precioCentavos: integer("precio_centavos"),
   inStock: integer("in_stock", { mode: "boolean" }),
   url: text("url").notNull(),
+  // warcRecordId: text("warc_record_id"),
+  // parserVersion: integer("parser_version"),
 });
 
 export type Precio = typeof precios.$inferSelect;

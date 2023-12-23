@@ -1,5 +1,6 @@
 {
   "name": "db-datos",
+  "type": "module",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -10,6 +11,11 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "better-sqlite3": "^9.2.2",
+    "drizzle-kit": "^0.20.7",
     "drizzle-orm": "^0.29.1"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.8"
   }
 }
