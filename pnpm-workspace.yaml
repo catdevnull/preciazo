@@ -2,3 +2,4 @@ packages:
   - "dia-link-scraper"
   - "coto-link-scraper"
   - "scraper"
+  - "sitio"
