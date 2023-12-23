@@ -13,8 +13,9 @@ import { getDiaProduct } from "./dia.js";
 import { getCotoProduct } from "./coto.js";
 import { join } from "path";
 import pMap from "p-map";
+import { parseWARC } from "./warc.js";
 
-const DEBUG = false;
+const DEBUG = true;
 
 const sqlite = new Database("sqlite.db");
 const db = drizzle(sqlite);
@@ -51,17 +52,14 @@ async function storePrecioPoint(point: Precio) {
 async function parseWarc(path: string) {
   // const warc = createReadStream(path);
 
-  const warc = Bun.spawn(["zstd", "-do", "/dev/stdout", path], {
-    stderr: "ignore",
-  }).stdout;
-
-  const parser = new WARCParser(warc);
+  const parser = parseWARC(path);
   for await (const record of parser) {
-    if (record.warcType === "response") {
-      if (!record.warcTargetURI) continue;
-      const html = await record.contentText();
+    if (record.fields.get("WARC-Type") === "response") {
+      const rawUri = record.fields.get("WARC-Target-URI");
+      if (!rawUri) continue;
+      const html = record.content.toString();
 
-      const url = new URL(record.warcTargetURI);
+      const url = new URL(rawUri.replace(/^</, "").replace(/>$/, ""));
       try {
         let ish: Precioish | undefined = undefined;
         if (url.hostname === "www.carrefour.com.ar")
@@ -74,8 +72,8 @@ async function parseWarc(path: string) {
 
         const p: Precio = {
           ...ish,
-          fetchedAt: new Date(record.warcDate!),
-          url: record.warcTargetURI,
+          fetchedAt: new Date(record.fields.get("WARC-Date")!),
+          url: url.toString(),
         };
 
         if (ish) await storePrecioPoint(p);
@@ -88,7 +86,7 @@ async function parseWarc(path: string) {
 
         if (DEBUG) {
           const urlHash = createHash("md5")
-            .update(record.warcTargetURI!)
+            .update(url.toString())
             .digest("hex");
           const output = join("debug", `${urlHash}.html`);
           await writeFile(output, html);
