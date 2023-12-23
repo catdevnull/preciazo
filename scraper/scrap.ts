@@ -1,11 +1,9 @@
 /// <reference lib="dom" />
 /// <reference lib="dom.iterable" />
-/// <reference types="node" />
 import { Database } from "bun:sqlite";
 import { drizzle } from "drizzle-orm/bun-sqlite";
-import { precios } from "db-datos/schema.js";
+import * as schema from "db-datos/schema.js";
 import { WARCParser } from "warcio";
-import { createReadStream, createWriteStream } from "fs";
 import { writeFile } from "fs/promises";
 import { createHash } from "crypto";
 import { getCarrefourProduct } from "./carrefour.js";
@@ -15,23 +13,14 @@ import { join } from "path";
 import pMap from "p-map";
 
 const DEBUG = false;
+const PARSER_VERSION = 1;
 
 const sqlite = new Database("sqlite.db");
-const db = drizzle(sqlite);
+const db = drizzle(sqlite, { schema });
 
 sqlite.run(`
 pragma journal_mode = WAL;
 PRAGMA synchronous = NORMAL;
-`);
-sqlite.run(`
-create table if not exists precios(
-  id integer primary key autoincrement,
-  ean text not null,
-  fetched_at text not null,
-  precio_centavos integer,
-  in_stock integer,
-  url text
-);
 `);
 
 let progress = { done: 0, errors: 0 };
@@ -39,11 +28,11 @@ await pMap(process.argv.slice(2), (path) => parseWarc(path), {
   concurrency: 40,
 });
 
-export type Precio = typeof precios.$inferInsert;
+export type Precio = typeof schema.precios.$inferInsert;
 export type Precioish = Omit<Precio, "fetchedAt" | "url" | "id">;
 
 async function storePrecioPoint(point: Precio) {
-  await db.insert(precios).values(point);
+  await db.insert(schema.precios).values(point);
 }
 
 async function parseWarc(path: string) {
