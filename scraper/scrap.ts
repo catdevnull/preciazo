@@ -14,17 +14,19 @@ import { getCotoProduct } from "./coto.js";
 import { join } from "path";
 import pMap from "p-map";
 
+const DEBUG = false;
+
 const sqlite = new Database("sqlite.db");
 const db = drizzle(sqlite);
 
 sqlite.run(`
-pragma journal_mode = WAL;
-pragma synchronous = normal;
-pragma temp_store = memory;
-pragma mmap_size = 30000000000;
+pragma journal_mode = OFF;
+pragma synchronous = 0;
+pragma cache_size = 1000000;
+pragma locking_mode = exclusive;
 `);
 sqlite.run(`
-create table precios(
+create table if not exists precios(
   id integer primary key autoincrement,
   ean text not null,
   fetched_at text not null,
@@ -34,11 +36,10 @@ create table precios(
 );
 `);
 
+let progress = { done: 0, errors: 0 };
 await pMap(process.argv.slice(2), (path) => parseWarc(path), {
   concurrency: 40,
 });
-
-const DEBUG = false;
 
 export type Precio = typeof precios.$inferInsert;
 export type Precioish = Omit<Precio, "fetchedAt" | "url" | "id">;
@@ -48,12 +49,16 @@ async function storePrecioPoint(point: Precio) {
 }
 
 async function parseWarc(path: string) {
-  const warc = createReadStream(path);
+  // const warc = createReadStream(path);
+
+  const warc = Bun.spawn(["zstd", "-do", "/dev/stdout", path], {
+    stderr: "ignore",
+  }).stdout;
+
   const parser = new WARCParser(warc);
-  let progress = { done: 0, errors: 0 };
   for await (const record of parser) {
     if (record.warcType === "response") {
-      if (!record.warcTargetURI) throw new Error("no uri");
+      if (!record.warcTargetURI) continue;
       const html = await record.contentText();
 
       const url = new URL(record.warcTargetURI);
