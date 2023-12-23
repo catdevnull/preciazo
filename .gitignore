@@ -1,5 +1,7 @@
 data/carrefour
 *.warc.gz
+*.warc
+*.warc.zst
 p.*
 p
 node_modules/
@@ -9,3 +11,4 @@ node_modules/
 scraper/debug/
 scraper/x.tsv
 *.tmp
+target/
