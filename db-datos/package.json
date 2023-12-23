@@ -5,7 +5,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "migrate": "node --import tsx/esm migrate.ts"
   },
   "keywords": [],
   "author": "",
@@ -13,7 +13,8 @@
   "dependencies": {
     "better-sqlite3": "^9.2.2",
     "drizzle-kit": "^0.20.7",
-    "drizzle-orm": "^0.29.1"
+    "drizzle-orm": "^0.29.1",
+    "tsx": "^4.7.0"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.8"
