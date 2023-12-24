@@ -5,7 +5,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "migrate": "node --import tsx/esm migrate.ts"
+    "migrate": "bun migrate.ts",
+    "generate": "drizzle-kit generate:sqlite"
   },
   "keywords": [],
   "author": "",
