@@ -1,6 +1,6 @@
 import { parseHTML } from "linkedom";
-import { Precioish, type Precio } from "./scrap.js";
-import { getProductJsonLd, priceFromMeta } from "./common.js";
+import { Precioish, type Precio } from "../scrap.js";
+import { getProductJsonLd, priceFromMeta } from "../common.js";
 
 function getEanByTable(dom: Window): string {
   const eanLabelEl = dom.window.document.querySelector(

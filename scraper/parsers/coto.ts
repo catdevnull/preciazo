@@ -1,5 +1,5 @@
 import { parseHTML } from "linkedom";
-import { type Precioish } from "./scrap.js";
+import { type Precioish } from "../scrap.js";
 
 function getEanFromText({ document }: Window) {
   const potentialEanEls = Array.from(

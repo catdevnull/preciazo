@@ -1,6 +1,6 @@
 import { parseHTML } from "linkedom";
-import { type Precioish } from "./scrap.js";
-import { getMetaProp, getProductJsonLd, priceFromMeta } from "./common.js";
+import { type Precioish } from "../scrap.js";
+import { getMetaProp, getProductJsonLd, priceFromMeta } from "../common.js";
 
 export function getDiaProduct(html: string | Buffer): Precioish {
   const dom = parseHTML(html);
