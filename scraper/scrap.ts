@@ -11,6 +11,7 @@ import { getDiaProduct } from "./dia.js";
 import { getCotoProduct } from "./coto.js";
 import { join } from "path";
 import pMap from "p-map";
+import { and, eq, sql } from "drizzle-orm";
 
 const DEBUG = false;
 const PARSER_VERSION = 1;
@@ -22,6 +23,17 @@ sqlite.run(`
 pragma journal_mode = WAL;
 PRAGMA synchronous = NORMAL;
 `);
+const getPrevPrecio = db
+  .select({ id: schema.precios.id })
+  .from(schema.precios)
+  .where(
+    and(
+      eq(schema.precios.warcRecordId, sql.placeholder("warcRecordId")),
+      eq(schema.precios.parserVersion, PARSER_VERSION)
+    )
+  )
+  .limit(1)
+  .prepare();
 
 let progress = { done: 0, errors: 0 };
 await pMap(process.argv.slice(2), (path) => parseWarc(path), {
@@ -49,9 +61,15 @@ async function parseWarc(path: string) {
   for await (const record of parser) {
     if (record.warcType === "response") {
       if (!record.warcTargetURI) continue;
+      const warcRecordId = record.warcHeader("WARC-Record-ID");
+      if (!warcRecordId) throw new Error("No tiene WARC-Record-ID");
 
-      // TODO: saltear si ya existe el record-id con el mismo parser version
-      // y sobreescribir si existe el mismo record-id pero con version mas bajo?
+      if (getPrevPrecio.get({ warcRecordId })) {
+        console.debug(`skipped ${warcRecordId}`);
+        continue;
+      }
+      // TODO: sobreescribir si existe el mismo record-id pero con version mas bajo?
+
       const html = await record.contentText();
 
       const url = new URL(record.warcTargetURI);
@@ -69,7 +87,7 @@ async function parseWarc(path: string) {
           ...ish,
           fetchedAt: new Date(record.warcDate!),
           url: record.warcTargetURI,
-          warcRecordId: record.warcHeader("WARC-Record-ID"),
+          warcRecordId,
           parserVersion: PARSER_VERSION,
         };
 
