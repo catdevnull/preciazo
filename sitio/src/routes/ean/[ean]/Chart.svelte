@@ -5,10 +5,29 @@
 
   export let precios: Precio[];
 
+  enum Supermercado {
+    Dia = "Dia",
+    Carrefour = "Carrefour",
+    Coto = "Coto",
+  }
+
+  const hosts: { [host: string]: Supermercado } = {
+    "diaonline.supermercadosdia.com.ar": Supermercado.Dia,
+    "www.carrefour.com.ar": Supermercado.Carrefour,
+    "www.cotodigital3.com.ar": Supermercado.Coto,
+  };
+  const colorBySupermercado: { [supermercado in Supermercado]: string } = {
+    [Supermercado.Dia]: "#d52b1e",
+    [Supermercado.Carrefour]: "#19549d",
+    [Supermercado.Coto]: "#e20025",
+  };
+
   $: datasets = precios
     .map((p) => new URL(p.url!).hostname)
     .filter(onlyUnique)
     .map((host) => {
+      const supermercado = hosts[host];
+
       const ps = precios
         .filter((p) => new URL(p.url!).hostname === host)
         .filter(
@@ -16,7 +35,7 @@
             p.precioCentavos !== null,
         );
       return {
-        label: host,
+        label: supermercado,
         data: [
           ...ps.map((p) => ({
             x: p.fetchedAt,
@@ -30,7 +49,7 @@
         ],
         fill: false,
 
-        borderColor: `${host}`,
+        borderColor: colorBySupermercado[supermercado],
         tension: 0.1,
       };
     });
