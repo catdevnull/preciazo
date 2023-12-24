@@ -5,6 +5,11 @@
   export let data: PageData;
 </script>
 
+{#if data.meta}
+  <h1 class="text-3xl font-bold">{data.meta.name}</h1>
+  <img src={data.meta.imageUrl} class="max-h-48" />
+{/if}
+
 <ul>
   {#each data.precios as precio}
     <li>

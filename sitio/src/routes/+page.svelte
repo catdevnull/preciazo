@@ -10,7 +10,7 @@
   {#each data.precios as product}
     <li>
       <a href={`/ean/${product.ean}`}>
-        {product.ean}
+        {product.name}
       </a>
     </li>
   {/each}

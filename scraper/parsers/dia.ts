@@ -10,10 +10,14 @@ export function getDiaProduct(html: string | Buffer): Precioish {
   const precioCentavos = priceFromMeta(dom);
 
   const ld = getProductJsonLd(dom);
+  const name = ld.name;
+  const imageUrl = ld.image;
   const inStock =
     ld.offers.offers[0].availability === "http://schema.org/InStock";
 
   return {
+    name,
+    imageUrl,
     ean,
     precioCentavos,
     inStock,

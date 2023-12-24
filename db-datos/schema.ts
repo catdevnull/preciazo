@@ -9,6 +9,8 @@ export const precios = sqliteTable("precios", {
   url: text("url").notNull(),
   warcRecordId: text("warc_record_id"),
   parserVersion: integer("parser_version"),
+  name: text("name"),
+  imageUrl: text("image_url"),
 });
 
 export type Precio = typeof precios.$inferSelect;

@@ -1,5 +1,3 @@
-/// <reference lib="dom" />
-/// <reference lib="dom.iterable" />
 import { Database } from "bun:sqlite";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import * as schema from "db-datos/schema.js";
@@ -14,7 +12,7 @@ import pMap from "p-map";
 import { and, eq, sql } from "drizzle-orm";
 
 const DEBUG = false;
-const PARSER_VERSION = 1;
+const PARSER_VERSION = 2;
 
 const sqlite = new Database("sqlite.db");
 const db = drizzle(sqlite, { schema });

@@ -15,6 +15,13 @@
       "when": 1703374278842,
       "tag": "0001_spotty_red_hulk",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1703452301821,
+      "tag": "0002_wild_amazoness",
+      "breakpoints": true
     }
   ]
 }
