@@ -15,7 +15,6 @@
     "@sveltejs/adapter-node": "^2.0.2",
     "@sveltejs/kit": "^2.0.0",
     "@sveltejs/vite-plugin-svelte": "^3.0.0",
-    "@types/better-sqlite3": "^7.6.8",
     "autoprefixer": "^10.4.16",
     "db-datos": "workspace:^",
     "postcss": "^8.4.32",
@@ -32,7 +31,6 @@
   },
   "type": "module",
   "dependencies": {
-    "better-sqlite3": "^9.2.2",
     "chart.js": "^4.4.1",
     "chartjs-adapter-dayjs-4": "^1.0.4",
     "dayjs": "^1.11.10",
