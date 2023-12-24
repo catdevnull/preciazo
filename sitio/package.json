@@ -12,11 +12,12 @@
     "format": "prettier --write ."
   },
   "devDependencies": {
-    "@sveltejs/adapter-auto": "^3.0.0",
+    "@sveltejs/adapter-node": "^2.0.2",
     "@sveltejs/kit": "^2.0.0",
     "@sveltejs/vite-plugin-svelte": "^3.0.0",
     "@types/better-sqlite3": "^7.6.8",
     "autoprefixer": "^10.4.16",
+    "db-datos": "workspace:^",
     "postcss": "^8.4.32",
     "postcss-load-config": "^5.0.2",
     "prettier": "^3.1.1",
@@ -35,7 +36,6 @@
     "chart.js": "^4.4.1",
     "chartjs-adapter-dayjs-4": "^1.0.4",
     "dayjs": "^1.11.10",
-    "db-datos": "workspace:^",
     "drizzle-orm": "^0.29.1"
   }
 }
