@@ -1,0 +1,10 @@
+FROM docker.io/oven/bun:1-alpine
+COPY build/ .
+RUN bun i
+EXPOSE 3000
+
+# https://github.com/gornostay25/svelte-adapter-bun/issues/39
+ENV PROTOCOL_HEADER=x-forwarded-proto
+ENV HOST_HEADER=x-forwarded-host
+
+CMD ["bun", "run", "start"]
