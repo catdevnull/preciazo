@@ -1,0 +1,1 @@
+CREATE INDEX `precios_ean_idx` ON `precios` (`ean`);
