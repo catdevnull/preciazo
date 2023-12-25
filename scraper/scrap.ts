@@ -8,7 +8,6 @@ import { getCarrefourProduct } from "./parsers/carrefour.js";
 import { getDiaProduct } from "./parsers/dia.js";
 import { getCotoProduct } from "./parsers/coto.js";
 import { join } from "path";
-import pMap from "p-map";
 import { and, eq, sql } from "drizzle-orm";
 
 const DEBUG = false;
@@ -33,10 +32,11 @@ const getPrevPrecio = db
   .limit(1)
   .prepare();
 
-let progress = { done: 0, errors: 0 };
-await pMap(process.argv.slice(2), (path) => parseWarc(path), {
-  concurrency: 40,
-});
+if (process.argv[1].endsWith("/scrap.ts")) {
+  for (const path of process.argv.slice(2)) {
+    await parseWarc(path);
+  }
+}
 
 export type Precio = typeof schema.precios.$inferInsert;
 export type Precioish = Omit<
@@ -44,12 +44,12 @@ export type Precioish = Omit<
   "fetchedAt" | "url" | "id" | "warcRecordId" | "parserVersion"
 >;
 
-async function storePrecioPoint(point: Precio) {
-  await db.insert(schema.precios).values(point);
-}
-
-async function parseWarc(path: string) {
+export async function parseWarc(path: string) {
   // const warc = createReadStream(path);
+  let progress: {
+    done: number;
+    errors: { error: any; warcRecordId: string; path: string }[];
+  } = { done: 0, errors: [] };
 
   const warc = Bun.spawn(["zstd", "-do", "/dev/stdout", path], {
     stderr: "ignore",
@@ -89,13 +89,16 @@ async function parseWarc(path: string) {
           parserVersion: PARSER_VERSION,
         };
 
-        if (ish) await storePrecioPoint(p);
+        await db.insert(schema.precios).values(p);
 
-        // console.log(product);
         progress.done++;
       } catch (error) {
-        console.error(error);
-        progress.errors++;
+        console.error({ path, warcRecordId, error });
+        progress.errors.push({
+          path,
+          warcRecordId,
+          error,
+        });
 
         if (DEBUG) {
           const urlHash = createHash("md5")
@@ -105,9 +108,9 @@ async function parseWarc(path: string) {
           await writeFile(output, html);
           console.error(`wrote html to ${output}`);
         }
-      } finally {
-        console.debug(`done: ${progress.done}; errored: ${progress.errors}`);
       }
     }
   }
+
+  return progress;
 }
