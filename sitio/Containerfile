@@ -7,4 +7,7 @@ EXPOSE 3000
 ENV PROTOCOL_HEADER=x-forwarded-proto
 ENV HOST_HEADER=x-forwarded-host
 
+VOLUME /db
+ENV DB_PATH=/db/db.db
+
 CMD ["bun", "run", "start"]
