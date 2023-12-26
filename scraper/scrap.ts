@@ -32,12 +32,6 @@ const getPrevPrecio = db
   .limit(1)
   .prepare();
 
-if (process.argv[1].endsWith("/scrap.ts")) {
-  for (const path of process.argv.slice(2)) {
-    await parseWarc(path);
-  }
-}
-
 export type Precio = typeof schema.precios.$inferInsert;
 export type Precioish = Omit<
   Precio,
