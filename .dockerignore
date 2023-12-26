@@ -1,0 +1,6 @@
+data/warcs/
+data/carrefour/
+*/*.db*
+downloader/
+node_modules/
+*/node_modules/

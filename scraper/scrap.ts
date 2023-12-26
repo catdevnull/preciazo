@@ -10,9 +10,12 @@ import { getCotoProduct } from "./parsers/coto.js";
 import { join } from "path";
 import { and, eq, sql } from "drizzle-orm";
 import { DB_PATH } from "db-datos/drizzle.config.js";
+import { migrateDb } from "db-datos/migrate.js";
 
 const DEBUG = false;
 const PARSER_VERSION = 2;
+
+migrateDb();
 
 const sqlite = new Database(DB_PATH);
 const db = drizzle(sqlite, { schema });

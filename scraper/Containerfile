@@ -1,0 +1,18 @@
+FROM oven/bun:1-alpine AS base
+WORKDIR /usr/src/app
+
+FROM base AS builder
+ENV NODE_ENV=production
+COPY . .
+RUN bun install --frozen-lockfile
+RUN bun build scraper/auto.ts --target=bun --outfile=/tmp/auto.build.js
+
+FROM base
+COPY --from=builder /tmp/auto.build.js /app/built.js
+COPY --from=builder /usr/src/app/db-datos/drizzle /app/drizzle
+WORKDIR /app
+
+VOLUME /db
+ENV DB_PATH=/db/db.db
+
+CMD ["bun", "/app/built.js"]

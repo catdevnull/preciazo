@@ -7,7 +7,6 @@ export const DB_PATH = process.env.DB_PATH;
 export default {
   schema: "./schema.ts",
   out: "./drizzle",
-  driver: "better-sqlite",
   dbCredentials: {
     url: process.env.DB_PATH,
   },
