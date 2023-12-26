@@ -4,15 +4,23 @@ WORKDIR /usr/src/app
 FROM base AS builder
 ENV NODE_ENV=production
 COPY . .
-RUN bun install --frozen-lockfile
-RUN bun build scraper/auto.ts --target=bun --outfile=/tmp/auto.build.js
+RUN bun install --frozen-lockfile \
+ && bun build scraper/auto.ts --target=bun --outfile=/tmp/auto.build.js \
+ && rm -rf node_modules/
 
 FROM base
+RUN apk add --no-cache wget zstd cronie tini
+RUN printf "#!/bin/sh\nexec bun /app/built.js" > /etc/periodic/daily/scraper \
+ && chmod +x /etc/periodic/daily/scraper
+
 COPY --from=builder /tmp/auto.build.js /app/built.js
 COPY --from=builder /usr/src/app/db-datos/drizzle /app/drizzle
+COPY --from=builder /usr/src/app/data /listas
 WORKDIR /app
 
 VOLUME /db
 ENV DB_PATH=/db/db.db
+ENV LISTS_DIR=/listas/
 
-CMD ["bun", "/app/built.js"]
+CMD ["tini", "/usr/sbin/crond", "-n"]
+# CMD ["bun", "/app/built.js"]

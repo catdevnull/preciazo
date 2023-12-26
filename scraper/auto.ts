@@ -77,13 +77,13 @@ async function downloadList(supermercado: Supermercado) {
   inform(`wget para ${zstdWarcName} tardó ${formatMs(performance.now() - t0)}`);
 
   const gzippedWarcPath = join(ctxPath, "temp.warc.gz");
-  if (!(await exists(gzippedWarcPath))) {
+  if (!(await fileExists(gzippedWarcPath))) {
     const err = report(`no encontré el ${gzippedWarcPath}`);
     throw err;
   }
 
   await compressionQueue.add(() => recompress(gzippedWarcPath, zstdWarcPath));
-  if (!(await exists(zstdWarcPath))) {
+  if (!(await fileExists(zstdWarcPath))) {
     const err = report(`no encontré el ${zstdWarcPath}`);
     throw err;
   }
@@ -201,7 +201,8 @@ function report(msg: string) {
   return error;
 }
 
-async function exists(path: string) {
+// no se llama exists porque bun tiene un bug en el que usa fs.exists por mas que exista una funcion llamada exists
+async function fileExists(path: string) {
   try {
     access(path);
     return true;
