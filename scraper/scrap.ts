@@ -20,10 +20,6 @@ migrateDb();
 const sqlite = new Database(DB_PATH);
 const db = drizzle(sqlite, { schema });
 
-sqlite.run(`
-pragma journal_mode = WAL;
-PRAGMA synchronous = NORMAL;
-`);
 const getPrevPrecio = db
   .select({ id: schema.precios.id })
   .from(schema.precios)

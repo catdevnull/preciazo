@@ -9,6 +9,10 @@ export function migrateDb() {
   const db = drizzle(sqlite, { schema });
 
   migrate(db, { migrationsFolder: "./drizzle" });
+  sqlite.run(`
+pragma journal_mode = WAL;
+PRAGMA synchronous = NORMAL;
+`);
 
   sqlite.close();
 }
