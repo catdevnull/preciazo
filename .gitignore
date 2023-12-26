@@ -12,5 +12,4 @@ scraper/debug/
 scraper/x.tsv
 *.tmp
 target/
-.env
-.env*
+.env.*

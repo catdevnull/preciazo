@@ -9,11 +9,12 @@ import { getDiaProduct } from "./parsers/dia.js";
 import { getCotoProduct } from "./parsers/coto.js";
 import { join } from "path";
 import { and, eq, sql } from "drizzle-orm";
+import { DB_PATH } from "db-datos/drizzle.config.js";
 
 const DEBUG = false;
 const PARSER_VERSION = 2;
 
-const sqlite = new Database("sqlite.db");
+const sqlite = new Database(DB_PATH);
 const db = drizzle(sqlite, { schema });
 
 sqlite.run(`

@@ -1,4 +1,3 @@
-import "dotenv/config";
 import { mkdtemp, access } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -50,13 +49,13 @@ supermercados.forEach(downloadList);
 
 async function downloadList(supermercado: Supermercado) {
   const listPath = resolve(
-    join(process.env.LISTS_DIR ?? "../data", `${supermercado}.txt`),
+    join(process.env.LISTS_DIR ?? "../data", `${supermercado}.txt`)
   );
   const date = new Date();
   const ctxPath = await mkdtemp(join(tmpdir(), "preciazo-scraper-wget-"));
   const zstdWarcName = `${supermercado}-${format(
     date,
-    "yyyy-MM-dd-HH:mm",
+    "yyyy-MM-dd-HH:mm"
   )}.warc.zst`;
   const zstdWarcPath = join(ctxPath, zstdWarcName);
   const subproc = Bun.spawn({
@@ -122,7 +121,7 @@ async function scrapAndInform({
     inform(
       `Procesado ${zstdWarcName} (${progress.done} ok, ${
         progress.errors.length
-      } errores) (tardó ${formatMs(took)})`,
+      } errores) (tardó ${formatMs(took)})`
     );
   } else {
     inform(`Algo falló en ${zstdWarcName}`);
@@ -159,7 +158,7 @@ function recompress(inputPath: string, outputPath: string) {
       ["-T0", "-15", "--long", "-o", outputPath],
       {
         stdio: ["pipe", null, null],
-      },
+      }
     );
     // @ts-expect-error a los types de bun no le gusta????
     decompressor.stdout.pipe(compressor.stdin);
@@ -215,7 +214,7 @@ async function sendTelegramMsg(text: string) {
   if (!process.env.TELEGRAM_BOT_TOKEN || !process.env.TELEGRAM_BOT_CHAT_ID)
     return;
   const url = new URL(
-    `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`,
+    `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`
   );
   url.searchParams.set("chat_id", process.env.TELEGRAM_BOT_CHAT_ID);
   url.searchParams.set("text", text);
