@@ -1,13 +1,11 @@
 import type { Config } from "drizzle-kit";
 
-if (!process.env.DB_PATH) throw new Error("no hay DB_PATH");
-
-export const DB_PATH = process.env.DB_PATH;
+export const DB_PATH = process.env.DB_PATH ?? "../scraper/sqlite.db";
 
 export default {
   schema: "./schema.ts",
   out: "./drizzle",
   dbCredentials: {
-    url: process.env.DB_PATH,
+    url: DB_PATH,
   },
 } satisfies Config;

@@ -15,9 +15,9 @@
       </a>
     </li>
     <li>
-      <a href="/ean/7794000006911"
-        >Sopa Instantánea KNORR QUICK Zapallo Romero Sobres 5 Un.</a
-      >
+      <a href="/ean/7794000006911">
+        Sopa Instantánea KNORR QUICK Zapallo Romero Sobres 5 Un.
+      </a>
     </li>
     <li>
       <a href="/ean/7798062540253">Agua Saborizada Levité Pera 1,5 Lts.</a>
