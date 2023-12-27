@@ -48,6 +48,7 @@ export async function parseWarc(path: string) {
   const warc = Bun.spawn(["zstd", "-do", "/dev/stdout", path], {
     stderr: "ignore",
   }).stdout;
+  // TODO: tirar error si falla zstd
 
   const parser = new WARCParser(warc);
   for await (const record of parser) {
