@@ -1,17 +1,17 @@
-FROM oven/bun:1-alpine AS base
+FROM docker.io/oven/bun:1-alpine AS base
 WORKDIR /usr/src/app
 
 FROM base AS builder
 ENV NODE_ENV=production
 COPY . .
 RUN bun install --frozen-lockfile \
- && bun build scraper/cli.ts --target=bun --outfile=/tmp/cli.build.js \
- && rm -rf node_modules/
+    && bun build scraper/cli.ts --target=bun --outfile=/tmp/cli.build.js \
+    && rm -rf node_modules/
 
 FROM base
 RUN apk add --no-cache wget zstd cronie tini
 RUN printf "#!/bin/sh\nexec bun /bin/scraper auto" > /etc/periodic/daily/scraper \
- && chmod +x /etc/periodic/daily/scraper
+    && chmod +x /etc/periodic/daily/scraper
 
 COPY --from=builder /tmp/cli.build.js /bin/scraper
 COPY --from=builder /usr/src/app/db-datos/drizzle /bin/drizzle
