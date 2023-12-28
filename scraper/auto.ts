@@ -66,6 +66,8 @@ class Auto {
         token: process.env.TELEGRAM_BOT_TOKEN,
         chatId: process.env.TELEGRAM_BOT_CHAT_ID,
       };
+
+    this.inform("[auto] Empezando scrap");
   }
 
   async downloadList(supermercado: Supermercado) {
