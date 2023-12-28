@@ -22,7 +22,7 @@ empezá descargando un WARC con 50 páginas de sample, y recomprimilo con zstd:
 
 ```
 wget --no-verbose --tries=3 --delete-after --input-file ./data/samples/Dia.txt --warc-file=dia-sample
-gzip -dc dia-sample.warc.gz | zstd --long -15 --no-sparse -o dia-sample.tar.zst
+gzip -dc dia-sample.warc.gz | zstd --long -15 --no-sparse -o dia-sample.warc.zst
 ```
 
 después, scrapealo a una BD:
@@ -30,7 +30,7 @@ después, scrapealo a una BD:
 ```
 cd scraper/
 bun install
-bun cli.ts scrap ../dia-sample.tar.zst
+bun cli.ts scrap ../dia-sample.warc.zst
 ```
 
 ahora miralo en el sitio:
