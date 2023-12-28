@@ -36,6 +36,34 @@
       "when": 1703726748364,
       "tag": "0004_left_wolfsbane",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1703807455551,
+      "tag": "0005_lucky_epoch",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1703807457204,
+      "tag": "0006_jazzy_madripoor",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1703807458666,
+      "tag": "0007_bright_silvermane",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1703807460152,
+      "tag": "0008_funny_nighthawk",
+      "breakpoints": true
     }
   ]
 }
