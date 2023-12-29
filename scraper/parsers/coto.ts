@@ -34,7 +34,9 @@ export function getCotoProduct(html: string | Buffer): Precioish {
   const ean = getEanFromText(dom);
   const precioCentavos = getPriceFromText(dom);
 
-  const name = dom.document.querySelector("h1.product_page")?.textContent;
+  const name = dom.document
+    .querySelector("h1.product_page")
+    ?.textContent?.trim();
   const imageUrl = dom.document.querySelector<HTMLImageElement>(
     ".productImageZoom img"
   )?.src;

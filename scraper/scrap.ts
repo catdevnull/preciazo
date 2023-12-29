@@ -13,7 +13,7 @@ import { DB_PATH } from "db-datos/drizzle.config.js";
 import { migrateDb } from "db-datos/migrate.js";
 
 const DEBUG = false;
-const PARSER_VERSION = 2;
+const PARSER_VERSION = 3;
 
 migrateDb();
 
