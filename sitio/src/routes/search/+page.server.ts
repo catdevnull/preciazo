@@ -11,7 +11,6 @@ export const load: PageServerLoad = async ({ url }) => {
     results = db.all(
       sql`select ean, name from precios_fts where name match ${query};`,
     );
-    console.debug(results);
   }
 
   return { query, results };
