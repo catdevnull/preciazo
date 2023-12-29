@@ -1,4 +1,5 @@
 FROM docker.io/oven/bun:1-alpine
+RUN apk add --no-cache sqlite
 COPY build/ .
 RUN bun i
 EXPOSE 3000
