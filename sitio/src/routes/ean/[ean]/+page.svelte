@@ -22,7 +22,7 @@
 
 {#if data.meta}
   <h1 class="text-3xl font-bold">{data.meta.name}</h1>
-  <img src={data.meta.imageUrl} class="max-h-48" />
+  <img src={data.meta.imageUrl} alt={data.meta.name} class="max-h-48" />
   <div class="flex gap-2">
     {#each urls as [supermercado, url]}
       <a
