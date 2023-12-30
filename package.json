@@ -4,6 +4,7 @@
   "workspaces": [
     "dia-link-scraper",
     "coto-link-scraper",
+    "carrefour-link-scraper",
     "scraper",
     "sitio",
     "db-datos"

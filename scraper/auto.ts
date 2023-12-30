@@ -14,6 +14,7 @@ import { like } from "drizzle-orm";
 import { productoUrls } from "db-datos/schema.js";
 import { scrapDiaProducts } from "../dia-link-scraper/index.js";
 import { scrapCotoProducts } from "../coto-link-scraper/index.js";
+import { scrapCarrefourProducts } from "../carrefour-link-scraper/index.js";
 
 const supermercados: Supermercado[] = [
   Supermercado.Carrefour,
@@ -79,12 +80,7 @@ class Auto {
     const ctxPath = await mkdtemp(join(tmpdir(), "preciazo-scraper-wget-"));
 
     let listPath: string;
-    if (supermercado === "Carrefour") {
-      // TODO: carrefour todavía no tiene un scraper que guarde a la BD
-      listPath = resolve(
-        join(process.env.LISTS_DIR ?? "../data", `${supermercado}.txt`)
-      );
-    } else {
+    {
       const t0 = performance.now();
       switch (supermercado) {
         case "Dia":
@@ -93,23 +89,27 @@ class Auto {
         case "Coto":
           await scrapCotoProducts();
           break;
+        case "Carrefour":
+          await scrapCarrefourProducts();
+          break;
       }
       this.inform(
         `[scrapUrls[${supermercado}]] Tardó ${formatMs(performance.now() - t0)}`
       );
-
-      listPath = join(ctxPath, `lista-${supermercado}.txt`);
-      const host = Object.entries(hosts).find(
-        ([host, supe]) => supe === supermercado
-      )![0];
-      const results = await db.query.productoUrls
-        .findMany({
-          where: like(productoUrls.url, `%${host}%`),
-        })
-        .execute();
-      const urls = results.map((r) => r.url);
-      await writeFile(listPath, urls.join("\n") + "\n");
     }
+
+    listPath = join(ctxPath, `lista-${supermercado}.txt`);
+    const host = Object.entries(hosts).find(
+      ([host, supe]) => supe === supermercado
+    )![0];
+    const results = await db.query.productoUrls
+      .findMany({
+        where: like(productoUrls.url, `%${host}%`),
+      })
+      .execute();
+    const urls = results.map((r) => r.url);
+    await writeFile(listPath, urls.join("\n") + "\n");
+
     const date = new Date();
     const zstdWarcName = `${supermercado}-${format(
       date,
