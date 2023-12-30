@@ -12,8 +12,6 @@
   "license": "ISC",
   "dependencies": {
     "linkedom": "^0.16.5",
-    "p-map": "^7.0.0",
-    "tsx": "^4.7.0",
-    "undici": "^6.2.0"
+    "p-map": "^7.0.0"
   }
 }
