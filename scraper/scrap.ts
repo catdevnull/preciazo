@@ -10,7 +10,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { db } from "db-datos/db.js";
 
 const DEBUG = false;
-const PARSER_VERSION = 3;
+const PARSER_VERSION = 4;
 
 const getPrevPrecio = db
   .select({ id: schema.precios.id })

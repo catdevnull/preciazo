@@ -37,9 +37,8 @@ export function getCotoProduct(html: string | Buffer): Precioish {
   const name = dom.document
     .querySelector("h1.product_page")
     ?.textContent?.trim();
-  const imageUrl = dom.document.querySelector<HTMLImageElement>(
-    ".productImageZoom img"
-  )?.src;
+  const imageUrl =
+    dom.document.querySelector<HTMLImageElement>(".zoom img")?.src;
 
   return { name, imageUrl, ean, precioCentavos };
 }
