@@ -1,4 +1,3 @@
-import { error } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
 import { db, schema } from "$lib/server/db";
 const { precios } = schema;

@@ -11,7 +11,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "drizzle-orm": "^0.29.1"
+    "drizzle-orm": "=0.29.1"
   },
   "devDependencies": {
     "@types/bun": "^1.0.0",
