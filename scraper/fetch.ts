@@ -1,32 +1,6 @@
-import { request } from "undici";
-import { createBrotliDecompress, createUnzip } from "node:zlib";
-import { pipeline } from "node:stream/promises";
-
 export async function getHtml(url: string) {
-  const res = await request(url, {
-    headers: {
-      "Accept-Encoding": "gzip, deflate, br",
-    },
-    throwOnError: true,
-    bodyTimeout: 10 * 60 * 1000,
-  });
-  let output: Buffer;
-  switch (res.headers["content-encoding"]) {
-    case "gzip":
-    case "deflate":
-      output = await pipeline(res.body, createUnzip(), readableToBuffer);
-      break;
-    case "br":
-      output = await pipeline(
-        res.body,
-        createBrotliDecompress(),
-        readableToBuffer
-      );
-      break;
-    default:
-      output = await readableToBuffer(res.body);
-  }
-  return output;
+  const res = await fetch(url);
+  return readableToBuffer(res.body!);
 }
 
 async function readableToBuffer(source: AsyncIterable<any>) {

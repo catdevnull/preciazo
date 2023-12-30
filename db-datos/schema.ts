@@ -22,3 +22,12 @@ export const precios = sqliteTable(
 );
 
 export type Precio = typeof precios.$inferSelect;
+
+export const productoUrls = sqliteTable("producto_urls", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  url: text("url").unique().notNull(),
+  firstSeen: integer("first_seen", { mode: "timestamp" }).notNull(),
+  lastSeen: integer("last_seen", { mode: "timestamp" }).notNull(),
+});
+
+export type ProductUrl = typeof productoUrls.$inferSelect;

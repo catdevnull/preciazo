@@ -1,14 +1,19 @@
-import { mkdtemp, access } from "node:fs/promises";
+import { mkdtemp, access, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawn } from "node:child_process";
-import { Supermercado } from "db-datos/supermercado.js";
+import { Supermercado, hosts } from "db-datos/supermercado.js";
 import PQueue from "p-queue";
 import { format, formatDuration, intervalToDuration } from "date-fns";
 import { parseWarc } from "./scrap.js";
 import { S3Client } from "@aws-sdk/client-s3";
 import { Upload } from "@aws-sdk/lib-storage";
 import { BunFile } from "bun";
+import { db } from "db-datos/db.js";
+import { like } from "drizzle-orm";
+import { productoUrls } from "db-datos/schema.js";
+import { scrapDiaProducts } from "../dia-link-scraper/index.js";
+import { scrapCotoProducts } from "../coto-link-scraper/index.js";
 
 const supermercados: Supermercado[] = [
   Supermercado.Carrefour,
@@ -71,11 +76,41 @@ class Auto {
   }
 
   async downloadList(supermercado: Supermercado) {
-    const listPath = resolve(
-      join(process.env.LISTS_DIR ?? "../data", `${supermercado}.txt`)
-    );
-    const date = new Date();
     const ctxPath = await mkdtemp(join(tmpdir(), "preciazo-scraper-wget-"));
+
+    let listPath: string;
+    if (supermercado === "Carrefour") {
+      // TODO: carrefour todavía no tiene un scraper que guarde a la BD
+      listPath = resolve(
+        join(process.env.LISTS_DIR ?? "../data", `${supermercado}.txt`)
+      );
+    } else {
+      const t0 = performance.now();
+      switch (supermercado) {
+        case "Dia":
+          await scrapDiaProducts();
+          break;
+        case "Coto":
+          await scrapCotoProducts();
+          break;
+      }
+      this.inform(
+        `[scrapUrls[${supermercado}]] Tardó ${formatMs(performance.now() - t0)}`
+      );
+
+      listPath = join(ctxPath, `lista-${supermercado}.txt`);
+      const host = Object.entries(hosts).find(
+        ([host, supe]) => supe === supermercado
+      )![0];
+      const results = await db.query.productoUrls
+        .findMany({
+          where: like(productoUrls.url, `%${host}%`),
+        })
+        .execute();
+      const urls = results.map((r) => r.url);
+      await writeFile(listPath, urls.join("\n") + "\n");
+    }
+    const date = new Date();
     const zstdWarcName = `${supermercado}-${format(
       date,
       "yyyy-MM-dd-HH:mm"
@@ -98,7 +133,7 @@ class Auto {
     const t0 = performance.now();
     await subproc.exited;
     this.inform(
-      `wget para ${zstdWarcName} tardó ${formatMs(performance.now() - t0)}`
+      `[wget] ${zstdWarcName} tardó ${formatMs(performance.now() - t0)}`
     );
 
     const gzippedWarcPath = join(ctxPath, "temp.warc.gz");
@@ -187,7 +222,6 @@ class Auto {
           stdio: ["pipe", null, null],
         }
       );
-      // @ts-expect-error a los types de bun no le gusta????
       decompressor.stdout.pipe(compressor.stdin);
       compressor.on("close", (code) => {
         if (code !== 0) {

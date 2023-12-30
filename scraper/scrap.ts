@@ -1,5 +1,3 @@
-import { Database } from "bun:sqlite";
-import { drizzle } from "drizzle-orm/bun-sqlite";
 import * as schema from "db-datos/schema.js";
 import { WARCParser } from "warcio";
 import { writeFile } from "fs/promises";
@@ -9,16 +7,10 @@ import { getDiaProduct } from "./parsers/dia.js";
 import { getCotoProduct } from "./parsers/coto.js";
 import { join } from "path";
 import { and, eq, sql } from "drizzle-orm";
-import { DB_PATH } from "db-datos/drizzle.config.js";
-import { migrateDb } from "db-datos/migrate.js";
+import { db } from "db-datos/db.js";
 
 const DEBUG = false;
 const PARSER_VERSION = 3;
-
-migrateDb();
-
-const sqlite = new Database(DB_PATH);
-const db = drizzle(sqlite, { schema });
 
 const getPrevPrecio = db
   .select({ id: schema.precios.id })
