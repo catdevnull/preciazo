@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ProductPreview from "$lib/ProductPreview.svelte";
   import type { PageData } from "./$types";
 
   export let data: PageData;
@@ -8,12 +9,10 @@
   <header class="my-2">
     <h1 class="text-2xl font-bold">Resultados para "{data.query}"</h1>
   </header>
-  <ul>
-    {#each data.results as result}
+  <ul class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+    {#each data.results as product}
       <li>
-        <a href={`/ean/${result.ean}`}>
-          {result.name}
-        </a>
+        <ProductPreview {product} />
       </li>
     {/each}
   </ul>
