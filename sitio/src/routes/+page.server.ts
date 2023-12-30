@@ -6,7 +6,11 @@ import { sql } from "drizzle-orm";
 
 export const load: PageServerLoad = async ({ params }) => {
   const q = db
-    .select({ ean: precios.ean, name: precios.name })
+    .select({
+      ean: precios.ean,
+      name: precios.name,
+      imageUrl: precios.imageUrl,
+    })
     .from(precios)
     .groupBy(precios.ean)
     .having(sql`max(length(name))`)

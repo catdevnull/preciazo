@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ProductPreview from "$lib/ProductPreview.svelte";
   import type { PageData } from "./$types";
 
   export let data: PageData;
@@ -30,12 +31,10 @@
 
 <section>
   <h2 class="text-lg font-bold">Random</h2>
-  <ul>
+  <ul class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
     {#each data.precios as product}
       <li>
-        <a href={`/ean/${product.ean}`}>
-          {product.name}
-        </a>
+        <ProductPreview {product} />
       </li>
     {/each}
   </ul>
