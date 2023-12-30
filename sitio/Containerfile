@@ -1,8 +1,24 @@
-FROM docker.io/oven/bun:1-alpine
-RUN apk add --no-cache sqlite
-COPY build/ .
-RUN bun i
-EXPOSE 3000
+FROM docker.io/oven/bun:1-alpine as build
+RUN apk add --no-cache nodejs
+WORKDIR /usr/src/app
+COPY . .
+WORKDIR /usr/src/app/sitio
+RUN bun install && \
+    bun run build
+
+# FROM docker.io/oven/bun:1-alpine as deps
+# WORKDIR /usr/src/app/sitio
+# RUN bun init && bun install "better-sqlite3"@"^9.2.2" "chart.js"@"^4.4.1" "chartjs-adapter-dayjs-4"@"^1.0.4" "dayjs"@"^1.11.10" "drizzle-orm"@"^0.29.1"
+# COPY --from=build /usr/src/app/db-datos node_modules/db-datos
+
+FROM docker.io/alpine:3.19
+RUN apk add --no-cache tini nodejs npm jq
+
+WORKDIR /app
+COPY --from=build /usr/src/app/sitio/package.json package.real.json
+RUN sh -c 'echo {\"name\":\"sitio\",\"type\":\"module\",\"dependencies\":$(jq .dependencies < package.real.json)} > package.json' && npm install
+COPY --from=build /usr/src/app/db-datos node_modules/db-datos
+COPY --from=build /usr/src/app/sitio/build .
 
 # https://github.com/gornostay25/svelte-adapter-bun/issues/39
 ENV PROTOCOL_HEADER=x-forwarded-proto
@@ -10,5 +26,6 @@ ENV HOST_HEADER=x-forwarded-host
 
 VOLUME /db
 ENV DB_PATH=/db/db.db
+EXPOSE 3000
 
-CMD ["bun", "run", "start"]
+CMD ["tini", "node", "."]

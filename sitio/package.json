@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
-    "build:container": "bun --bun vite build && podman build -t gitea.nulo.in/nulo/preciazo/sitio .",
+    "build:container": "podman build -t gitea.nulo.in/nulo/preciazo/sitio -f ./Containerfile ..",
     "push:container": "bun build:container && podman push gitea.nulo.in/nulo/preciazo/sitio",
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
@@ -16,7 +16,6 @@
   "devDependencies": {
     "@sveltejs/kit": "^2.0.0",
     "@sveltejs/vite-plugin-svelte": "^3.0.0",
-    "@types/bun": "^1.0.0",
     "autoprefixer": "^10.4.16",
     "db-datos": "workspace:^",
     "postcss": "^8.4.32",
@@ -25,18 +24,21 @@
     "prettier-plugin-svelte": "^3.1.2",
     "prettier-plugin-tailwindcss": "^0.5.9",
     "svelte": "^4.2.7",
-    "svelte-adapter-bun": "^0.5.1",
     "svelte-check": "^3.6.0",
     "tailwindcss": "^3.3.6",
     "tslib": "^2.4.1",
     "typescript": "^5.0.0",
-    "vite": "^5.0.3"
+    "vite": "^5.0.3",
+    "@sveltejs/adapter-node": "^2.0.2",
+    "@types/better-sqlite3": "^7.6.8",
+    "@types/node": "^20.10.6"
   },
   "type": "module",
   "dependencies": {
+    "better-sqlite3": "^9.2.2",
     "chart.js": "^4.4.1",
     "chartjs-adapter-dayjs-4": "^1.0.4",
     "dayjs": "^1.11.10",
-    "drizzle-orm": "^0.29.1"
+    "drizzle-orm": "=0.29.1"
   }
 }

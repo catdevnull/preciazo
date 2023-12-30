@@ -1,4 +1,4 @@
-import { count, countDistinct, eq, max, sql } from "drizzle-orm";
+import { countDistinct } from "drizzle-orm";
 import type { PageServerLoad } from "./$types";
 import { db, schema } from "$lib/server/db";
 const { precios } = schema;
