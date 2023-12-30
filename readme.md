@@ -38,5 +38,5 @@ ahora miralo en el sitio:
 ```
 cd sitio/
 bun install
-bun --bun dev
+bun dev
 ```
