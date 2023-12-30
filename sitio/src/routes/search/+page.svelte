@@ -5,6 +5,9 @@
 </script>
 
 {#if data.results}
+  <header class="my-2">
+    <h1 class="text-2xl font-bold">Resultados para "{data.query}"</h1>
+  </header>
   <ul>
     {#each data.results as result}
       <li>
