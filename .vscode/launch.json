@@ -5,6 +5,18 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "type": "lldb",
+      "request": "launch",
+      "name": "warcificator",
+      "cwd": "warcificator/",
+      "cargo": {
+        // https://github.com/vadimcn/codelldb/issues/884
+        "args": ["build", "--manifest-path=warcificator/Cargo.toml"]
+      },
+      "args": ["../data/samples/Carrefour.50.txt"],
+      "env": {}
+    },
+    {
       "type": "node",
       "request": "launch",
       "name": "scraper",
