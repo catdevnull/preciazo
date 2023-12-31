@@ -3,7 +3,7 @@ use std::{env::args, fs, io::stdout, net::SocketAddr};
 use warc::{RecordBuilder, WarcHeader, WarcWriter};
 
 struct FullExchange {
-    socket_addr: SocketAddr,
+    socket_addr: Option<SocketAddr>,
     request: http::Request<&'static str>,
     response: http::Response<Vec<u8>>,
 }
@@ -57,7 +57,7 @@ async fn worker(rx: Receiver<String>, tx: Sender<FullExchange>) {
         }
         let response = client.execute(request).await.unwrap();
 
-        let ip_address = response.remote_addr().unwrap();
+        let ip_address = response.remote_addr();
 
         let http_request = {
             http_request_builder
@@ -103,35 +103,41 @@ async fn warc_writer(rx: Receiver<FullExchange>) {
         .unwrap();
     while let Ok(res) = rx.recv().await {
         let uri = res.request.uri().to_string();
+        let req_record = {
+            let mut builder = RecordBuilder::default()
+                .version("1.0".to_owned())
+                .warc_type(warc::RecordType::Request)
+                .header(WarcHeader::TargetURI, uri.clone())
+                .header(WarcHeader::ContentType, "application/http;msgtype=request")
+                .header(
+                    WarcHeader::Unknown("X-Warcificator-Lying".to_string()),
+                    "the request contains other headers not included here",
+                );
+            if let Some(addr) = res.socket_addr {
+                builder = builder.header(WarcHeader::IPAddress, addr.ip().to_string());
+            }
+            builder
+                .body(format_http11_request(res.request).into_bytes())
+                .build()
+                .unwrap()
+        };
+        writer.write(&req_record).unwrap();
         writer
-            .write(
-                &RecordBuilder::default()
-                    .version("1.0".to_owned())
-                    .warc_type(warc::RecordType::Request)
-                    .header(WarcHeader::TargetURI, uri.clone())
-                    .header(WarcHeader::IPAddress, res.socket_addr.ip().to_string())
-                    .header(WarcHeader::ContentType, "application/http;msgtype=request")
-                    .header(
-                        WarcHeader::Unknown("X-Warcificator-Lying".to_string()),
-                        "the request contains other headers not included here",
-                    )
-                    .body(format_http11_request(res.request).into_bytes())
-                    .build()
-                    .unwrap(),
-            )
-            .unwrap();
-        writer
-            .write(
-                &RecordBuilder::default()
+            .write(&{
+                let mut builder = RecordBuilder::default()
                     .version("1.0".to_owned())
                     .warc_type(warc::RecordType::Response)
                     .header(WarcHeader::TargetURI, uri)
-                    .header(WarcHeader::IPAddress, res.socket_addr.ip().to_string())
-                    .header(WarcHeader::ContentType, "application/http;msgtype=response")
+                    .header(WarcHeader::ConcurrentTo, req_record.warc_id())
+                    .header(WarcHeader::ContentType, "application/http;msgtype=response");
+                if let Some(addr) = res.socket_addr {
+                    builder = builder.header(WarcHeader::IPAddress, addr.ip().to_string());
+                }
+                builder
                     .body(format_http11_response(res.response))
                     .build()
-                    .unwrap(),
-            )
+                    .unwrap()
+            })
             .unwrap();
     }
 }
