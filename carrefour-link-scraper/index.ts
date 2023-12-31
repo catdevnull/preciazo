@@ -1,8 +1,6 @@
 import pMap from "p-map";
 import { saveUrls } from "db-datos/urlHelpers.js";
 
-await scrapBySitemap();
-
 export async function scrapCarrefourProducts() {
   await scrapBySitemap();
 }
