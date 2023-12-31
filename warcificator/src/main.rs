@@ -3,9 +3,9 @@ use std::{env::args, fs, io::stdout, net::SocketAddr};
 use warc::{RecordBuilder, WarcHeader, WarcWriter};
 
 struct FullExchange {
-    ip_address: SocketAddr,
+    socket_addr: SocketAddr,
     request: http::Request<&'static str>,
-    response: http::Response<String>,
+    response: http::Response<Vec<u8>>,
 }
 
 #[tokio::main]
@@ -73,16 +73,17 @@ async fn worker(rx: Receiver<String>, tx: Sender<FullExchange>) {
             for (key, val) in response.headers() {
                 http_response_builder = http_response_builder.header(key, val);
             }
-            let body = response.text().await.unwrap();
-            http_response_builder.body(body).unwrap()
+            let body = response.bytes().await.unwrap();
+            http_response_builder.body(body.to_vec()).unwrap()
         };
 
         tx.send(FullExchange {
-            ip_address: ip_address,
+            socket_addr: ip_address,
             request: http_request,
             response: http_response,
         })
-        .await;
+        .await
+        .unwrap();
     }
 }
 
@@ -101,15 +102,33 @@ async fn warc_writer(rx: Receiver<FullExchange>) {
         )
         .unwrap();
     while let Ok(res) = rx.recv().await {
+        let uri = res.request.uri().to_string();
         writer
             .write(
                 &RecordBuilder::default()
                     .version("1.0".to_owned())
                     .warc_type(warc::RecordType::Request)
-                    .header(WarcHeader::TargetURI, res.request.uri().to_string())
-                .header(WarcHeader::IPAddress, res.ip_address.to_string())
-            .header(WarcHeader::ContentType, "application/http;msgtype=request")
-                    .body(warc_fields.into())
+                    .header(WarcHeader::TargetURI, uri.clone())
+                    .header(WarcHeader::IPAddress, res.socket_addr.ip().to_string())
+                    .header(WarcHeader::ContentType, "application/http;msgtype=request")
+                    .header(
+                        WarcHeader::Unknown("X-Warcificator-Lying".to_string()),
+                        "the request contains other headers not included here",
+                    )
+                    .body(format_http11_request(res.request).into_bytes())
+                    .build()
+                    .unwrap(),
+            )
+            .unwrap();
+        writer
+            .write(
+                &RecordBuilder::default()
+                    .version("1.0".to_owned())
+                    .warc_type(warc::RecordType::Response)
+                    .header(WarcHeader::TargetURI, uri)
+                    .header(WarcHeader::IPAddress, res.socket_addr.ip().to_string())
+                    .header(WarcHeader::ContentType, "application/http;msgtype=response")
+                    .body(format_http11_response(res.response))
                     .build()
                     .unwrap(),
             )
@@ -118,8 +137,28 @@ async fn warc_writer(rx: Receiver<FullExchange>) {
 }
 
 fn format_http11_request(req: http::Request<&'static str>) -> String {
-    let headers_str=req.headers().iter().map(|(key,val)| format!("{}: {}\n",key,val.to_str().unwrap())).collect::<String>();
+    let start_line = format!("{} {} HTTP/1.1", req.method().as_str(), req.uri().path());
+    let headers_str = req
+        .headers()
+        .iter()
+        .map(|(key, val)| format!("{}: {}\r\n", key, val.to_str().unwrap()))
+        .collect::<String>();
 
-    format!(r#"{} {} HTTP/1.1
-{}"#, req.method().as_str(), req.uri().path(), headers_str)
+    [start_line.as_str(), headers_str.as_str(), req.body()].join("\r\n")
+}
+
+fn format_http11_response(res: http::Response<Vec<u8>>) -> Vec<u8> {
+    let start_line = format!(
+        "HTTP/1.1 {} {}",
+        res.status().as_str(),
+        res.status().canonical_reason().unwrap_or("")
+    );
+    let headers_str = res
+        .headers()
+        .iter()
+        .map(|(key, val)| format!("{}: {}\r\n", key, val.to_str().unwrap()))
+        .collect::<String>();
+
+    let crlf: &[u8] = &[13, 10];
+    [start_line.as_bytes(), headers_str.as_bytes(), res.body()].join(crlf)
 }
