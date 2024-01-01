@@ -22,9 +22,6 @@ const supermercados: Supermercado[] = [
   Supermercado.Dia,
 ];
 
-// hacemos una cola para la compresión para no sobrecargar la CPU
-const compressionQueue = new PQueue({ concurrency: 1 });
-
 // hacemos una cola para el scrapeo para no tener varios writers a la BD y no sobrecargar la CPU
 const scrapQueue = new PQueue({ concurrency: 1 });
 
@@ -77,7 +74,7 @@ class Auto {
   }
 
   async downloadList(supermercado: Supermercado) {
-    const ctxPath = await mkdtemp(join(tmpdir(), "preciazo-scraper-wget-"));
+    const ctxPath = await mkdtemp(join(tmpdir(), "preciazo-scraper-download-"));
 
     let listPath: string;
     {
@@ -117,15 +114,7 @@ class Auto {
     )}.warc.zst`;
     const zstdWarcPath = join(ctxPath, zstdWarcName);
     const subproc = Bun.spawn({
-      cmd: [
-        "wget",
-        "--no-verbose",
-        "--tries=3",
-        "--delete-after",
-        "--input-file",
-        listPath,
-        `--warc-file=temp`,
-      ],
+      cmd: ["warcificator", listPath, zstdWarcPath],
       stderr: "ignore",
       stdout: "ignore",
       cwd: ctxPath,
@@ -133,18 +122,9 @@ class Auto {
     const t0 = performance.now();
     await subproc.exited;
     this.inform(
-      `[wget] ${zstdWarcName} tardó ${formatMs(performance.now() - t0)}`
+      `[downloader] ${zstdWarcName} tardó ${formatMs(performance.now() - t0)}`
     );
 
-    const gzippedWarcPath = join(ctxPath, "temp.warc.gz");
-    if (!(await fileExists(gzippedWarcPath))) {
-      const err = this.report(`no encontré el ${gzippedWarcPath}`);
-      throw err;
-    }
-
-    await compressionQueue.add(() =>
-      this.recompress(gzippedWarcPath, zstdWarcPath)
-    );
     if (!(await fileExists(zstdWarcPath))) {
       const err = this.report(`no encontré el ${zstdWarcPath}`);
       throw err;
@@ -188,49 +168,6 @@ class Auto {
     } else {
       this.inform(`Algo falló en ${zstdWarcName}`);
     }
-  }
-
-  /**
-   * toma un archivo gzippeado y lo recomprime con zstd.
-   * borra el archivo original.
-   */
-  recompress(inputPath: string, outputPath: string) {
-    // XXX: por alguna razón no funciona en Bun 1.0.20
-    // const decompressor = Bun.spawn({
-    //   cmd: ["gzip", "-dc", inputPath],
-    //   stderr: "inherit",
-    // });
-    // const compressor = Bun.spawn({
-    //   cmd: ["zstd", "-T0", "-15", "--long", "-o", outputPath],
-    //   stdin: decompressor.stdout,
-    //   // stderr: "inherit",
-    // });
-    // const errorCode = await compressor.exited;
-    // if (errorCode !== 0) {
-    //   const err = report(`zstd threw error code ${errorCode}`);
-    //   throw err;
-    // }
-
-    return new Promise((resolve, reject) => {
-      const decompressor = spawn("gzip", ["-dc", inputPath], {
-        stdio: [null, "pipe", null],
-      });
-      const compressor = spawn(
-        "zstd",
-        ["-T0", "-15", "--long", "-o", outputPath],
-        {
-          stdio: ["pipe", null, null],
-        }
-      );
-      decompressor.stdout.pipe(compressor.stdin);
-      compressor.on("close", (code) => {
-        if (code !== 0) {
-          const err = this.report(`zstd threw error code ${code}`);
-          reject(err);
-        }
-        resolve(void 0);
-      });
-    });
   }
 
   async uploadToBucket({
@@ -278,7 +215,6 @@ class Auto {
     await fetch(url);
   }
 }
-// await recompress("sqlite.db.gz", "sqlite.db.zst");
 
 // no se llama exists porque bun tiene un bug en el que usa fs.exists por mas que exista una funcion llamada exists
 async function fileExists(path: string) {
