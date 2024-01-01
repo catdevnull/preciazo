@@ -1,6 +1,6 @@
 import { parseHTML } from "linkedom";
 import { Precioish, type Precio } from "../scrap.js";
-import { getProductJsonLd, priceFromMeta } from "../common.js";
+import { getProductJsonLd, priceFromMeta, stockFromMeta } from "../common.js";
 
 function getEanByTable(dom: Window): string {
   const eanLabelEl = dom.window.document.querySelector(
@@ -54,14 +54,22 @@ export function getCarrefourProduct(html: string | Buffer): Precioish {
   const dom = parseHTML(html);
 
   const precioCentavos = priceFromMeta(dom);
+  const inStock = stockFromMeta(dom);
 
   const ean = eanFromSeedState(dom);
 
-  const ld = getProductJsonLd(dom);
-  const name = ld.name;
-  const imageUrl = ld.image;
-  const inStock =
-    ld.offers.offers[0].availability === "http://schema.org/InStock";
+  let name, imageUrl;
+  try {
+    const ld = getProductJsonLd(dom);
+    name = ld.name;
+    imageUrl = ld.image;
+  } catch (error) {
+    if (inStock) {
+      throw error;
+    } else {
+      // algunas paginas sin stock no tienen json ld
+    }
+  }
 
   return {
     name,
