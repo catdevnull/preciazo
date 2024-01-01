@@ -12,6 +12,10 @@ export function priceFromMeta(dom: Window) {
   const precioCentavos = parseFloat(precioMeta) * 100;
   return precioCentavos;
 }
+export function stockFromMeta(dom: Window) {
+  const stockMeta = getMetaProp(dom, "product:availability");
+  return stockMeta === "instock";
+}
 
 function parseJsonLds(dom: Window): object[] {
   const scripts = dom.window.document.querySelectorAll(
