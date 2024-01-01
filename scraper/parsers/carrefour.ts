@@ -1,20 +1,7 @@
 import { parseHTML } from "linkedom";
-import { Precioish, type Precio } from "../scrap.js";
+import { Precioish } from "../scrap.js";
 import { getProductJsonLd, priceFromMeta, stockFromMeta } from "../common.js";
 
-function getEanByTable(dom: Window): string {
-  const eanLabelEl = dom.window.document.querySelector(
-    'td[data-specification="EAN"]'
-  );
-  const eanValueEl = eanLabelEl?.parentElement?.children[1];
-  if (
-    !eanValueEl ||
-    !(eanValueEl instanceof dom.window.HTMLElement) ||
-    !eanValueEl.dataset.specification
-  )
-    throw new Error("No encontré el EAN");
-  return eanValueEl.dataset.specification;
-}
 function parseScriptJson<T>(dom: Window, varname: string): T {
   const script = dom.window.document.querySelector<HTMLTemplateElement>(
     `template[data-type="json"][data-varname="${varname}"]`
@@ -36,18 +23,6 @@ function eanFromSeedState(dom: Window): string {
   );
   if (!productSkuJson) throw new Error("no encontré el sku en el json");
   return productSkuJson[1].ean;
-}
-function eanFromDynamicYieldScript(dom: Window): string {
-  const scriptEl = dom.window.document.querySelector(
-    `script[src^="//st.dynamicyield.com/st?"]`
-  );
-  if (!scriptEl || !(scriptEl instanceof dom.window.HTMLScriptElement))
-    throw new Error("no encuentro el script de dynamicyield");
-
-  const url = new URL(scriptEl.src);
-  const ctx = url.searchParams.get("ctx");
-  if (!ctx) throw new Error("no hay ctx");
-  return JSON.parse(ctx).data[0];
 }
 
 export function getCarrefourProduct(html: string | Buffer): Precioish {
