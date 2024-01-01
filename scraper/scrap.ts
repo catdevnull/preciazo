@@ -52,6 +52,12 @@ export async function parseWarc(path: string) {
         console.debug(`skipped ${warcRecordId}`);
         continue;
       }
+      if (record.httpHeaders?.statusCode !== 200) {
+        console.debug(
+          `skipped ${warcRecordId} because status=${record.httpHeaders?.statusCode} (!=200)`
+        );
+        continue;
+      }
       // TODO: sobreescribir si existe el mismo record-id pero con version mas bajo?
 
       const html = await record.contentText();
