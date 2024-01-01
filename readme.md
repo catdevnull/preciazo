@@ -8,7 +8,7 @@ scrapeo "masivo" de precios y datos en supermercados argentinos
 
   (no hace falta correrlos porque ya hay listas armadas en [data/](./data/))
 
-- se usa wget (potencialmente reemplazado por algo custom en el futuro) que genera un archivo [WARC](https://iipc.github.io/warc-specifications/specifications/warc-format/warc-1.0/) con todas las paginas de productos
+- [warcificator](./warcificator/) descarga las paginas de productos y genera un archivo [WARC](https://iipc.github.io/warc-specifications/specifications/warc-format/warc-1.0/) con ellas
 - el [scraper](./scraper/) procesa estos WARCs, extrayendo varios datos y guardandolos en una base de datos SQLite (definida en [db-datos](./db-datos/schema.ts))
 - el [sitio](./sitio/) renderiza páginas a partir de la base de datos y hace gráficos lindos
 
