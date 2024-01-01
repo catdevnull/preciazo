@@ -7,16 +7,19 @@ import { parseWarc } from "./scrap.js";
 if (process.argv[2] === "auto") {
   await auto();
 } else if (process.argv[2] === "scrap-carrefour-links") {
-  await scrapCarrefourProducts()
+  await scrapCarrefourProducts();
 } else if (process.argv[2] === "scrap-dia-links") {
-  await scrapDiaProducts()
+  await scrapDiaProducts();
 } else if (process.argv[2] === "scrap-coto-links") {
-  await scrapCotoProducts()
+  await scrapCotoProducts();
 } else if (process.argv[2] === "scrap") {
   const warcPaths = process.argv.slice(3);
   if (warcPaths.length > 0) {
     for (const path of warcPaths) {
-      await parseWarc(path);
+      const res = await parseWarc(path);
+      console.info("=======================================");
+      console.info(path, res);
+      console.info("=======================================");
     }
   } else {
     console.error("Especificá WARCs para scrapear.");
