@@ -5,3 +5,4 @@ downloader/
 node_modules/
 */node_modules/
 */Containerfile
+*.warc.zst
