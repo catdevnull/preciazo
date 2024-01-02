@@ -2,7 +2,7 @@ import { scrapCarrefourProducts } from "../carrefour-link-scraper/index.js";
 import { scrapCotoProducts } from "../coto-link-scraper/index.js";
 import { scrapDiaProducts } from "../dia-link-scraper/index.js";
 import { auto } from "./auto.js";
-import { parseWarc } from "./scrap.js";
+import { downloadList } from "./scrap.js";
 
 if (process.argv[2] === "auto") {
   await auto();
@@ -13,16 +13,16 @@ if (process.argv[2] === "auto") {
 } else if (process.argv[2] === "scrap-coto-links") {
   await scrapCotoProducts();
 } else if (process.argv[2] === "scrap") {
-  const warcPaths = process.argv.slice(3);
-  if (warcPaths.length > 0) {
-    for (const path of warcPaths) {
-      const res = await parseWarc(path);
+  const urlLists = process.argv.slice(3);
+  if (urlLists.length > 0) {
+    for (const path of urlLists) {
+      const res = await downloadList(path);
       console.info("=======================================");
       console.info(path, res);
       console.info("=======================================");
     }
   } else {
-    console.error("Especificá WARCs para scrapear.");
+    console.error("Especificá listas de urls para scrapear.");
     process.exit(1);
   }
 } else {

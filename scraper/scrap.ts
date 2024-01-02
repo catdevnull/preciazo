@@ -1,28 +1,15 @@
 import * as schema from "db-datos/schema.js";
-import { WARCParser } from "warcio";
 import { writeFile } from "fs/promises";
 import { createHash } from "crypto";
 import { getCarrefourProduct } from "./parsers/carrefour.js";
 import { getDiaProduct } from "./parsers/dia.js";
 import { getCotoProduct } from "./parsers/coto.js";
 import { join } from "path";
-import { and, eq, sql } from "drizzle-orm";
 import { db } from "db-datos/db.js";
+import pMap from "p-map";
 
 const DEBUG = false;
 const PARSER_VERSION = 4;
-
-const getPrevPrecio = db
-  .select({ id: schema.precios.id })
-  .from(schema.precios)
-  .where(
-    and(
-      eq(schema.precios.warcRecordId, sql.placeholder("warcRecordId")),
-      eq(schema.precios.parserVersion, PARSER_VERSION)
-    )
-  )
-  .limit(1)
-  .prepare();
 
 export type Precio = typeof schema.precios.$inferInsert;
 export type Precioish = Omit<
@@ -30,39 +17,36 @@ export type Precioish = Omit<
   "fetchedAt" | "url" | "id" | "warcRecordId" | "parserVersion"
 >;
 
-export async function parseWarc(path: string) {
-  // const warc = createReadStream(path);
+export async function downloadList(path: string) {
   let progress: {
     done: number;
-    errors: { error: any; warcRecordId: string; path: string }[];
-  } = { done: 0, errors: [] };
+    skipped: number;
+    errors: { error: any; url: string; path: string }[];
+  } = { done: 0, skipped: 0, errors: [] };
 
-  const proc = Bun.spawn(["zstdcat", "-d", path], {});
-  const warc = proc.stdout;
-  // TODO: tirar error si falla zstd
+  let list = (await Bun.file(path).text())
+    .split("\n")
+    .filter((s) => s.length > 0);
 
-  const parser = new WARCParser(warc);
-  for await (const record of parser) {
-    if (record.warcType === "response") {
-      if (!record.warcTargetURI) continue;
-      const warcRecordId = record.warcHeader("WARC-Record-ID");
-      if (!warcRecordId) throw new Error("No tiene WARC-Record-ID");
-
-      if (getPrevPrecio.get({ warcRecordId })) {
-        console.debug(`skipped ${warcRecordId}`);
-        continue;
+  await pMap(
+    list,
+    async (urlS) => {
+      let url;
+      try {
+        url = new URL(urlS);
+      } catch (err) {
+        console.error("error parseando", urlS);
+        return;
       }
-      if (record.httpHeaders?.statusCode !== 200) {
-        console.debug(
-          `skipped ${warcRecordId} because status=${record.httpHeaders?.statusCode} (!=200)`
-        );
-        continue;
+      const res = await fetch(url);
+      if (!res.ok) {
+        console.debug(`skipped ${urlS} because status=${res.status} (!=200)`);
+        progress.skipped++;
+        return;
       }
-      // TODO: sobreescribir si existe el mismo record-id pero con version mas bajo?
 
-      const html = await record.contentText();
+      const html = await res.text();
 
-      const url = new URL(record.warcTargetURI);
       try {
         let ish: Precioish | undefined = undefined;
         if (url.hostname === "www.carrefour.com.ar")
@@ -75,9 +59,8 @@ export async function parseWarc(path: string) {
 
         const p: Precio = {
           ...ish,
-          fetchedAt: new Date(record.warcDate!),
-          url: record.warcTargetURI,
-          warcRecordId,
+          fetchedAt: new Date(),
+          url: urlS,
           parserVersion: PARSER_VERSION,
         };
 
@@ -85,28 +68,23 @@ export async function parseWarc(path: string) {
 
         progress.done++;
       } catch (error) {
-        console.error({ path, warcRecordId, error });
+        console.error({ path, urlS, error });
         progress.errors.push({
           path,
-          warcRecordId,
+          url: urlS,
           error,
         });
 
         if (DEBUG) {
-          const urlHash = createHash("md5")
-            .update(record.warcTargetURI!)
-            .digest("hex");
+          const urlHash = createHash("md5").update(urlS).digest("hex");
           const output = join("debug", `${urlHash}.html`);
           await writeFile(output, html);
           console.error(`wrote html to ${output}`);
         }
       }
-    }
-  }
-
-  if ((await proc.exited) !== 0) {
-    throw new Error("zstd tiró un error");
-  }
+    },
+    { concurrency: 32 }
+  );
 
   return progress;
 }

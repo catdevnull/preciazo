@@ -1,14 +1,10 @@
-import { mkdtemp, access, writeFile } from "node:fs/promises";
+import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
-import { spawn } from "node:child_process";
+import { join } from "node:path";
 import { Supermercado, hosts } from "db-datos/supermercado.js";
 import PQueue from "p-queue";
-import { format, formatDuration, intervalToDuration } from "date-fns";
-import { parseWarc } from "./scrap.js";
-import { S3Client } from "@aws-sdk/client-s3";
-import { Upload } from "@aws-sdk/lib-storage";
-import { BunFile } from "bun";
+import { formatDuration, intervalToDuration } from "date-fns";
+import { downloadList } from "./scrap.js";
 import { db } from "db-datos/db.js";
 import { like } from "drizzle-orm";
 import { productoUrls } from "db-datos/schema.js";
@@ -23,7 +19,7 @@ const supermercados: Supermercado[] = [
 ];
 
 // hacemos una cola para el scrapeo para no tener varios writers a la BD y no sobrecargar la CPU
-const scrapQueue = new PQueue({ concurrency: 1 });
+const scrapQueue = new PQueue({ concurrency: 4 });
 
 export async function auto() {
   const a = new Auto();
@@ -31,35 +27,9 @@ export async function auto() {
 }
 
 class Auto {
-  s3Config?: { s3: S3Client; bucketName: string };
   telegramConfig?: { token: string; chatId: string };
 
   constructor() {
-    if (
-      !process.env.S3_ACCESS_KEY_ID ||
-      !process.env.S3_SECRET_ACCESS_KEY ||
-      !process.env.S3_BUCKET_NAME
-    ) {
-      if (process.env.NODE_ENV === "development") {
-        console.warn("faltan creds de s3, no voy a subir a s3");
-      } else {
-        throw new Error("faltan creds de s3");
-      }
-    } else {
-      this.s3Config = {
-        // https://www.backblaze.com/docs/cloud-storage-use-the-aws-sdk-for-javascript-v3-with-backblaze-b2
-        s3: new S3Client({
-          endpoint: "https://s3.us-west-004.backblazeb2.com",
-          region: "us-west-004",
-          credentials: {
-            accessKeyId: process.env.S3_ACCESS_KEY_ID,
-            secretAccessKey: process.env.S3_SECRET_ACCESS_KEY,
-          },
-        }),
-        bucketName: process.env.S3_BUCKET_NAME,
-      };
-    }
-
     if (!process.env.TELEGRAM_BOT_TOKEN)
       console.warn("no hay TELEGRAM_BOT_TOKEN, no voy a loggear por allá");
     else if (!process.env.TELEGRAM_BOT_CHAT_ID)
@@ -107,91 +77,27 @@ class Auto {
     const urls = results.map((r) => r.url);
     await writeFile(listPath, urls.join("\n") + "\n");
 
-    const date = new Date();
-    const zstdWarcName = `${supermercado}-${format(
-      date,
-      "yyyy-MM-dd-HH:mm"
-    )}.warc.zst`;
-    const zstdWarcPath = join(ctxPath, zstdWarcName);
-    const subproc = Bun.spawn({
-      cmd: ["warcificator", listPath, zstdWarcPath],
-      stderr: "ignore",
-      stdout: "ignore",
-      cwd: ctxPath,
-    });
-    const t0 = performance.now();
-    await subproc.exited;
-    this.inform(
-      `[downloader] ${zstdWarcName} tardó ${formatMs(performance.now() - t0)}`
-    );
-
-    if (!(await fileExists(zstdWarcPath))) {
-      const err = this.report(`no encontré el ${zstdWarcPath}`);
-      throw err;
-    }
-
-    this.scrapAndInform({ zstdWarcPath, zstdWarcName });
-
-    try {
-      await this.uploadToBucket({
-        fileName: zstdWarcName,
-        file: Bun.file(zstdWarcPath),
-      });
-    } catch (error) {
-      this.inform(`Falló subir ${zstdWarcName} a S3; ${error}`);
-      console.error(error);
-    }
-
+    this.scrapAndInform({ listPath });
     // TODO: borrar archivos temporales
   }
 
-  async scrapAndInform({
-    zstdWarcPath,
-    zstdWarcName,
-  }: {
-    zstdWarcPath: string;
-    zstdWarcName: string;
-  }) {
+  async scrapAndInform({ listPath }: { listPath: string }) {
     const res = await scrapQueue.add(async () => {
       const t0 = performance.now();
-      const progress = await parseWarc(zstdWarcPath);
+      const progress = await downloadList(listPath);
       return { took: performance.now() - t0, progress };
     });
 
     if (res) {
       const { took, progress } = res;
       this.inform(
-        `Procesado ${zstdWarcName} (${progress.done} ok, ${
-          progress.errors.length
-        } errores) (tardó ${formatMs(took)})`
+        `Procesado ${listPath} (${progress.done} ok, ${
+          progress.skipped
+        } skipped, ${progress.errors.length} errores) (tardó ${formatMs(took)})`
       );
     } else {
-      this.inform(`Algo falló en ${zstdWarcName}`);
+      this.inform(`Algo falló en ${listPath}`);
     }
-  }
-
-  async uploadToBucket({
-    fileName,
-    file,
-  }: {
-    fileName: string;
-    file: BunFile;
-  }) {
-    if (!this.s3Config) {
-      this.inform(
-        `[s3] Se intentó subir ${fileName} pero no tenemos creds de S3`
-      );
-      return;
-    }
-    const parallelUploads3 = new Upload({
-      client: this.s3Config.s3,
-      params: {
-        Bucket: this.s3Config.bucketName,
-        Key: fileName,
-        Body: file,
-      },
-    });
-    await parallelUploads3.done();
   }
 
   inform(msg: string) {
@@ -213,16 +119,6 @@ class Auto {
     url.searchParams.set("chat_id", this.telegramConfig.chatId);
     url.searchParams.set("text", text);
     await fetch(url);
-  }
-}
-
-// no se llama exists porque bun tiene un bug en el que usa fs.exists por mas que exista una funcion llamada exists
-async function fileExists(path: string) {
-  try {
-    access(path);
-    return true;
-  } catch {
-    return false;
   }
 }
 

@@ -8,27 +8,12 @@ RUN bun install --frozen-lockfile \
     && bun build scraper/cli.ts --target=bun --outfile=/tmp/cli.build.js \
     && rm -rf node_modules/
 
-# https://dev.to/deciduously/use-multi-stage-docker-builds-for-statically-linked-rust-binaries-3jgd
-FROM docker.io/rust:1.74 AS warcificator-builder
-WORKDIR /usr/src/
-RUN rustup target add x86_64-unknown-linux-musl
-RUN apt-get update && apt-get install -y musl-tools musl-dev
-
-RUN USER=root cargo new warcificator
-WORKDIR /usr/src/warcificator
-COPY ./warcificator/Cargo.toml ./warcificator/Cargo.lock ./
-RUN cargo build --release
-
-COPY ./warcificator/src ./src
-RUN cargo install --target x86_64-unknown-linux-musl --path .
-
 FROM base
 RUN apk add --no-cache wget zstd tini
 RUN printf "#!/bin/sh\nexec bun /bin/scraper auto\n" > /etc/periodic/daily/scraper \
     && chmod +x /etc/periodic/daily/scraper
 
 COPY --from=builder /tmp/cli.build.js /bin/scraper
-COPY --from=warcificator-builder /usr/local/cargo/bin/warcificator /bin/
 COPY --from=builder /usr/src/app/db-datos/drizzle /bin/drizzle
 COPY --from=builder /usr/src/app/data /listas
 WORKDIR /app
