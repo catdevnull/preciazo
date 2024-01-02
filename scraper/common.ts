@@ -32,7 +32,7 @@ const zProductLd = z.object({
   name: z.string(),
   image: z.string(),
   offers: z.object({
-    offers: z.tuple([
+    offers: z.array(
       z.object({
         "@type": z.literal("Offer"),
         price: z.number(),
@@ -41,8 +41,8 @@ const zProductLd = z.object({
           "http://schema.org/OutOfStock",
           "http://schema.org/InStock",
         ]),
-      }),
-    ]),
+      })
+    ),
   }),
 });
 type ProductLd = z.infer<typeof zProductLd>;
