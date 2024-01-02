@@ -1,24 +1,30 @@
 use async_channel::{Receiver, Sender};
+use rusqlite::Connection;
+use scraper::{Element, Html, Selector};
 use std::{
     env::args,
     fs,
-    net::SocketAddr,
-    process::{Command, Stdio},
+    time::{SystemTime, UNIX_EPOCH},
 };
 use tokio::io::{stderr, AsyncWriteExt};
-use warc::{RecordBuilder, WarcHeader, WarcWriter};
 
-struct FullExchange {
-    socket_addr: Option<SocketAddr>,
-    request: http::Request<&'static str>,
-    response: http::Response<Vec<u8>>,
+#[derive(Debug)]
+struct PrecioPoint {
+    ean: String,
+    // unix
+    fetched_at: u64,
+    precio_centavos: Option<u64>,
+    in_stock: Option<bool>,
+    url: String,
+    parser_version: u16,
+    name: Option<String>,
+    image_url: Option<String>,
 }
 
 #[tokio::main]
 async fn main() {
     let mut args = args().skip(1);
     let links_list_path = args.next().unwrap();
-    let output_zstd_path = args.next().unwrap();
     let links_str = fs::read_to_string(links_list_path).unwrap();
     let links = links_str
         .split("\n")
@@ -29,7 +35,7 @@ async fn main() {
 
     let handle = {
         let (sender, receiver) = async_channel::bounded::<String>(1);
-        let (res_sender, res_receiver) = async_channel::unbounded::<FullExchange>();
+        let (res_sender, res_receiver) = async_channel::unbounded::<PrecioPoint>();
 
         let mut handles = Vec::new();
         for _ in 1..16 {
@@ -38,7 +44,7 @@ async fn main() {
             handles.push(tokio::spawn(worker(rx, tx)));
         }
 
-        let warc_writer_handle = tokio::spawn(warc_writer(res_receiver, output_zstd_path));
+        let db_writer_handle = tokio::spawn(db_writer(res_receiver));
 
         for link in links {
             sender.send_blocking(link).unwrap();
@@ -49,22 +55,22 @@ async fn main() {
             handle.await.unwrap();
         }
 
-        warc_writer_handle
+        db_writer_handle
     };
     handle.await.unwrap();
 }
 
-async fn worker(rx: Receiver<String>, tx: Sender<FullExchange>) {
+async fn worker(rx: Receiver<String>, tx: Sender<PrecioPoint>) {
     let client = reqwest::ClientBuilder::default().build().unwrap();
     while let Ok(url) = rx.recv().await {
-        let res = fetch(&client, url.clone()).await;
+        let res = fetch_and_parse(&client, url.clone()).await;
         match res {
             Ok(ex) => {
                 tx.send(ex).await.unwrap();
             }
             Err(err) => {
                 stderr()
-                    .write_all(format!("Failed to fetch {}: {:#?}", url.as_str(), err).as_bytes())
+                    .write_all(format!("Failed to fetch {}: {:#?}\n", url.as_str(), err).as_bytes())
                     .await
                     .unwrap();
             }
@@ -72,128 +78,138 @@ async fn worker(rx: Receiver<String>, tx: Sender<FullExchange>) {
     }
 }
 
-async fn fetch(client: &reqwest::Client, url: String) -> Result<FullExchange, reqwest::Error> {
-    let request = client.get(url).build().unwrap();
-    let mut http_request_builder = http::Request::builder()
-        .method(request.method())
-        .uri(request.url().as_str());
-    for (key, val) in request.headers() {
-        http_request_builder = http_request_builder.header(key, val);
-    }
-    let response = client.execute(request).await?;
+#[derive(Debug)]
+enum FetchError {
+    HttpError(reqwest::Error),
+    NoPriceMetaEl,
+    NoMetaContent,
+    NotANumber,
+    NoStockMetaEl,
+    NoValidStockMeta,
+    NoSeedState,
+    NoProductInSeedState,
+    NoProductSkuInSeedState,
+}
 
-    let ip_address = response.remote_addr();
+async fn fetch_and_parse(client: &reqwest::Client, url: String) -> Result<PrecioPoint, FetchError> {
+    let request = client.get(url.as_str()).build().unwrap();
+    let response = client
+        .execute(request)
+        .await
+        .map_err(|e| FetchError::HttpError(e))?;
+    let body = response
+        .text()
+        .await
+        .map_err(|e| FetchError::HttpError(e))?;
 
-    let http_request = {
-        http_request_builder
-            .version(response.version())
-            .body("")
-            .unwrap()
+    let html = Html::parse_document(&body);
+
+    let point = parse_carrefour(url, html)?;
+
+    Ok(point)
+}
+fn parse_carrefour(url: String, html: Html) -> Result<PrecioPoint, FetchError> {
+    let meta_price_sel = Selector::parse("meta[property=\"product:price:amount\"]").unwrap();
+    let precio_centavos = match html.select(&meta_price_sel).next() {
+        Some(el) => match el.attr("content") {
+            Some(attr) => match attr.parse::<f64>() {
+                Ok(f) => Ok((f * 100.0) as u64),
+                Err(_) => Err(FetchError::NotANumber),
+            },
+            None => Err(FetchError::NoMetaContent),
+        },
+        None => Err(FetchError::NoPriceMetaEl),
+    }?;
+
+    let meta_stock_el = Selector::parse("meta[property=\"product:availability\"]").unwrap();
+    let in_stock = match html.select(&meta_stock_el).next() {
+        Some(el) => match el.attr("content") {
+            Some(attr) => match attr {
+                "oos" => Ok(Some(false)),
+                "instock" => Ok(Some(true)),
+                _ => Err(FetchError::NoValidStockMeta),
+            },
+            None => Err(FetchError::NoMetaContent),
+        },
+        None => Err(FetchError::NoStockMetaEl),
+    }?;
+
+    let ean = {
+        let state = parse_script_json(&html, "__STATE__").ok_or(FetchError::NoSeedState)?;
+        let seed_state = &state.as_object().ok_or(FetchError::NoSeedState)?;
+        let (_, product_json) = seed_state
+            .into_iter()
+            .find(|(key, val)| {
+                key.starts_with("Product:")
+                    && val.as_object().map_or(false, |val| {
+                        val.get("__typename")
+                            .map_or(false, |typename| typename == "Product")
+                    })
+            })
+            .ok_or(FetchError::NoProductInSeedState)?;
+        let cache_id = product_json
+            .get("cacheId")
+            .ok_or(FetchError::NoProductInSeedState)?;
+        let (_, product_sku_json) = seed_state
+            .into_iter()
+            .filter_map(|(key, val)| val.as_object().map_or(None, |o| Some((key, o))))
+            .find(|(key, val)| {
+                key.starts_with(&format!("Product:{}", cache_id))
+                    && val
+                        .get("__typename")
+                        .map_or(false, |typename| typename == "SKU")
+            })
+            .ok_or(FetchError::NoProductSkuInSeedState)?;
+        product_sku_json
+            .get("ean")
+            .ok_or(FetchError::NoProductSkuInSeedState)?
+            .as_str()
+            .ok_or(FetchError::NoProductSkuInSeedState)?
+            .to_string()
     };
 
-    let http_response = {
-        let mut http_response_builder = http::Response::<()>::builder()
-            .status(response.status())
-            .version(response.version());
-        for (key, val) in response.headers() {
-            http_response_builder = http_response_builder.header(key, val);
-        }
-        let body = response.bytes().await?;
-        http_response_builder.body(body.to_vec()).unwrap()
-    };
-
-    Ok(FullExchange {
-        socket_addr: ip_address,
-        request: http_request,
-        response: http_response,
+    Ok(PrecioPoint {
+        ean: ean,
+        fetched_at: now_sec(),
+        in_stock: in_stock,
+        name: None,
+        image_url: None,
+        parser_version: 5,
+        precio_centavos: Some(precio_centavos),
+        url: url,
     })
 }
 
-async fn warc_writer(rx: Receiver<FullExchange>, output_zstd_path: String) {
-    let zstd_proc = Command::new("zstd")
-        .args(&["-T0", "-15", "--long", "-o", &output_zstd_path])
-        .stdin(Stdio::piped())
-        .stderr(Stdio::null())
-        .stdout(Stdio::null())
-        .spawn()
-        .unwrap();
-
-    let mut writer = WarcWriter::new(zstd_proc.stdin.unwrap());
-    writer
-        .write(
-            &RecordBuilder::default()
-                .version("1.0".to_owned())
-                .warc_type(warc::RecordType::WarcInfo)
-                .header(WarcHeader::ContentType, "application/warc-fields")
-                .body(format!("software: preciazo-warcificator/0.0.0\nformat: WARC file version 1.0\nconformsTo: http://www.archive.org/documents/WarcFileFormat-1.0.html").into())
-                .build()
-                .unwrap(),
-        )
-        .unwrap();
-    while let Ok(res) = rx.recv().await {
-        let uri = res.request.uri().to_string();
-        let req_record = {
-            let mut builder = RecordBuilder::default()
-                .version("1.0".to_owned())
-                .warc_type(warc::RecordType::Request)
-                .header(WarcHeader::TargetURI, uri.clone())
-                .header(WarcHeader::ContentType, "application/http;msgtype=request")
-                .header(
-                    WarcHeader::Unknown("X-Warcificator-Lying".to_string()),
-                    "the request contains other headers not included here",
-                );
-            if let Some(addr) = res.socket_addr {
-                builder = builder.header(WarcHeader::IPAddress, addr.ip().to_string());
-            }
-            builder
-                .body(format_http11_request(res.request).into_bytes())
-                .build()
-                .unwrap()
-        };
-        writer.write(&req_record).unwrap();
-        writer
-            .write(&{
-                let mut builder = RecordBuilder::default()
-                    .version("1.0".to_owned())
-                    .warc_type(warc::RecordType::Response)
-                    .header(WarcHeader::TargetURI, uri)
-                    .header(WarcHeader::ConcurrentTo, req_record.warc_id())
-                    .header(WarcHeader::ContentType, "application/http;msgtype=response");
-                if let Some(addr) = res.socket_addr {
-                    builder = builder.header(WarcHeader::IPAddress, addr.ip().to_string());
-                }
-                builder
-                    .body(format_http11_response(res.response))
-                    .build()
-                    .unwrap()
-            })
-            .unwrap();
+fn parse_script_json(html: &Html, varname: &str) -> Option<serde_json::Value> {
+    let template_sel = Selector::parse(&format!(
+        "template[data-type=\"json\"][data-varname=\"{}\"]",
+        varname
+    ))
+    .unwrap();
+    match html.select(&template_sel).next() {
+        Some(value) => match value.first_element_child() {
+            Some(script) => match serde_json::from_str(&script.inner_html()) {
+                Ok(val) => val,
+                Err(_) => None,
+            },
+            None => None,
+        },
+        None => None,
     }
 }
 
-fn format_http11_request(req: http::Request<&'static str>) -> String {
-    let start_line = format!("{} {} HTTP/1.1", req.method().as_str(), req.uri().path());
-    let headers_str = req
-        .headers()
-        .iter()
-        .map(|(key, val)| format!("{}: {}\r\n", key, val.to_str().unwrap()))
-        .collect::<String>();
-
-    [start_line.as_str(), headers_str.as_str(), req.body()].join("\r\n")
+fn now_sec() -> u64 {
+    let start = SystemTime::now();
+    let since_the_epoch = start
+        .duration_since(UNIX_EPOCH)
+        .expect("Time went backwards");
+    since_the_epoch.as_secs()
 }
 
-fn format_http11_response(res: http::Response<Vec<u8>>) -> Vec<u8> {
-    let start_line = format!(
-        "HTTP/1.1 {} {}",
-        res.status().as_str(),
-        res.status().canonical_reason().unwrap_or("")
-    );
-    let headers_str = res
-        .headers()
-        .iter()
-        .map(|(key, val)| format!("{}: {}\r\n", key, val.to_str().unwrap()))
-        .collect::<String>();
-
-    let crlf: &[u8] = &[13, 10];
-    [start_line.as_bytes(), headers_str.as_bytes(), res.body()].join(crlf)
+async fn db_writer(rx: Receiver<PrecioPoint>) {
+    let conn = Connection::open("../scraper/sqlite.db").unwrap();
+    // let mut stmt = conn.prepare("SELECT id, name, data FROM person")?;
+    while let Ok(res) = rx.recv().await {
+        println!("{:#?}", res)
+    }
 }
