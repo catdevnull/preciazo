@@ -1,4 +1,5 @@
 import pMap from "p-map";
+import { decodeXML } from "entities";
 import { saveUrls } from "db-datos/urlHelpers.js";
 
 export async function scrapCarrefourProducts() {
@@ -31,7 +32,7 @@ async function scrapBySitemap() {
           text(element) {
             const txt = element.text.trim();
             if (!txt) return;
-            urls.add(txt);
+            urls.add(decodeXML(txt));
           },
         })
         .transform(new Response(xml));

@@ -1,4 +1,5 @@
 import pMap from "p-map";
+import { decodeXML } from "entities";
 import { parseHTML } from "linkedom";
 import { getHtml } from "../scraper/fetch.js";
 import { saveUrls } from "db-datos/urlHelpers.js";
@@ -90,7 +91,7 @@ async function scrapBySitemap() {
         text(element) {
           const txt = element.text.trim();
           if (!txt) return;
-          urls.add(txt);
+          urls.add(decodeXML(txt));
         },
       })
       .transform(new Response(xml));
