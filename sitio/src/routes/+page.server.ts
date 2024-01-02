@@ -12,7 +12,7 @@ export const load: PageServerLoad = async ({ params }) => {
     })
     .from(precios)
     .groupBy(precios.ean)
-    .having(sql`max(length(name)) and max(parser_version)`)
+    .having(sql`max(length(name)) and max(parser_version) and in_stock`)
     .orderBy(sql`random()`)
     .limit(150);
   const res = await q;
