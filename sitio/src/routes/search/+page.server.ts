@@ -11,7 +11,8 @@ export const load: PageServerLoad = async ({ url }) => {
     results = db.all(
       sql`select p.ean, p.name, p.image_url as imageUrl from precios_fts f
       join precios p on p.ean = f.ean
-      where f.name match ${query};`,
+      where f.name match ${query}
+      group by p.ean;`,
     );
   }
 
