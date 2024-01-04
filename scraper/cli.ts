@@ -1,6 +1,6 @@
-import { scrapCarrefourProducts } from "../carrefour-link-scraper/index.js";
-import { scrapCotoProducts } from "../coto-link-scraper/index.js";
-import { scrapDiaProducts } from "../dia-link-scraper/index.js";
+import { scrapCarrefourProducts } from "../link-scrapers/carrefour.js";
+import { scrapCotoProducts } from "../link-scrapers/coto.js";
+import { scrapDiaProducts } from "../link-scrapers/dia.js";
 import { auto } from "./auto.js";
 import { downloadList, getProduct } from "./scrap.js";
 

@@ -8,9 +8,9 @@ import { downloadList } from "./scrap.js";
 import { db } from "db-datos/db.js";
 import { like } from "drizzle-orm";
 import { productoUrls } from "db-datos/schema.js";
-import { scrapDiaProducts } from "../dia-link-scraper/index.js";
-import { scrapCotoProducts } from "../coto-link-scraper/index.js";
-import { scrapCarrefourProducts } from "../carrefour-link-scraper/index.js";
+import { scrapDiaProducts } from "../link-scrapers/dia.js";
+import { scrapCotoProducts } from "../link-scrapers/coto.js";
+import { scrapCarrefourProducts } from "../link-scrapers/carrefour.js";
 
 const supermercados: Supermercado[] = [
   Supermercado.Carrefour,

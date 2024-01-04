@@ -2,9 +2,7 @@
   "name": "preciazo",
   "private": true,
   "workspaces": [
-    "dia-link-scraper",
-    "coto-link-scraper",
-    "carrefour-link-scraper",
+    "link-scrapers",
     "scraper",
     "sitio",
     "db-datos"

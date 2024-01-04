@@ -4,7 +4,7 @@ scrapeo "masivo" de precios y datos en supermercados argentinos
 
 ## componentes (en orden de proceso)
 
-- los link scrapers ([coto-link-scraper](./coto-link-scraper/), [dia-link-scraper](./dia-link-scraper/) y [carrefour-link-scraper](./carrefour-link-scraper)) crean listas de links a productos para scrapear
+- los link scrapers ([link-scrapers/](./link-scrapers/)) crean listas de links a productos para scrapear
 
   (no hace falta correrlos porque ya hay listas armadas en [data/](./data/))
 

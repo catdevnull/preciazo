@@ -1,7 +1,6 @@
 import pMap from "p-map";
 import { decodeXML } from "entities";
 import { parseHTML } from "linkedom";
-import { getHtml } from "../scraper/fetch.js";
 import { saveUrls } from "db-datos/urlHelpers.js";
 
 const categorias = [
@@ -111,8 +110,9 @@ async function scrapBySite() {
   await pMap(
     links,
     async (url) => {
-      const html = await getHtml(url);
-      const { document } = parseHTML(html.toString("utf-8"));
+      const res = await fetch(url);
+      const html = await res.text();
+      const { document } = parseHTML(html);
 
       const hrefs = Array.from(
         document.querySelectorAll<HTMLAnchorElement>(

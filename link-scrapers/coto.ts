@@ -1,4 +1,3 @@
-import { getHtml } from "../scraper/fetch.js";
 import { parseHTML } from "linkedom";
 import PQueue from "p-queue";
 import { saveUrls } from "db-datos/urlHelpers.js";
@@ -28,12 +27,13 @@ function getPage(url: string) {
   return async () => {
     let html;
     try {
-      html = await getHtml(url);
+      const res = await fetch(url);
+      html = await res.text();
     } catch (error) {
       await getPage(url)();
       return;
     }
-    const { document } = parseHTML(html.toString("utf-8"));
+    const { document } = parseHTML(html);
 
     const hrefs = Array.from(
       document.querySelectorAll<HTMLAnchorElement>(".product_info_container a"),
