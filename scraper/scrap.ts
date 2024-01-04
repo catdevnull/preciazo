@@ -60,6 +60,15 @@ export async function downloadList(path: string) {
   return progress;
 }
 
+export function getProduct(url: URL, html: string) {
+  if (url.hostname === "www.carrefour.com.ar") return getCarrefourProduct(html);
+  else if (url.hostname === "diaonline.supermercadosdia.com.ar")
+    return getDiaProduct(html);
+  else if (url.hostname === "www.cotodigital3.com.ar")
+    return getCotoProduct(html);
+  else throw new Error(`Unknown host ${url.hostname}`);
+}
+
 type ScrapResult =
   | { type: "skipped" }
   | { type: "done" }
@@ -81,14 +90,7 @@ async function scrap(urlS: string): Promise<ScrapResult> {
   const html = await res.text();
 
   try {
-    let ish: Precioish | undefined = undefined;
-    if (url.hostname === "www.carrefour.com.ar")
-      ish = getCarrefourProduct(html);
-    else if (url.hostname === "diaonline.supermercadosdia.com.ar")
-      ish = getDiaProduct(html);
-    else if (url.hostname === "www.cotodigital3.com.ar")
-      ish = getCotoProduct(html);
-    else throw new Error(`Unknown host ${url.hostname}`);
+    let ish = getProduct(url, html);
 
     const p: Precio = {
       ...ish,

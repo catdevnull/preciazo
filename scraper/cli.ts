@@ -2,7 +2,7 @@ import { scrapCarrefourProducts } from "../carrefour-link-scraper/index.js";
 import { scrapCotoProducts } from "../coto-link-scraper/index.js";
 import { scrapDiaProducts } from "../dia-link-scraper/index.js";
 import { auto } from "./auto.js";
-import { downloadList } from "./scrap.js";
+import { downloadList, getProduct } from "./scrap.js";
 
 if (process.argv[2] === "auto") {
   await auto();
@@ -12,6 +12,11 @@ if (process.argv[2] === "auto") {
   await scrapDiaProducts();
 } else if (process.argv[2] === "scrap-coto-links") {
   await scrapCotoProducts();
+} else if (process.argv[2] === "scrap-link") {
+  const url = new URL(process.argv[3]);
+  const res = await fetch(url);
+  const text = await res.text();
+  console.info(getProduct(url, text));
 } else if (process.argv[2] === "scrap") {
   const urlLists = process.argv.slice(3);
   if (urlLists.length > 0) {
