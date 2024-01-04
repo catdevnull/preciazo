@@ -49,7 +49,7 @@ export async function downloadList(path: string) {
 type ScrapResult =
   | { type: "skipped" }
   | { type: "done" }
-  | { type: "error"; url: string; error: any };
+  | { type: "error"; url: string; error: any; debugPath: string };
 async function scrap(urlS: string): Promise<ScrapResult> {
   let url;
   try {
@@ -87,17 +87,17 @@ async function scrap(urlS: string): Promise<ScrapResult> {
 
     return { type: "done" };
   } catch (error) {
+    const urlHash = createHash("md5").update(urlS).digest("hex");
+    const output = join("debug", `${urlHash}.html`);
     if (DEBUG) {
-      const urlHash = createHash("md5").update(urlS).digest("hex");
-      const output = join("debug", `${urlHash}.html`);
       await mkdir("debug", { recursive: true });
       await writeFile(output, html);
-      console.error(`wrote html to ${output}`);
     }
     return {
       type: "error",
       url: urlS,
       error,
+      debugPath: output,
     };
   }
 }
