@@ -28,7 +28,7 @@ function getPriceFromText({ document }: Window) {
   return parseFloat(nStr) * 100;
 }
 function getInStock({ document }: Window) {
-  return !document.querySelector("product_not_available");
+  return !document.querySelector(".product_not_available");
 }
 
 export function getCotoProduct(html: string | Buffer): Precioish {
