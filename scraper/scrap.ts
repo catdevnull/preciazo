@@ -18,17 +18,11 @@ export type Precioish = Omit<
 >;
 
 export async function downloadList(path: string) {
-  let progress: {
-    done: number;
-    skipped: number;
-    errors: { error: any; url: string; path: string }[];
-  } = { done: 0, skipped: 0, errors: [] };
-
   let list = (await Bun.file(path).text())
     .split("\n")
     .filter((s) => s.length > 0);
 
-  await pMap(
+  const results = await pMap(
     list,
     async (urlS) => {
       let res: ScrapResult = { type: "skipped" };
@@ -40,10 +34,29 @@ export async function downloadList(path: string) {
         }
       }
       if (res.type === "error") console.error(res);
+      return res;
     },
     { concurrency: 32 }
   );
 
+  let progress: {
+    done: number;
+    skipped: number;
+    errors: { error: any; url: string; debugPath: string }[];
+  } = { done: 0, skipped: 0, errors: [] };
+  for (const result of results) {
+    switch (result.type) {
+      case "done":
+        progress.done++;
+        break;
+      case "error":
+        progress.errors.push(result);
+        break;
+      case "skipped":
+        progress.skipped++;
+        break;
+    }
+  }
   return progress;
 }
 
