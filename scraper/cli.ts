@@ -1,6 +1,7 @@
 import { scrapCarrefourProducts } from "../link-scrapers/carrefour.js";
 import { scrapCotoProducts } from "../link-scrapers/coto.js";
 import { scrapDiaProducts } from "../link-scrapers/dia.js";
+import { scrapJumboProducts } from "../link-scrapers/jumbo.js";
 import { auto } from "./auto.js";
 import { downloadList, getProduct } from "./scrap.js";
 
@@ -12,11 +13,13 @@ if (process.argv[2] === "auto") {
   await scrapDiaProducts();
 } else if (process.argv[2] === "scrap-coto-links") {
   await scrapCotoProducts();
+} else if (process.argv[2] === "scrap-jumbo-links") {
+  await scrapJumboProducts();
 } else if (process.argv[2] === "scrap-link") {
   const url = new URL(process.argv[3]);
   const res = await fetch(url);
   const text = await res.text();
-  console.info(getProduct(url, text));
+  console.info(await getProduct(url, text));
 } else if (process.argv[2] === "scrap") {
   const urlLists = process.argv.slice(3);
   if (urlLists.length > 0) {

@@ -7,6 +7,7 @@ import { getCotoProduct } from "./parsers/coto.js";
 import { join } from "path";
 import { db } from "db-datos/db.js";
 import pMap from "p-map";
+import { getJumboProduct } from "./parsers/jumbo.js";
 
 const DEBUG = true;
 const PARSER_VERSION = 4;
@@ -60,12 +61,14 @@ export async function downloadList(path: string) {
   return progress;
 }
 
-export function getProduct(url: URL, html: string) {
+export async function getProduct(url: URL, html: string): Promise<Precioish> {
   if (url.hostname === "www.carrefour.com.ar") return getCarrefourProduct(html);
   else if (url.hostname === "diaonline.supermercadosdia.com.ar")
     return getDiaProduct(html);
   else if (url.hostname === "www.cotodigital3.com.ar")
     return getCotoProduct(html);
+  else if (url.hostname === "www.jumbo.com.ar")
+    return await getJumboProduct(html);
   else throw new Error(`Unknown host ${url.hostname}`);
 }
 
@@ -90,7 +93,7 @@ async function scrap(urlS: string): Promise<ScrapResult> {
   const html = await res.text();
 
   try {
-    let ish = getProduct(url, html);
+    let ish = await getProduct(url, html);
 
     const p: Precio = {
       ...ish,

@@ -11,6 +11,7 @@ import { productoUrls } from "db-datos/schema.js";
 import { scrapDiaProducts } from "../link-scrapers/dia.js";
 import { scrapCotoProducts } from "../link-scrapers/coto.js";
 import { scrapCarrefourProducts } from "../link-scrapers/carrefour.js";
+import { scrapJumboProducts } from "../link-scrapers/jumbo.js";
 
 const supermercados: Supermercado[] = [
   Supermercado.Carrefour,
@@ -58,6 +59,9 @@ class Auto {
           break;
         case "Carrefour":
           await scrapCarrefourProducts();
+          break;
+        case "Jumbo":
+          await scrapJumboProducts();
           break;
       }
       this.inform(

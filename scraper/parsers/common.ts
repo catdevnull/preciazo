@@ -31,6 +31,7 @@ const zProductLd = z.object({
   "@type": z.literal("Product"),
   name: z.string(),
   image: z.string(),
+  sku: z.string().optional(),
   offers: z.object({
     offers: z.array(
       z.object({
