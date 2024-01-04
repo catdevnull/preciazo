@@ -4,7 +4,12 @@ export enum Supermercado {
   Coto = "Coto",
   Jumbo = "Jumbo",
 }
-
+export const supermercados: Supermercado[] = [
+  Supermercado.Carrefour,
+  Supermercado.Coto,
+  Supermercado.Dia,
+  Supermercado.Jumbo,
+];
 export const hosts: { [host: string]: Supermercado } = {
   "diaonline.supermercadosdia.com.ar": Supermercado.Dia,
   "www.carrefour.com.ar": Supermercado.Carrefour,

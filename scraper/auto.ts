@@ -1,7 +1,7 @@
 import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Supermercado, hosts } from "db-datos/supermercado.js";
+import { Supermercado, hosts, supermercados } from "db-datos/supermercado.js";
 import PQueue from "p-queue";
 import { formatDuration, intervalToDuration } from "date-fns";
 import { downloadList } from "./scrap.js";
@@ -12,12 +12,6 @@ import { scrapDiaProducts } from "../link-scrapers/dia.js";
 import { scrapCotoProducts } from "../link-scrapers/coto.js";
 import { scrapCarrefourProducts } from "../link-scrapers/carrefour.js";
 import { scrapJumboProducts } from "../link-scrapers/jumbo.js";
-
-const supermercados: Supermercado[] = [
-  Supermercado.Carrefour,
-  Supermercado.Coto,
-  Supermercado.Dia,
-];
 
 // hacemos una cola para el scrapeo para no tener varios writers a la BD y no sobrecargar la CPU
 const scrapQueue = new PQueue({ concurrency: 4 });
