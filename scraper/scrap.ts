@@ -34,7 +34,7 @@ export async function downloadList(path: string) {
       let res: ScrapResult = { type: "skipped" };
       for (let attempts = 0; attempts < 3; attempts++) {
         res = await scrap(urlS);
-        if (res.type === "done") {
+        if (res.type === "done" || res.type === "skipped") {
           break;
         }
       }
