@@ -1,5 +1,5 @@
 import * as schema from "db-datos/schema.js";
-import { writeFile } from "fs/promises";
+import { writeFile, mkdir } from "fs/promises";
 import { createHash } from "crypto";
 import { getCarrefourProduct } from "./parsers/carrefour.js";
 import { getDiaProduct } from "./parsers/dia.js";
@@ -8,7 +8,7 @@ import { join } from "path";
 import { db } from "db-datos/db.js";
 import pMap from "p-map";
 
-const DEBUG = false;
+const DEBUG = true;
 const PARSER_VERSION = 4;
 
 export type Precio = typeof schema.precios.$inferInsert;
@@ -78,6 +78,7 @@ export async function downloadList(path: string) {
         if (DEBUG) {
           const urlHash = createHash("md5").update(urlS).digest("hex");
           const output = join("debug", `${urlHash}.html`);
+          await mkdir("debug", { recursive: true });
           await writeFile(output, html);
           console.error(`wrote html to ${output}`);
         }
