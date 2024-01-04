@@ -31,61 +31,73 @@ export async function downloadList(path: string) {
   await pMap(
     list,
     async (urlS) => {
-      let url;
-      try {
-        url = new URL(urlS);
-      } catch (err) {
-        console.error("error parseando", urlS);
-        return;
-      }
-      const res = await fetch(url);
-      if (!res.ok) {
-        console.debug(`skipped ${urlS} because status=${res.status} (!=200)`);
-        progress.skipped++;
-        return;
-      }
-
-      const html = await res.text();
-
-      try {
-        let ish: Precioish | undefined = undefined;
-        if (url.hostname === "www.carrefour.com.ar")
-          ish = getCarrefourProduct(html);
-        else if (url.hostname === "diaonline.supermercadosdia.com.ar")
-          ish = getDiaProduct(html);
-        else if (url.hostname === "www.cotodigital3.com.ar")
-          ish = getCotoProduct(html);
-        else throw new Error(`Unknown host ${url.hostname}`);
-
-        const p: Precio = {
-          ...ish,
-          fetchedAt: new Date(),
-          url: urlS,
-          parserVersion: PARSER_VERSION,
-        };
-
-        await db.insert(schema.precios).values(p);
-
-        progress.done++;
-      } catch (error) {
-        console.error({ path, urlS, error });
-        progress.errors.push({
-          path,
-          url: urlS,
-          error,
-        });
-
-        if (DEBUG) {
-          const urlHash = createHash("md5").update(urlS).digest("hex");
-          const output = join("debug", `${urlHash}.html`);
-          await mkdir("debug", { recursive: true });
-          await writeFile(output, html);
-          console.error(`wrote html to ${output}`);
+      let res: ScrapResult = { type: "skipped" };
+      for (let attempts = 0; attempts < 3; attempts++) {
+        res = await scrap(urlS);
+        if (res.type === "done") {
+          break;
         }
       }
+      if (res.type === "error") console.error(res);
     },
     { concurrency: 32 }
   );
 
   return progress;
+}
+
+type ScrapResult =
+  | { type: "skipped" }
+  | { type: "done" }
+  | { type: "error"; url: string; error: any };
+async function scrap(urlS: string): Promise<ScrapResult> {
+  let url;
+  try {
+    url = new URL(urlS);
+  } catch (err) {
+    console.error(`skipped ${urlS} because ${err}`);
+    return { type: "skipped" };
+  }
+  const res = await fetch(url);
+  if (!res.ok) {
+    console.debug(`skipped ${urlS} because status=${res.status} (!=200)`);
+    return { type: "skipped" };
+  }
+
+  const html = await res.text();
+
+  try {
+    let ish: Precioish | undefined = undefined;
+    if (url.hostname === "www.carrefour.com.ar")
+      ish = getCarrefourProduct(html);
+    else if (url.hostname === "diaonline.supermercadosdia.com.ar")
+      ish = getDiaProduct(html);
+    else if (url.hostname === "www.cotodigital3.com.ar")
+      ish = getCotoProduct(html);
+    else throw new Error(`Unknown host ${url.hostname}`);
+
+    const p: Precio = {
+      ...ish,
+      fetchedAt: new Date(),
+      url: urlS,
+      parserVersion: PARSER_VERSION,
+    };
+
+    await db.insert(schema.precios).values(p);
+
+    return { type: "done" };
+  } catch (error) {
+    if (DEBUG) {
+      const urlHash = createHash("md5").update(urlS).digest("hex");
+      const output = join("debug", `${urlHash}.html`);
+      await mkdir("debug", { recursive: true });
+      await writeFile(output, html);
+      console.error(`wrote html to ${output}`);
+    }
+    return {
+      type: "error",
+      url: urlS,
+      error,
+    };
+  }
 }
