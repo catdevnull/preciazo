@@ -1,7 +1,7 @@
 import pMap from "p-map";
-import { decodeXML } from "entities";
 import { parseHTML } from "linkedom";
 import { saveUrls } from "db-datos/urlHelpers.js";
+import { getUrlsFromSitemap } from "./common.js";
 
 const categorias = [
   "https://diaonline.supermercadosdia.com.ar/almacen",
@@ -81,21 +81,15 @@ async function scrapBySitemap() {
     "https://diaonline.supermercadosdia.com.ar/sitemap/product-5.xml",
   ];
 
-  await pMap(sitemaps, async (sitemapUrl) => {
-    const res = await fetch(sitemapUrl);
-    const xml = await res.text();
-    let urls = new Set<string>();
-    new HTMLRewriter()
-      .on("loc", {
-        text(element) {
-          const txt = element.text.trim();
-          if (!txt) return;
-          urls.add(decodeXML(txt));
-        },
-      })
-      .transform(new Response(xml));
-    saveUrls(Array.from(urls));
-  });
+  await pMap(
+    sitemaps,
+    async (sitemapUrl) => {
+      const res = await fetch(sitemapUrl);
+      const xml = await res.text();
+      saveUrls(getUrlsFromSitemap(xml));
+    },
+    { concurrency: 3 }
+  );
 }
 
 async function scrapBySite() {

@@ -1,6 +1,6 @@
 import pMap from "p-map";
-import { decodeXML } from "entities";
 import { saveUrls } from "db-datos/urlHelpers.js";
+import { getUrlsFromSitemap } from "./common.js";
 
 export async function scrapCarrefourProducts() {
   await scrapBySitemap();
@@ -26,17 +26,7 @@ async function scrapBySitemap() {
     async (sitemapUrl) => {
       const res = await fetch(sitemapUrl);
       const xml = await res.text();
-      let urls = new Set<string>();
-      new HTMLRewriter()
-        .on("loc", {
-          text(element) {
-            const txt = element.text.trim();
-            if (!txt) return;
-            urls.add(decodeXML(txt));
-          },
-        })
-        .transform(new Response(xml));
-      saveUrls(Array.from(urls));
+      saveUrls(getUrlsFromSitemap(xml));
     },
     { concurrency: 3 }
   );
