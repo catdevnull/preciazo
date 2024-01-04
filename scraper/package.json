@@ -5,8 +5,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build:container": "podman build -t gitea.nulo.in/nulo/preciazo/scraper -f ./Containerfile ..",
-    "push:container": "bun build:container && podman push gitea.nulo.in/nulo/preciazo/scraper"
+    "check": "tsc"
   },
   "keywords": [],
   "author": "",

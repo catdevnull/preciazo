@@ -21,7 +21,7 @@ function parseJsonLds(dom: Window): object[] {
   const scripts = dom.window.document.querySelectorAll(
     'script[type="application/ld+json"]'
   );
-  return [...scripts].map((scripts) => JSON.parse(scripts.innerHTML));
+  return Array.from(scripts, (script) => JSON.parse(script.innerHTML));
 }
 function findJsonLd(dom: Window, type: string): object | undefined {
   return parseJsonLds(dom).find((x) => "@type" in x && x["@type"] === type);

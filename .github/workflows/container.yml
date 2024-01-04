@@ -10,7 +10,7 @@ env:
 
 jobs:
   check:
-    name: chequear typescript del sitio
+    name: chequear typescript
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -20,6 +20,10 @@ jobs:
         working-directory: ./sitio
       - run: bun check
         working-directory: ./sitio
+      - run: bun install
+        working-directory: ./scraper
+      - run: bun check
+        working-directory: ./scraper
 
   build-and-push-scraper:
     runs-on: ubuntu-latest

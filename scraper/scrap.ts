@@ -1,3 +1,4 @@
+/// <reference lib="dom" />
 import * as schema from "db-datos/schema.js";
 import { writeFile, mkdir } from "fs/promises";
 import { createHash } from "crypto";
