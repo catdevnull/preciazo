@@ -1,4 +1,4 @@
-name: Create and publish a Docker image
+name: check and publish container image
 
 on:
   push:
@@ -9,6 +9,18 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+  check:
+    name: chequear typescript del sitio
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: oven-sh/setup-bun@v1
+
+      - run: bun install
+        working-directory: ./sitio
+      - run: bun check
+        working-directory: ./sitio
+
   build-and-push-scraper:
     runs-on: ubuntu-latest
     permissions:
