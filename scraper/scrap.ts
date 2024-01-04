@@ -33,6 +33,7 @@ export async function downloadList(path: string) {
     async (urlS) => {
       let res: ScrapResult = { type: "skipped" };
       for (let attempts = 0; attempts < 3; attempts++) {
+        if (attempts !== 0) await wait(1500);
         res = await scrap(urlS);
         if (res.type === "done" || res.type === "skipped") {
           break;
@@ -100,4 +101,8 @@ async function scrap(urlS: string): Promise<ScrapResult> {
       debugPath: output,
     };
   }
+}
+
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
