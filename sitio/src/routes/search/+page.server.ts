@@ -11,7 +11,7 @@ export const load: PageServerLoad = async ({ url }) => {
       join precios p on p.ean = f.ean
       where f.name match ${`"${query}"`}
       group by p.ean
-      having max(p.fetched_at)
+      having max(p.fetched_at) and max(p.in_stock)
       order by p.in_stock desc;`;
     results = db.all(sqlQuery);
   }
