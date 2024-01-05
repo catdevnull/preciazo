@@ -13,7 +13,7 @@ export const load: PageServerLoad = async ({ params }) => {
   const res = await q;
   if (res.length === 0) return error(404, "Not Found");
 
-  const meta = res.find((p) => p.name);
+  const meta = res.findLast((p) => p.name);
 
   return { precios: res, meta };
 };
