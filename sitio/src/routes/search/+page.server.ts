@@ -7,12 +7,14 @@ export const load: PageServerLoad = async ({ url }) => {
   const query = url.searchParams.get("q");
   let results: null | { ean: string; name: string; imageUrl: string }[] = null;
   if (query) {
-    const sqlQuery = sql`select p.ean, p.name, p.image_url as imageUrl from precios_fts f
+    const sqlQuery = sql`select p.ean, p.name, p.image_url as imageUrl, p.fetched_at from precios_fts f
       join precios p on p.ean = f.ean
       where f.name match ${`"${query}"`}
-      group by p.ean;`;
+      group by p.ean
+      having max(p.fetched_at);`;
     results = db.all(sqlQuery);
   }
 
   return { query, results };
 };
+// order by p.fetched_at
