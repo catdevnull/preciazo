@@ -3,9 +3,17 @@ import { db, schema } from "$lib/server/db";
 const { precios } = schema;
 import { sql } from "drizzle-orm";
 
-let cache: null | { key: Date; data: PageData } = null;
+let cache: null | { key: Date; data: { precios: Precios } } = null;
 
-export const load: PageServerLoad = async ({ params }) => {
+type Precios = {
+  ean: string;
+  name: string | null;
+  imageUrl: string | null;
+}[];
+
+export const load: PageServerLoad = async ({
+  params,
+}): Promise<{ precios: Precios }> => {
   if (cache && +new Date() < +cache.key + 1000 * 60 * 10) {
     return cache.data;
   }
