@@ -4,6 +4,7 @@ data/carrefour/
 downloader/
 node_modules/
 */node_modules/
+Containerfile
 */Containerfile
 *.warc.zst
 .git
