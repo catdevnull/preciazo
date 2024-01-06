@@ -33,7 +33,6 @@ COPY --from=build /usr/src/app/sitio/build .
 COPY --from=build /tmp/cli.build.js /bin/scraper
 COPY --from=build /usr/src/app/db-datos/drizzle /bin/drizzle
 
-VOLUME /db
 ENV NODE_ENV=production
 ENV DB_PATH=/db/db.db
 EXPOSE 3000
