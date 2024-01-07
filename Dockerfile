@@ -11,7 +11,7 @@ RUN cd sitio && \
 RUN bun build scraper/cli.ts --target=bun --outfile=/tmp/cli.build.js
 
 FROM base
-RUN apk add --no-cache tini nodejs npm jq
+RUN apk add --no-cache nodejs npm jq
 
 # Sitio
 COPY --from=build /usr/src/app/sitio/package.json package.real.json
@@ -27,5 +27,4 @@ ENV NODE_ENV=production
 ENV DB_PATH=/db/db.db
 EXPOSE 3000
 
-ENTRYPOINT ["tini", "--"]
 CMD ["node", "."]
