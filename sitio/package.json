@@ -38,7 +38,7 @@
     "better-sqlite3": "^9.2.2",
     "chart.js": "^4.4.1",
     "chartjs-adapter-dayjs-4": "^1.0.4",
-    "cron": "^3.1.6",
+    "croner": "^8.0.0",
     "dayjs": "^1.11.10",
     "drizzle-orm": "^0.29.1"
   }

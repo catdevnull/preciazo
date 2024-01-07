@@ -1,14 +1,9 @@
 import { spawn } from "child_process";
-import { CronJob } from "cron";
+import Cron from "croner";
 
 if (process.env.NODE_ENV === "production") {
-  const job = CronJob.from({
-    cronTime: "0 3 * * *",
-    onTick: function () {
-      runScraper();
-    },
-    start: true,
-    timeZone: "America/Argentina/Buenos_Aires",
+  const job = Cron("15 3 * * *", () => {
+    runScraper();
   });
 }
 
