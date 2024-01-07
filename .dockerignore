@@ -11,3 +11,4 @@ Dockerfile
 *.warc.zst
 .git
 scraper/debug/
+*/target/
