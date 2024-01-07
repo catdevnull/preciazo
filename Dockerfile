@@ -10,8 +10,8 @@ RUN cd sitio && \
     bun run build
 RUN bun build scraper/cli.ts --target=bun --outfile=/tmp/cli.build.js
 
-FROM docker.io/oven/bun:1-slim
-RUN apt-get update && apt-get install -y nodejs npm jq
+FROM cgr.dev/chainguard/wolfi-base
+RUN apk add --no-cache nodejs npm jq bun
 
 # Sitio
 COPY --from=build /usr/src/app/sitio/package.json package.real.json
