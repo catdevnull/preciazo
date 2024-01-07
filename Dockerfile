@@ -11,17 +11,7 @@ RUN cd sitio && \
 RUN bun build scraper/cli.ts --target=bun --outfile=/tmp/cli.build.js
 
 FROM base
-ARG S6_OVERLAY_VERSION=3.1.6.2
-RUN apk add --no-cache nodejs npm jq
-
-ADD https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-noarch.tar.xz /tmp
-RUN tar -C / -Jxpf /tmp/s6-overlay-noarch.tar.xz
-ADD https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-x86_64.tar.xz /tmp
-RUN tar -C / -Jxpf /tmp/s6-overlay-x86_64.tar.xz
-
-# Cron scraper
-RUN printf "#!/bin/sh\nexec bun /bin/scraper auto\n" > /etc/periodic/daily/scraper \
-    && chmod +x /etc/periodic/daily/scraper
+RUN apk add --no-cache tini nodejs npm jq
 
 # Sitio
 COPY --from=build /usr/src/app/sitio/package.json package.real.json
@@ -37,11 +27,5 @@ ENV NODE_ENV=production
 ENV DB_PATH=/db/db.db
 EXPOSE 3000
 
-# Servicios
-RUN mkdir -p /etc/services.d/sitio /etc/services.d/scraper && \
-    printf "#!/command/execlineb -P\nnode /usr/src/app\n" > /etc/services.d/sitio/run && \
-    chmod +x /etc/services.d/sitio/run && \
-    printf "#!/command/execlineb -P\nbusybox crond -f -l2\n" > /etc/services.d/scraper/run && \
-    chmod +x /etc/services.d/scraper/run
-
-ENTRYPOINT ["/init"]
+ENTRYPOINT ["tini", "--"]
+CMD ["node", "."]
