@@ -1,11 +1,9 @@
 use async_channel::{Receiver, Sender};
 use rusqlite::Connection;
-use serde::de::value;
 use std::{
     borrow::Cow,
     env::{self, args},
     fs,
-    ops::Deref,
     time::{SystemTime, UNIX_EPOCH},
 };
 use tl::VDom;
@@ -239,14 +237,14 @@ fn parse_carrefour(url: String, dom: &tl::VDom) -> Result<PrecioPoint, FetchErro
     };
 
     Ok(PrecioPoint {
-        ean: ean,
+        ean,
         fetched_at: now_sec(),
-        in_stock: in_stock,
+        in_stock,
         name: None,
         image_url: None,
         parser_version: 5,
-        precio_centavos: precio_centavos,
-        url: url,
+        precio_centavos,
+        url,
     })
 }
 
