@@ -10,7 +10,7 @@ use tl::VDom;
 // use scraper::{Element, Html, Selector};
 use std::{
     borrow::Cow,
-    env::args,
+    env::{self, args},
     fs,
     ops::Deref,
     time::{SystemTime, UNIX_EPOCH},
@@ -150,7 +150,10 @@ async fn main() {
         let (res_sender, res_receiver) = async_channel::unbounded::<PrecioPoint>();
 
         let mut handles = Vec::new();
-        for _ in 1..32 {
+        for _ in 1..env::var("N_COROUTINES")
+            .map_or(Ok(32), |s| s.parse::<usize>())
+            .unwrap()
+        {
             let rx = receiver.clone();
             let tx = res_sender.clone();
             handles.push(tokio::spawn(worker(rx, tx)));
