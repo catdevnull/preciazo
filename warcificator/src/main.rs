@@ -1,13 +1,6 @@
 use async_channel::{Receiver, Sender};
-// use lol_html::{
-//     element,
-//     html_content::{Element, TextChunk},
-//     text, ElementContentHandlers, HtmlRewriter, Selector, Settings,
-// };
 use rusqlite::Connection;
 use serde::de::value;
-use tl::VDom;
-// use scraper::{Element, Html, Selector};
 use std::{
     borrow::Cow,
     env::{self, args},
@@ -15,6 +8,7 @@ use std::{
     ops::Deref,
     time::{SystemTime, UNIX_EPOCH},
 };
+use tl::VDom;
 use tokio::io::{stderr, AsyncWriteExt};
 
 #[derive(Debug)]
@@ -100,37 +94,6 @@ struct PrecioPoint {
 //         }
 //     }
 //     println!("n={}", i);
-// }
-
-// fn extract_first_text(
-//     output: &mut Option<String>,
-// ) -> impl FnMut(
-//     &mut TextChunk,
-// ) -> Result<(), Box<(dyn std::error::Error + std::marker::Send + Sync + 'static)>>
-//        + '_ {
-//     move |el| {
-//         if *output == None {
-//             *output = Some(el.as_str().to_owned());
-//         }
-//         Ok(())
-//     }
-// }
-
-// fn extract_first_attr<'a>(
-//     output: &'a mut Option<String>,
-//     attr: &'a str,
-// ) -> impl FnMut(
-//     &mut Element,
-// ) -> Result<(), Box<(dyn std::error::Error + std::marker::Send + Sync + 'static)>>
-//        + 'a {
-//     move |el| {
-//         if *output == None {
-//             if let Some(value) = el.get_attribute(attr) {
-//                 *output = Some(value);
-//             }
-//         }
-//         Ok(())
-//     }
 // }
 
 #[tokio::main]
@@ -327,24 +290,6 @@ fn parse_script_json(dom: &VDom, varname: &str) -> Result<serde_json::Value, Fet
         .parse()
         .map_err(|_| FetchError::ParseError("Couldn't parse JSON in script"))?)
 }
-
-// fn parse_script_json(html: &Html, varname: &str) -> Option<serde_json::Value> {
-//     let template_sel = Selector::parse(&format!(
-//         "template[data-type=\"json\"][data-varname=\"{}\"]",
-//         varname
-//     ))
-//     .unwrap();
-//     match html.select(&template_sel).next() {
-//         Some(value) => match value.first_element_child() {
-//             Some(script) => match serde_json::from_str(&script.inner_html()) {
-//                 Ok(val) => val,
-//                 Err(_) => None,
-//             },
-//             None => None,
-//         },
-//         None => None,
-//     }
-// }
 
 fn now_sec() -> u64 {
     let start = SystemTime::now();
