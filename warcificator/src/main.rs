@@ -185,7 +185,7 @@ async fn worker(rx: Receiver<String>, tx: Sender<PrecioPoint>) {
             }
             Err(err) => {
                 stderr()
-                    .write_all(format!("Failed to fetch {}: {:#?}\n", url.as_str(), err).as_bytes())
+                    .write_all(format!("Failed to fetch {}: {:?}\n", url.as_str(), err).as_bytes())
                     .await
                     .unwrap();
             }
@@ -355,7 +355,7 @@ fn now_sec() -> u64 {
 }
 
 async fn db_writer(rx: Receiver<PrecioPoint>) {
-    let conn = Connection::open("../scraper/sqlite.db").unwrap();
+    // let conn = Connection::open("../scraper/sqlite.db").unwrap();
     // let mut stmt = conn.prepare("SELECT id, name, data FROM person")?;
     while let Ok(res) = rx.recv().await {
         println!("{:?}", res)
