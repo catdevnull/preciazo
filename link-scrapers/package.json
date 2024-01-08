@@ -1,5 +1,5 @@
 {
-  "name": "coto-link-scraper",
+  "name": "link-scrapers",
   "type": "module",
   "version": "1.0.0",
   "description": "",
@@ -11,6 +11,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "entities": "^4.5.0",
     "linkedom": "^0.16.5",
     "p-queue": "^8.0.1"
   }

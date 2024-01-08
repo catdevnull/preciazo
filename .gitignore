@@ -13,3 +13,6 @@ scraper/x.tsv
 *.tmp
 target/
 .env.*
+
+*/flamegraph.svg
+*/perf.data*

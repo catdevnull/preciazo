@@ -19,7 +19,7 @@ function getEanFromText({ document }: Window) {
 }
 function getPriceFromText({ document }: Window) {
   const el = document.querySelector(".atg_store_newPrice");
-  if (!el?.textContent) throw new Error("no encuentro el precio");
+  if (!el?.textContent) return null;
   const nStr = el.textContent
     .trim()
     .replace("$", "")
@@ -27,12 +27,16 @@ function getPriceFromText({ document }: Window) {
     .replace(",", ".");
   return parseFloat(nStr) * 100;
 }
+function getInStock({ document }: Window) {
+  return !document.querySelector(".product_not_available");
+}
 
 export function getCotoProduct(html: string | Buffer): Precioish {
   const dom = parseHTML(html);
 
   const ean = getEanFromText(dom);
   const precioCentavos = getPriceFromText(dom);
+  const inStock = getInStock(dom);
 
   const name = dom.document
     .querySelector("h1.product_page")
@@ -40,5 +44,5 @@ export function getCotoProduct(html: string | Buffer): Precioish {
   const imageUrl =
     dom.document.querySelector<HTMLImageElement>(".zoom img")?.src;
 
-  return { name, imageUrl, ean, precioCentavos };
+  return { name, imageUrl, ean, precioCentavos, inStock };
 }

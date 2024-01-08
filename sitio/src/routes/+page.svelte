@@ -3,6 +3,10 @@
   import type { PageData } from "./$types";
 
   export let data: PageData;
+  $: precios = data.precios.filter(
+    (d): d is { ean: string; name: string; imageUrl: string | null } =>
+      !!d.name,
+  );
 </script>
 
 <h1 class="text-xl">WIP</h1>
@@ -32,7 +36,7 @@
 <section>
   <h2 class="text-lg font-bold">Random</h2>
   <ul class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-    {#each data.precios as product}
+    {#each precios as product}
       <li>
         <ProductPreview {product} />
       </li>

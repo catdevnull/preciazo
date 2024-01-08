@@ -1,6 +1,6 @@
 import { parseHTML } from "linkedom";
 import { Precioish } from "../scrap.js";
-import { getProductJsonLd, priceFromMeta, stockFromMeta } from "../common.js";
+import { getProductJsonLd, priceFromMeta, stockFromMeta } from "./common.js";
 
 function parseScriptJson<T>(dom: Window, varname: string): T {
   const script = dom.window.document.querySelector<HTMLTemplateElement>(

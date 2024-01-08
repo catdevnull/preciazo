@@ -1,8 +1,9 @@
-import { scrapCarrefourProducts } from "../carrefour-link-scraper/index.js";
-import { scrapCotoProducts } from "../coto-link-scraper/index.js";
-import { scrapDiaProducts } from "../dia-link-scraper/index.js";
+import { scrapCarrefourProducts } from "../link-scrapers/carrefour.js";
+import { scrapCotoProducts } from "../link-scrapers/coto.js";
+import { scrapDiaProducts } from "../link-scrapers/dia.js";
+import { scrapJumboProducts } from "../link-scrapers/jumbo.js";
 import { auto } from "./auto.js";
-import { parseWarc } from "./scrap.js";
+import { downloadList, getProduct } from "./scrap.js";
 
 if (process.argv[2] === "auto") {
   await auto();
@@ -12,17 +13,24 @@ if (process.argv[2] === "auto") {
   await scrapDiaProducts();
 } else if (process.argv[2] === "scrap-coto-links") {
   await scrapCotoProducts();
+} else if (process.argv[2] === "scrap-jumbo-links") {
+  await scrapJumboProducts();
+} else if (process.argv[2] === "scrap-link") {
+  const url = new URL(process.argv[3]);
+  const res = await fetch(url);
+  const text = await res.text();
+  console.info(await getProduct(url, text));
 } else if (process.argv[2] === "scrap") {
-  const warcPaths = process.argv.slice(3);
-  if (warcPaths.length > 0) {
-    for (const path of warcPaths) {
-      const res = await parseWarc(path);
+  const urlLists = process.argv.slice(3);
+  if (urlLists.length > 0) {
+    for (const path of urlLists) {
+      const res = await downloadList(path);
       console.info("=======================================");
       console.info(path, res);
       console.info("=======================================");
     }
   } else {
-    console.error("Especificá WARCs para scrapear.");
+    console.error("Especificá listas de urls para scrapear.");
     process.exit(1);
   }
 } else {

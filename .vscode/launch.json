@@ -13,7 +13,7 @@
         // https://github.com/vadimcn/codelldb/issues/884
         "args": ["build", "--manifest-path=warcificator/Cargo.toml"]
       },
-      "args": ["../data/samples/Carrefour.50.txt"],
+      "args": ["../data/carrefour"],
       "env": {}
     },
     {

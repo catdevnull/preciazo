@@ -4,4 +4,11 @@ data/carrefour/
 downloader/
 node_modules/
 */node_modules/
+Containerfile
 */Containerfile
+Dockerfile
+*/Dockerfile
+*.warc.zst
+.git
+scraper/debug/
+*/target/

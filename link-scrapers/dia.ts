@@ -1,7 +1,7 @@
 import pMap from "p-map";
 import { parseHTML } from "linkedom";
-import { getHtml } from "../scraper/fetch.js";
 import { saveUrls } from "db-datos/urlHelpers.js";
+import { getUrlsFromSitemap } from "./common.js";
 
 const categorias = [
   "https://diaonline.supermercadosdia.com.ar/almacen",
@@ -81,21 +81,15 @@ async function scrapBySitemap() {
     "https://diaonline.supermercadosdia.com.ar/sitemap/product-5.xml",
   ];
 
-  await pMap(sitemaps, async (sitemapUrl) => {
-    const res = await fetch(sitemapUrl);
-    const xml = await res.text();
-    let urls = new Set<string>();
-    new HTMLRewriter()
-      .on("loc", {
-        text(element) {
-          const txt = element.text.trim();
-          if (!txt) return;
-          urls.add(txt);
-        },
-      })
-      .transform(new Response(xml));
-    saveUrls(Array.from(urls));
-  });
+  await pMap(
+    sitemaps,
+    async (sitemapUrl) => {
+      const res = await fetch(sitemapUrl);
+      const xml = await res.text();
+      saveUrls(getUrlsFromSitemap(xml));
+    },
+    { concurrency: 3 }
+  );
 }
 
 async function scrapBySite() {
@@ -110,8 +104,9 @@ async function scrapBySite() {
   await pMap(
     links,
     async (url) => {
-      const html = await getHtml(url);
-      const { document } = parseHTML(html.toString("utf-8"));
+      const res = await fetch(url);
+      const html = await res.text();
+      const { document } = parseHTML(html);
 
       const hrefs = Array.from(
         document.querySelectorAll<HTMLAnchorElement>(

@@ -9,13 +9,11 @@ export const load: PageServerLoad = async ({ params }) => {
     .select()
     .from(precios)
     .where(eq(precios.ean, params.ean))
-    .groupBy(precios.warcRecordId)
-    .having(max(precios.parserVersion))
     .orderBy(precios.fetchedAt);
   const res = await q;
   if (res.length === 0) return error(404, "Not Found");
 
-  const meta = res.find((p) => p.name);
+  const meta = res.findLast((p) => p.name);
 
   return { precios: res, meta };
 };

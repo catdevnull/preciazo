@@ -21,7 +21,7 @@ function parseJsonLds(dom: Window): object[] {
   const scripts = dom.window.document.querySelectorAll(
     'script[type="application/ld+json"]'
   );
-  return [...scripts].map((scripts) => JSON.parse(scripts.innerHTML));
+  return Array.from(scripts, (script) => JSON.parse(script.innerHTML));
 }
 function findJsonLd(dom: Window, type: string): object | undefined {
   return parseJsonLds(dom).find((x) => "@type" in x && x["@type"] === type);
@@ -31,8 +31,9 @@ const zProductLd = z.object({
   "@type": z.literal("Product"),
   name: z.string(),
   image: z.string(),
+  sku: z.string().optional(),
   offers: z.object({
-    offers: z.tuple([
+    offers: z.array(
       z.object({
         "@type": z.literal("Offer"),
         price: z.number(),
@@ -41,8 +42,8 @@ const zProductLd = z.object({
           "http://schema.org/OutOfStock",
           "http://schema.org/InStock",
         ]),
-      }),
-    ]),
+      })
+    ),
   }),
 });
 type ProductLd = z.infer<typeof zProductLd>;

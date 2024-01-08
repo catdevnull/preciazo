@@ -1,28 +1,17 @@
+/// <reference lib="dom" />
 import * as schema from "db-datos/schema.js";
-import { WARCParser } from "warcio";
-import { writeFile } from "fs/promises";
+import { writeFile, mkdir } from "fs/promises";
 import { createHash } from "crypto";
 import { getCarrefourProduct } from "./parsers/carrefour.js";
 import { getDiaProduct } from "./parsers/dia.js";
 import { getCotoProduct } from "./parsers/coto.js";
 import { join } from "path";
-import { and, eq, sql } from "drizzle-orm";
 import { db } from "db-datos/db.js";
+import pMap from "p-map";
+import { getJumboProduct } from "./parsers/jumbo.js";
 
-const DEBUG = false;
+const DEBUG = true;
 const PARSER_VERSION = 4;
-
-const getPrevPrecio = db
-  .select({ id: schema.precios.id })
-  .from(schema.precios)
-  .where(
-    and(
-      eq(schema.precios.warcRecordId, sql.placeholder("warcRecordId")),
-      eq(schema.precios.parserVersion, PARSER_VERSION)
-    )
-  )
-  .limit(1)
-  .prepare();
 
 export type Precio = typeof schema.precios.$inferInsert;
 export type Precioish = Omit<
@@ -30,83 +19,109 @@ export type Precioish = Omit<
   "fetchedAt" | "url" | "id" | "warcRecordId" | "parserVersion"
 >;
 
-export async function parseWarc(path: string) {
-  // const warc = createReadStream(path);
-  let progress: {
-    done: number;
-    errors: { error: any; warcRecordId: string; path: string }[];
-  } = { done: 0, errors: [] };
+export async function downloadList(path: string) {
+  let list = (await Bun.file(path).text())
+    .split("\n")
+    .filter((s) => s.length > 0);
 
-  const proc = Bun.spawn(["zstdcat", "-d", path], {});
-  const warc = proc.stdout;
-  // TODO: tirar error si falla zstd
-
-  const parser = new WARCParser(warc);
-  for await (const record of parser) {
-    if (record.warcType === "response") {
-      if (!record.warcTargetURI) continue;
-      const warcRecordId = record.warcHeader("WARC-Record-ID");
-      if (!warcRecordId) throw new Error("No tiene WARC-Record-ID");
-
-      if (getPrevPrecio.get({ warcRecordId })) {
-        console.debug(`skipped ${warcRecordId}`);
-        continue;
-      }
-      if (record.httpHeaders?.statusCode !== 200) {
-        console.debug(
-          `skipped ${warcRecordId} because status=${record.httpHeaders?.statusCode} (!=200)`
-        );
-        continue;
-      }
-      // TODO: sobreescribir si existe el mismo record-id pero con version mas bajo?
-
-      const html = await record.contentText();
-
-      const url = new URL(record.warcTargetURI);
-      try {
-        let ish: Precioish | undefined = undefined;
-        if (url.hostname === "www.carrefour.com.ar")
-          ish = getCarrefourProduct(html);
-        else if (url.hostname === "diaonline.supermercadosdia.com.ar")
-          ish = getDiaProduct(html);
-        else if (url.hostname === "www.cotodigital3.com.ar")
-          ish = getCotoProduct(html);
-        else throw new Error(`Unknown host ${url.hostname}`);
-
-        const p: Precio = {
-          ...ish,
-          fetchedAt: new Date(record.warcDate!),
-          url: record.warcTargetURI,
-          warcRecordId,
-          parserVersion: PARSER_VERSION,
-        };
-
-        await db.insert(schema.precios).values(p);
-
-        progress.done++;
-      } catch (error) {
-        console.error({ path, warcRecordId, error });
-        progress.errors.push({
-          path,
-          warcRecordId,
-          error,
-        });
-
-        if (DEBUG) {
-          const urlHash = createHash("md5")
-            .update(record.warcTargetURI!)
-            .digest("hex");
-          const output = join("debug", `${urlHash}.html`);
-          await writeFile(output, html);
-          console.error(`wrote html to ${output}`);
+  const results = await pMap(
+    list,
+    async (urlS) => {
+      let res: ScrapResult = { type: "skipped" };
+      for (let attempts = 0; attempts < 6; attempts++) {
+        if (attempts !== 0) await wait(1500);
+        res = await scrap(urlS);
+        if (res.type === "done" || res.type === "skipped") {
+          break;
         }
       }
+      if (res.type === "error") console.error(res);
+      return res;
+    },
+    { concurrency: 32 }
+  );
+
+  let progress: {
+    done: number;
+    skipped: number;
+    errors: { error: any; url: string; debugPath: string }[];
+  } = { done: 0, skipped: 0, errors: [] };
+  for (const result of results) {
+    switch (result.type) {
+      case "done":
+        progress.done++;
+        break;
+      case "error":
+        progress.errors.push(result);
+        break;
+      case "skipped":
+        progress.skipped++;
+        break;
     }
   }
+  return progress;
+}
 
-  if ((await proc.exited) !== 0) {
-    throw new Error("zstd tiró un error");
+export async function getProduct(url: URL, html: string): Promise<Precioish> {
+  if (url.hostname === "www.carrefour.com.ar") return getCarrefourProduct(html);
+  else if (url.hostname === "diaonline.supermercadosdia.com.ar")
+    return getDiaProduct(html);
+  else if (url.hostname === "www.cotodigital3.com.ar")
+    return getCotoProduct(html);
+  else if (url.hostname === "www.jumbo.com.ar")
+    return await getJumboProduct(html);
+  else throw new Error(`Unknown host ${url.hostname}`);
+}
+
+type ScrapResult =
+  | { type: "skipped" }
+  | { type: "done" }
+  | { type: "error"; url: string; error: any; debugPath: string };
+async function scrap(urlS: string): Promise<ScrapResult> {
+  let url;
+  try {
+    url = new URL(urlS);
+  } catch (err) {
+    console.error(`skipped ${urlS} because ${err}`);
+    return { type: "skipped" };
+  }
+  const res = await fetch(url);
+  if (!res.ok) {
+    console.debug(`skipped ${urlS} because status=${res.status} (!=200)`);
+    return { type: "skipped" };
   }
 
-  return progress;
+  const html = await res.text();
+
+  try {
+    let ish = await getProduct(url, html);
+
+    const p: Precio = {
+      ...ish,
+      fetchedAt: new Date(),
+      url: urlS,
+      parserVersion: PARSER_VERSION,
+    };
+
+    await db.insert(schema.precios).values(p);
+
+    return { type: "done" };
+  } catch (error) {
+    const urlHash = createHash("md5").update(urlS).digest("hex");
+    const output = join("debug", `${urlHash}.html`);
+    if (DEBUG) {
+      await mkdir("debug", { recursive: true });
+      await writeFile(output, html);
+    }
+    return {
+      type: "error",
+      url: urlS,
+      error,
+      debugPath: output,
+    };
+  }
+}
+
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }

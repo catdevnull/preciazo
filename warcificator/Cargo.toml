@@ -7,13 +7,18 @@ edition = "2021"
 
 [dependencies]
 async-channel = "2.1.1"
+# lol_html = "1.2.0"
 reqwest = { version = "0.11.23", default-features = false, features = [
     "rustls-tls",
     "gzip",
     "brotli",
 ] }
 rusqlite = "0.30.0"
-scraper = "0.18.1"
+# scraper = "0.18.1"
 serde = { version = "1.0.193", features = ["derive"] }
 serde_json = "1.0.109"
+tl = { git = "https://github.com/evertedsphere/tl", branch = "patch-1", features = ["simd"] }
 tokio = { version = "1.35.1", features = ["full"] }
+tracing = { version = "0.1", features = ["log"] }
+tracing-appender = "0.2.3"
+tracing-subscriber = "0.3.18"
