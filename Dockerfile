@@ -11,7 +11,7 @@ RUN cd sitio && \
 RUN bun build scraper/cli.ts --target=bun --outfile=/tmp/cli.build.js
 
 FROM cgr.dev/chainguard/wolfi-base
-RUN apk add --no-cache nodejs npm jq bun
+RUN apk add --no-cache nodejs npm jq bun sqlite
 
 # Sitio
 COPY --from=build /usr/src/app/sitio/package.json package.real.json
