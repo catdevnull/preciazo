@@ -2,7 +2,6 @@ use anyhow::Context;
 
 use crate::PrecioPoint;
 
-#[tracing::instrument(skip(dom))]
 pub fn parse(url: String, dom: &tl::VDom) -> Result<PrecioPoint, anyhow::Error> {
     let ean = dom
         .query_selector("div#brandText")

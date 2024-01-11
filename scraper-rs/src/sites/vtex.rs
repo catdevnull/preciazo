@@ -32,7 +32,6 @@ pub fn get_json_lds<'a>(
         .filter_map(|n| n.as_tag())
         .map(|t| serde_json::from_str(&t.inner_html(dom.parser())))
 }
-#[tracing::instrument]
 pub fn find_json_ld(dom: &VDom, typ: &str) -> Option<Result<Ld, serde_json::Error>> {
     get_json_lds(dom)
         .filter_map(|v| v.ok())
