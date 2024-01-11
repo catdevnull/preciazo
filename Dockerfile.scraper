@@ -7,8 +7,7 @@ COPY . .
 RUN bun install --frozen-lockfile
 RUN bun build scraper/cli.ts --target=bun --outfile=/tmp/cli.build.js
 
-FROM cgr.dev/chainguard/wolfi-base
-RUN apk add --no-cache bun
+FROM base
 
 # Scraper
 COPY --from=build /tmp/cli.build.js /bin/scraper
@@ -21,4 +20,4 @@ ENV DB_PATH=/db/db.db
 RUN printf "#!/bin/sh\nexec bun /bin/scraper auto\n" > /etc/periodic/daily/scraper \
     && chmod +x /etc/periodic/daily/scraper
 
-CMD ["busybox","crond","-f", "-l2"]
+CMD ["busybox", "crond", "-f", "-l2"]
