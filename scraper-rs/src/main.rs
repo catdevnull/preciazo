@@ -1,6 +1,7 @@
 use again::RetryPolicy;
 use async_channel::{Receiver, Sender};
 use nanoid::nanoid;
+use reqwest::Url;
 use rusqlite::Connection;
 use simple_error::{bail, SimpleError};
 use std::{
@@ -88,6 +89,7 @@ async fn fetch_and_parse(
     client: &reqwest::Client,
     url: String,
 ) -> Result<PrecioPoint, anyhow::Error> {
+    let url_p = Url::parse(&url).unwrap();
     let policy = RetryPolicy::exponential(Duration::from_millis(300))
         .with_max_retries(10)
         .with_jitter(true);
@@ -106,7 +108,11 @@ async fn fetch_and_parse(
 
     let maybe_point = {
         let dom = tl::parse(&body, tl::ParserOptions::default()).map_err(FetchError::Tl)?;
-        sites::carrefour::parse(url, &dom)
+        match url_p.host_str().unwrap() {
+            "www.carrefour.com.ar" => sites::carrefour::parse(url, &dom),
+            "diaonline.supermercadosdia.com.ar" => sites::dia::parse(url, &dom),
+            s => bail!("Unknown host {}", s),
+        }
     };
 
     let point = match maybe_point {

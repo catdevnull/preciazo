@@ -79,7 +79,7 @@ pub struct OfferLd {
 pub enum OfferTypeLd {
     Offer,
 }
-#[derive(Deserialize)]
+#[derive(Deserialize, PartialEq)]
 pub enum AvailabilityLd {
     #[serde(rename = "http://schema.org/InStock")]
     InStock,

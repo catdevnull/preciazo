@@ -8,9 +8,7 @@ use crate::PrecioPoint;
 use super::vtex::find_product_ld;
 
 pub fn parse(url: String, dom: &tl::VDom) -> Result<PrecioPoint, anyhow::Error> {
-    let precio_centavos = common::get_meta_content(dom, "product:price:amount")
-        .map(|s| s.parse::<f64>().map(|f| (f * 100.0) as u64))
-        .transpose()?;
+    let precio_centavos = common::price_from_meta(dom)?;
 
     let in_stock = match common::get_meta_content(dom, "product:availability") {
         Some(s) => match s.as_ref() {
