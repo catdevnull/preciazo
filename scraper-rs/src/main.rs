@@ -1,23 +1,37 @@
 use again::RetryPolicy;
 use async_channel::{Receiver, Sender};
+use clap::Parser;
 use nanoid::nanoid;
 use reqwest::Url;
 use rusqlite::Connection;
 use simple_error::{bail, SimpleError};
 use std::{
-    env::{self, args},
+    env::{self},
     fs,
     path::PathBuf,
     time::Duration,
 };
 use thiserror::Error;
 
+#[derive(Parser)] // requires `derive` feature
+enum Args {
+    FetchList(FetchListArgs),
+}
+#[derive(clap::Args)]
+struct FetchListArgs {
+    list_path: String,
+}
+
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt::init();
 
-    let mut args = args().skip(1);
-    let links_list_path = args.next().expect("Falta arg para path de lista de urls");
+    match Args::parse() {
+        Args::FetchList(a) => fetch_list(a.list_path).await,
+    }
+}
+
+async fn fetch_list(links_list_path: String) -> anyhow::Result<()> {
     let links_str = fs::read_to_string(links_list_path).unwrap();
     let links = links_str
         .split('\n')
