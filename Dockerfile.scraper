@@ -7,17 +7,25 @@ COPY . .
 RUN bun install --frozen-lockfile
 RUN bun build scraper/cli.ts --target=bun --outfile=/tmp/cli.build.js
 
-FROM base
+FROM docker.io/rust:1.67 as rs-build
+WORKDIR /usr/src/app
+COPY scraper-rs/ .
+RUN cargo install --path .
+
+FROM docker.io/oven/bun:1-slim
+RUN apt-get update && apt-get install -y extra-runtime-dependencies cron && rm -rf /var/lib/apt/lists/*
 
 # Scraper
 COPY --from=build /tmp/cli.build.js /bin/scraper
 COPY --from=build /usr/src/app/db-datos/drizzle /bin/drizzle
+COPY --from=rs-build /usr/local/cargo/bin/scraper-rs /usr/local/bin/scraper-rs
 
 ENV NODE_ENV=production
 ENV DB_PATH=/db/db.db
 
 # Cron scraper
-RUN printf "#!/bin/sh\nexec bun /bin/scraper auto\n" > /etc/periodic/daily/scraper \
-    && chmod +x /etc/periodic/daily/scraper
+RUN printf "0 2 * * * bun /bin/scraper auto\n" > /etc/cron.d/scraper \
+    && chmod 0644 /etc/cron.d/scraper \
+    && crontab /etc/cron.d/scraper
 
-CMD ["busybox", "crond", "-f", "-l2"]
+CMD ["cron", "-f"]
