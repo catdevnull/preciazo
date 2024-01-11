@@ -1,105 +1,15 @@
 use again::RetryPolicy;
 use async_channel::{Receiver, Sender};
 use nanoid::nanoid;
-use rand::seq::SliceRandom;
-use reqwest::Url;
 use rusqlite::Connection;
 use simple_error::{bail, SimpleError};
 use std::{
-    borrow::Cow,
     env::{self, args},
     fs,
     path::PathBuf,
-    time::{Duration, SystemTime, UNIX_EPOCH},
+    time::Duration,
 };
 use thiserror::Error;
-use tl::VDom;
-use tokio::io::{stderr, AsyncWriteExt};
-
-#[derive(Debug)]
-struct PrecioPoint {
-    ean: String,
-    // unix
-    fetched_at: u64,
-    precio_centavos: Option<u64>,
-    in_stock: Option<bool>,
-    url: String,
-    parser_version: u16,
-    name: Option<String>,
-    image_url: Option<String>,
-}
-
-// fn main() {
-//     let arg = args().skip(1).next().unwrap();
-
-//     let file_iter = fs::read_dir(arg)
-//         .unwrap()
-//         .filter(|pr| {
-//             if let Ok(p) = pr {
-//                 !p.file_name().to_str().unwrap().ends_with(".link")
-//             } else {
-//                 false
-//             }
-//         })
-//         .take(1000)
-//         .map(|f| fs::read(f.unwrap().path()).unwrap());
-
-//     let mut i = 0;
-//     for item in file_iter {
-//         i = i + 1;
-//         {
-//             // let mut text: Option<String> = None;
-//             // let mut price_str: Option<String> = None;
-//             // let mut rewriter = HtmlRewriter::new(
-//             //     Settings {
-//             //         element_content_handlers: vec![
-//             //             // Rewrite insecure hyperlinks
-//             //             element!("a[href]", |el| {
-//             //                 let href = el.get_attribute("href").unwrap().replace("http:", "https:");
-
-//             //                 el.set_attribute("href", &href).unwrap();
-
-//             //                 Ok(())
-//             //             }),
-//             //             (
-//             //                 Cow::Owned("a".parse().unwrap()),
-//             //                 ElementContentHandlers::default().text(extract_first_text(&mut text)),
-//             //             ),
-//             //             element!(
-//             //                 "meta[property=\"product:price:amount\"]",
-//             //                 extract_first_attr(&mut price_str, "content")
-//             //             ),
-//             //         ],
-//             //         memory_settings: lol_html::MemorySettings {
-//             //             preallocated_parsing_buffer_size: 1024 * 16,
-//             //             max_allowed_memory_usage: std::usize::MAX,
-//             //         },
-//             //         ..Settings::default()
-//             //     },
-//             //     |_: &[u8]| {},
-//             // );
-
-//             // rewriter.write(&item).unwrap();
-//             // rewriter.end().unwrap();
-//             // println!("{:#?}", price_str);
-
-//             // let html = scraper::Html::parse_document(&String::from_utf8(item).unwrap());
-
-//             let html = String::from_utf8(item).unwrap();
-//             let dom = tl::parse(&html, tl::ParserOptions::default()).unwrap();
-
-//             match parse_carrefour("".into(), &dom) {
-//                 Ok(point) => {
-//                     // println!("{:?}", point);
-//                 }
-//                 Err(err) => {
-//                     // println!("Error {:#?}: {}", err, html);
-//                 }
-//             };
-//         }
-//     }
-//     println!("n={}", i);
-// }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -174,7 +84,10 @@ enum FetchError {
 }
 
 #[tracing::instrument(skip(client))]
-async fn fetch_and_parse(client: &reqwest::Client, url: String) -> Result<PrecioPoint, FetchError> {
+async fn fetch_and_parse(
+    client: &reqwest::Client,
+    url: String,
+) -> Result<PrecioPoint, anyhow::Error> {
     let policy = RetryPolicy::exponential(Duration::from_millis(300))
         .with_max_retries(10)
         .with_jitter(true);
@@ -187,13 +100,13 @@ async fn fetch_and_parse(client: &reqwest::Client, url: String) -> Result<Precio
         .await
         .map_err(FetchError::Http)?;
     if !response.status().is_success() {
-        return Err(FetchError::HttpStatus(response.status()));
+        bail!(FetchError::HttpStatus(response.status()));
     }
     let body = response.text().await.map_err(FetchError::Http)?;
 
     let maybe_point = {
         let dom = tl::parse(&body, tl::ParserOptions::default()).map_err(FetchError::Tl)?;
-        parse_carrefour(url, &dom)
+        sites::carrefour::parse(url, &dom)
     };
 
     let point = match maybe_point {
@@ -211,120 +124,32 @@ async fn fetch_and_parse(client: &reqwest::Client, url: String) -> Result<Precio
     Ok(point)
 }
 
-fn parse_carrefour(url: String, dom: &tl::VDom) -> Result<PrecioPoint, SimpleError> {
-    let precio_centavos = {
-        get_meta_content(dom, "product:price:amount")?
-            .map(|s| {
-                s.parse::<f64>()
-                    .map_err(|_| SimpleError::new("Failed to parse number"))
-            })
-            .transpose()
-            .map(|f| f.map(|f| (f * 100.0) as u64))
-    }?;
-
-    let in_stock_meta = get_meta_content(dom, "product:availability")?.map(|s| s.into_owned());
-    let in_stock = match in_stock_meta {
-        Some(s) => match s.as_ref() {
-            "oos" => Some(false),
-            "instock" => Some(true),
-            _ => return Err(SimpleError::new("Not a valid product:availability")),
-        },
-        None => None,
-    };
-
-    let ean = {
-        let json = &parse_script_json(dom, "__STATE__")?;
-        let state = json
-            .as_object()
-            .ok_or(SimpleError::new("Seed state not an object"))?;
-        if state.is_empty() {
-            bail!("Seed state is an empty object")
-        }
-        let (_, product_json) = state
-            .into_iter()
-            .find(|(key, val)| {
-                key.starts_with("Product:")
-                    && val
-                        .as_object()
-                        .and_then(|val| val.get("__typename"))
-                        .map_or(false, |typename| typename == "Product")
-            })
-            .ok_or(SimpleError::new("No product in seed state"))?;
-        let cache_id = product_json
-            .get("cacheId")
-            .and_then(|v| v.as_str())
-            .ok_or(SimpleError::new("No cacheId in seed state"))?;
-        let (_, product_sku_json) = state
-            .iter()
-            .find(|(key, val)| {
-                key.starts_with(&format!("Product:{}", cache_id))
-                    && val.as_object().map_or(false, |obj| {
-                        obj.get("__typename")
-                            .map_or(false, |typename| typename == "SKU")
-                    })
-            })
-            .ok_or(SimpleError::new("No Product:cacheId* found"))?;
-        product_sku_json
-            .get("ean")
-            .and_then(|v| v.as_str())
-            .ok_or(SimpleError::new("No product SKU in seed state"))?
-            .to_string()
-    };
-
-    Ok(PrecioPoint {
-        ean,
-        fetched_at: now_sec(),
-        in_stock,
-        name: None,
-        image_url: None,
-        parser_version: 5,
-        precio_centavos,
-        url,
-    })
-}
-
-fn get_meta_content<'a>(
-    dom: &'a VDom<'a>,
-    prop: &str,
-) -> Result<Option<Cow<'a, str>>, SimpleError> {
-    let tag = &dom
-        .query_selector(&format!("meta[property=\"{}\"]", prop))
-        .and_then(|mut iter| iter.next())
-        .and_then(|h| h.get(dom.parser()))
-        .and_then(|n| n.as_tag());
-    match tag {
-        Some(tag) => Ok(Some(
-            tag.attributes()
-                .get("content")
-                .flatten()
-                .ok_or(SimpleError::new("Failed to get content attr"))?
-                .as_utf8_str(),
-        )),
-        None => Ok(None),
+async fn db_writer(rx: Receiver<PrecioPoint>) {
+    // let conn = Connection::open("../scraper/sqlite.db").unwrap();
+    // let mut stmt = conn.prepare("SELECT id, name, data FROM person")?;
+    let mut n = 0;
+    while let Ok(res) = rx.recv().await {
+        n += 1;
+        println!("{}", n);
+        println!("{:?}", res)
     }
 }
 
-fn parse_script_json(dom: &VDom, varname: &str) -> Result<serde_json::Value, SimpleError> {
-    let parser = dom.parser();
-    let inner_html = &dom
-        .query_selector(&format!(
-            "template[data-type=\"json\"][data-varname=\"{}\"]",
-            varname
-        ))
-        .and_then(|mut iter| iter.next())
-        .and_then(|h| h.get(parser))
-        .and_then(|n| n.as_tag())
-        .and_then(|t| {
-            t.children()
-                .all(parser)
-                .iter()
-                .find(|n| n.as_tag().is_some())
-        })
-        .ok_or(SimpleError::new("Failed to get script tag"))?
-        .inner_html(parser);
-    inner_html
-        .parse()
-        .map_err(|_| SimpleError::new("Couldn't parse JSON in script"))
+use std::time::{SystemTime, UNIX_EPOCH};
+
+mod sites;
+
+#[derive(Debug)]
+struct PrecioPoint {
+    ean: String,
+    // unix
+    fetched_at: u64,
+    precio_centavos: Option<u64>,
+    in_stock: Option<bool>,
+    url: String,
+    parser_version: u16,
+    name: Option<String>,
+    image_url: Option<String>,
 }
 
 fn now_sec() -> u64 {
@@ -333,15 +158,4 @@ fn now_sec() -> u64 {
         .duration_since(UNIX_EPOCH)
         .expect("Time went backwards");
     since_the_epoch.as_secs()
-}
-
-async fn db_writer(rx: Receiver<PrecioPoint>) {
-    // let conn = Connection::open("../scraper/sqlite.db").unwrap();
-    // let mut stmt = conn.prepare("SELECT id, name, data FROM person")?;
-    let mut n = 0;
-    while let Ok(res) = rx.recv().await {
-        n += 1;
-        println!("{}", n);
-        // println!("{:?}", res)
-    }
 }
