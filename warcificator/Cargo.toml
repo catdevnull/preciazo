@@ -6,19 +6,24 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+again = "0.1.2"
 async-channel = "2.1.1"
+nanoid = "0.4.0"
+rand = "0.8.5"
 # lol_html = "1.2.0"
 reqwest = { version = "0.11.23", default-features = false, features = [
     "rustls-tls",
     "gzip",
     "brotli",
+    "socks",
 ] }
 rusqlite = "0.30.0"
 # scraper = "0.18.1"
 serde = { version = "1.0.193", features = ["derive"] }
 serde_json = "1.0.109"
+simple-error = "0.3.0"
+thiserror = "1.0.56"
 tl = { git = "https://github.com/evertedsphere/tl", branch = "patch-1", features = ["simd"] }
 tokio = { version = "1.35.1", features = ["full"] }
-tracing = { version = "0.1", features = ["log"] }
-tracing-appender = "0.2.3"
-tracing-subscriber = "0.3.18"
+tracing = "0.1"
+tracing-subscriber = "0.3"

@@ -16,3 +16,4 @@ target/
 
 */flamegraph.svg
 */perf.data*
+warcificator/debug/

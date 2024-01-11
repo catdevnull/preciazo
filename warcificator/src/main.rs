@@ -1,11 +1,18 @@
+use again::RetryPolicy;
 use async_channel::{Receiver, Sender};
+use nanoid::nanoid;
+use rand::seq::SliceRandom;
+use reqwest::Url;
 use rusqlite::Connection;
+use simple_error::{bail, SimpleError};
 use std::{
     borrow::Cow,
     env::{self, args},
     fs,
-    time::{SystemTime, UNIX_EPOCH},
+    path::PathBuf,
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
+use thiserror::Error;
 use tl::VDom;
 use tokio::io::{stderr, AsyncWriteExt};
 
@@ -95,14 +102,16 @@ struct PrecioPoint {
 // }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    tracing_subscriber::fmt::init();
+
     let mut args = args().skip(1);
-    let links_list_path = args.next().unwrap();
+    let links_list_path = args.next().expect("Falta arg para path de lista de urls");
     let links_str = fs::read_to_string(links_list_path).unwrap();
     let links = links_str
-        .split("\n")
+        .split('\n')
         .map(|s| s.trim())
-        .filter(|s| s.len() > 0)
+        .filter(|s| !s.is_empty())
         .map(|s| s.to_owned())
         .collect::<Vec<_>>();
 
@@ -112,8 +121,8 @@ async fn main() {
 
         let mut handles = Vec::new();
         for _ in 1..env::var("N_COROUTINES")
-            .map_or(Ok(32), |s| s.parse::<usize>())
-            .unwrap()
+            .map_or(Ok(128), |s| s.parse::<usize>())
+            .expect("N_COROUTINES no es un número")
         {
             let rx = receiver.clone();
             let tx = res_sender.clone();
@@ -134,6 +143,7 @@ async fn main() {
         db_writer_handle
     };
     handle.await.unwrap();
+    Ok(())
 }
 
 async fn worker(rx: Receiver<String>, tx: Sender<PrecioPoint>) {
@@ -145,46 +155,68 @@ async fn worker(rx: Receiver<String>, tx: Sender<PrecioPoint>) {
                 tx.send(ex).await.unwrap();
             }
             Err(err) => {
-                stderr()
-                    .write_all(format!("Failed to fetch {}: {:?}\n", url.as_str(), err).as_bytes())
-                    .await
-                    .unwrap();
+                tracing::error!(error=%err, url=url);
             }
         }
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 enum FetchError {
-    HttpError(reqwest::Error),
-    ParseError(&'static str),
+    #[error("reqwest error")]
+    Http(#[from] reqwest::Error),
+    #[error("http status: {0}")]
+    HttpStatus(reqwest::StatusCode),
+    #[error("parse error")]
+    Parse(#[from] SimpleError),
+    #[error("tl error")]
+    Tl(#[from] tl::ParseError),
 }
 
+#[tracing::instrument(skip(client))]
 async fn fetch_and_parse(client: &reqwest::Client, url: String) -> Result<PrecioPoint, FetchError> {
-    let request = client.get(url.as_str()).build().unwrap();
-    let response = client
-        .execute(request)
-        .await
-        .map_err(|e| FetchError::HttpError(e))?;
-    let body = response
-        .text()
-        .await
-        .map_err(|e| FetchError::HttpError(e))?;
+    let policy = RetryPolicy::exponential(Duration::from_millis(300))
+        .with_max_retries(10)
+        .with_jitter(true);
 
-    let dom = tl::parse(&body, tl::ParserOptions::default()).unwrap();
-    // let parser = dom.parser();
+    let response = policy
+        .retry(|| {
+            let request = client.get(url.as_str()).build().unwrap();
+            client.execute(request)
+        })
+        .await
+        .map_err(FetchError::Http)?;
+    if !response.status().is_success() {
+        return Err(FetchError::HttpStatus(response.status()));
+    }
+    let body = response.text().await.map_err(FetchError::Http)?;
 
-    let point = parse_carrefour(url, &dom)?;
+    let maybe_point = {
+        let dom = tl::parse(&body, tl::ParserOptions::default()).map_err(FetchError::Tl)?;
+        parse_carrefour(url, &dom)
+    };
+
+    let point = match maybe_point {
+        Ok(p) => Ok(p),
+        Err(err) => {
+            let debug_path = PathBuf::from("debug/");
+            tokio::fs::create_dir_all(&debug_path).await.unwrap();
+            let file_path = debug_path.join(format!("{}.html", nanoid!()));
+            tokio::fs::write(&file_path, &body).await.unwrap();
+            tracing::debug!(error=%err, "Failed to parse, saved body at {}",file_path.display());
+            Err(err)
+        }
+    }?;
 
     Ok(point)
 }
 
-fn parse_carrefour(url: String, dom: &tl::VDom) -> Result<PrecioPoint, FetchError> {
+fn parse_carrefour(url: String, dom: &tl::VDom) -> Result<PrecioPoint, SimpleError> {
     let precio_centavos = {
         get_meta_content(dom, "product:price:amount")?
             .map(|s| {
                 s.parse::<f64>()
-                    .map_err(|_| FetchError::ParseError("Failed to parse number"))
+                    .map_err(|_| SimpleError::new("Failed to parse number"))
             })
             .transpose()
             .map(|f| f.map(|f| (f * 100.0) as u64))
@@ -195,7 +227,7 @@ fn parse_carrefour(url: String, dom: &tl::VDom) -> Result<PrecioPoint, FetchErro
         Some(s) => match s.as_ref() {
             "oos" => Some(false),
             "instock" => Some(true),
-            _ => return Err(FetchError::ParseError("Not a valid product:availability")),
+            _ => return Err(SimpleError::new("Not a valid product:availability")),
         },
         None => None,
     };
@@ -204,7 +236,10 @@ fn parse_carrefour(url: String, dom: &tl::VDom) -> Result<PrecioPoint, FetchErro
         let json = &parse_script_json(dom, "__STATE__")?;
         let state = json
             .as_object()
-            .ok_or(FetchError::ParseError("Seed state not an object"))?;
+            .ok_or(SimpleError::new("Seed state not an object"))?;
+        if state.is_empty() {
+            bail!("Seed state is an empty object")
+        }
         let (_, product_json) = state
             .into_iter()
             .find(|(key, val)| {
@@ -214,11 +249,11 @@ fn parse_carrefour(url: String, dom: &tl::VDom) -> Result<PrecioPoint, FetchErro
                         .and_then(|val| val.get("__typename"))
                         .map_or(false, |typename| typename == "Product")
             })
-            .ok_or(FetchError::ParseError("No product in seed state"))?;
+            .ok_or(SimpleError::new("No product in seed state"))?;
         let cache_id = product_json
             .get("cacheId")
             .and_then(|v| v.as_str())
-            .ok_or(FetchError::ParseError("No cacheId in seed state"))?;
+            .ok_or(SimpleError::new("No cacheId in seed state"))?;
         let (_, product_sku_json) = state
             .iter()
             .find(|(key, val)| {
@@ -228,11 +263,11 @@ fn parse_carrefour(url: String, dom: &tl::VDom) -> Result<PrecioPoint, FetchErro
                             .map_or(false, |typename| typename == "SKU")
                     })
             })
-            .ok_or(FetchError::ParseError("No Product:cacheId* found"))?;
+            .ok_or(SimpleError::new("No Product:cacheId* found"))?;
         product_sku_json
             .get("ean")
             .and_then(|v| v.as_str())
-            .ok_or(FetchError::ParseError("No product SKU in seed state"))?
+            .ok_or(SimpleError::new("No product SKU in seed state"))?
             .to_string()
     };
 
@@ -248,7 +283,10 @@ fn parse_carrefour(url: String, dom: &tl::VDom) -> Result<PrecioPoint, FetchErro
     })
 }
 
-fn get_meta_content<'a>(dom: &'a VDom<'a>, prop: &str) -> Result<Option<Cow<'a, str>>, FetchError> {
+fn get_meta_content<'a>(
+    dom: &'a VDom<'a>,
+    prop: &str,
+) -> Result<Option<Cow<'a, str>>, SimpleError> {
     let tag = &dom
         .query_selector(&format!("meta[property=\"{}\"]", prop))
         .and_then(|mut iter| iter.next())
@@ -259,14 +297,14 @@ fn get_meta_content<'a>(dom: &'a VDom<'a>, prop: &str) -> Result<Option<Cow<'a, 
             tag.attributes()
                 .get("content")
                 .flatten()
-                .ok_or(FetchError::ParseError("Failed to get content attr"))?
+                .ok_or(SimpleError::new("Failed to get content attr"))?
                 .as_utf8_str(),
         )),
         None => Ok(None),
     }
 }
 
-fn parse_script_json(dom: &VDom, varname: &str) -> Result<serde_json::Value, FetchError> {
+fn parse_script_json(dom: &VDom, varname: &str) -> Result<serde_json::Value, SimpleError> {
     let parser = dom.parser();
     let inner_html = &dom
         .query_selector(&format!(
@@ -282,11 +320,11 @@ fn parse_script_json(dom: &VDom, varname: &str) -> Result<serde_json::Value, Fet
                 .iter()
                 .find(|n| n.as_tag().is_some())
         })
-        .ok_or(FetchError::ParseError("Failed to get script tag"))?
+        .ok_or(SimpleError::new("Failed to get script tag"))?
         .inner_html(parser);
-    Ok(inner_html
+    inner_html
         .parse()
-        .map_err(|_| FetchError::ParseError("Couldn't parse JSON in script"))?)
+        .map_err(|_| SimpleError::new("Couldn't parse JSON in script"))
 }
 
 fn now_sec() -> u64 {
@@ -300,7 +338,10 @@ fn now_sec() -> u64 {
 async fn db_writer(rx: Receiver<PrecioPoint>) {
     // let conn = Connection::open("../scraper/sqlite.db").unwrap();
     // let mut stmt = conn.prepare("SELECT id, name, data FROM person")?;
+    let mut n = 0;
     while let Ok(res) = rx.recv().await {
-        println!("{:?}", res)
+        n += 1;
+        println!("{}", n);
+        // println!("{:?}", res)
     }
 }
