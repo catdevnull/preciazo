@@ -1,9 +1,10 @@
 use again::RetryPolicy;
-use async_channel::{Receiver, Sender};
+use async_channel::Receiver;
 use clap::Parser;
 use nanoid::nanoid;
-use reqwest::Url;
-use rusqlite::Connection;
+use r2d2::Pool;
+use r2d2_sqlite::SqliteConnectionManager;
+use reqwest::{StatusCode, Url};
 use simple_error::{bail, SimpleError};
 use std::{
     env::{self},
@@ -12,7 +13,6 @@ use std::{
     time::Duration,
 };
 use thiserror::Error;
-use tl::VDom;
 
 #[derive(Parser)] // requires `derive` feature
 enum Args {
@@ -47,34 +47,37 @@ async fn fetch_list_cli(links_list_path: String) -> anyhow::Result<()> {
         .map(|s| s.to_owned())
         .collect::<Vec<_>>();
 
-    let handle = {
-        let (sender, receiver) = async_channel::bounded::<String>(1);
-        let (res_sender, res_receiver) = async_channel::unbounded::<PrecioPoint>();
+    let (sender, receiver) = async_channel::bounded::<String>(1);
 
-        let mut handles = Vec::new();
-        for _ in 1..env::var("N_COROUTINES")
-            .map_or(Ok(128), |s| s.parse::<usize>())
-            .expect("N_COROUTINES no es un número")
-        {
+    let db_path = env::var("DB_PATH").unwrap_or("../scraper/sqlite.db".to_string());
+    let manager = SqliteConnectionManager::file(db_path);
+    let pool = Pool::new(manager).unwrap();
+
+    let n_coroutines = env::var("N_COROUTINES")
+        .map_or(Ok(128), |s| s.parse::<usize>())
+        .expect("N_COROUTINES no es un número");
+    let handles = (1..n_coroutines)
+        .map(|_| {
             let rx = receiver.clone();
-            let tx = res_sender.clone();
-            handles.push(tokio::spawn(worker(rx, tx)));
-        }
+            let pool = pool.clone();
+            tokio::spawn(worker(rx, pool))
+        })
+        .collect::<Vec<_>>();
 
-        let db_writer_handle = tokio::spawn(db_writer(res_receiver));
+    for link in links {
+        sender.send_blocking(link).unwrap();
+    }
+    sender.close();
 
-        for link in links {
-            sender.send_blocking(link).unwrap();
-        }
-        sender.close();
+    let mut counters = Counters::default();
+    for handle in handles {
+        let c = handle.await.unwrap();
+        counters.success += c.success;
+        counters.errored += c.errored;
+        counters.skipped += c.skipped;
+    }
 
-        for handle in handles {
-            handle.await.unwrap();
-        }
-
-        db_writer_handle
-    };
-    handle.await.unwrap();
+    println!("Finished: {:?}", counters);
     Ok(())
 }
 
@@ -82,19 +85,46 @@ fn build_client() -> reqwest::Client {
     reqwest::ClientBuilder::default().build().unwrap()
 }
 
-async fn worker(rx: Receiver<String>, tx: Sender<PrecioPoint>) {
+#[derive(Default, Debug)]
+struct Counters {
+    success: u64,
+    errored: u64,
+    skipped: u64,
+}
+
+async fn worker(rx: Receiver<String>, pool: Pool<SqliteConnectionManager>) -> Counters {
     let client = build_client();
+
+    let mut counters = Counters::default();
     while let Ok(url) = rx.recv().await {
         let res = fetch_and_parse(&client, url.clone()).await;
         match res {
-            Ok(ex) => {
-                tx.send(ex).await.unwrap();
+            Ok(res) => {
+                counters.success += 1;
+                pool.get().unwrap().execute("INSERT INTO precios(ean, fetched_at, precio_centavos, in_stock, url, warc_record_id, parser_version, name, image_url) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9);",rusqlite::params![
+                    res.ean,
+                    res.fetched_at,
+                    res.precio_centavos,
+                    res.in_stock,
+                    res.url,
+                    None::<String>,
+                    res.parser_version,
+                    res.name,
+                    res.image_url,
+                ]).unwrap();
             }
             Err(err) => {
+                match err.downcast_ref::<FetchError>() {
+                    Some(FetchError::HttpStatus(StatusCode::NOT_FOUND)) => counters.skipped += 1,
+                    _ => counters.errored += 1,
+                }
+
                 tracing::error!(error=%err, url=url);
             }
         }
     }
+
+    counters
 }
 
 #[derive(Debug, Error)]
@@ -188,17 +218,6 @@ async fn scrap_url(
         }
         "www.jumbo.com.ar" => sites::jumbo::scrap(client, url, body).await,
         s => bail!("Unknown host {}", s),
-    }
-}
-
-async fn db_writer(rx: Receiver<PrecioPoint>) {
-    // let conn = Connection::open("../scraper/sqlite.db").unwrap();
-    // let mut stmt = conn.prepare("SELECT id, name, data FROM person")?;
-    let mut n = 0;
-    while let Ok(res) = rx.recv().await {
-        n += 1;
-        println!("{}", n);
-        // println!("{:?}", res)
     }
 }
 
