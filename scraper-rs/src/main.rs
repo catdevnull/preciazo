@@ -12,14 +12,20 @@ use std::{
     time::Duration,
 };
 use thiserror::Error;
+use tl::VDom;
 
 #[derive(Parser)] // requires `derive` feature
 enum Args {
     FetchList(FetchListArgs),
+    ParseFile(ParseFileArgs),
 }
 #[derive(clap::Args)]
 struct FetchListArgs {
     list_path: String,
+}
+#[derive(clap::Args)]
+struct ParseFileArgs {
+    file_path: String,
 }
 
 #[tokio::main]
@@ -27,11 +33,12 @@ async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt::init();
 
     match Args::parse() {
-        Args::FetchList(a) => fetch_list(a.list_path).await,
+        Args::FetchList(a) => fetch_list_cli(a.list_path).await,
+        Args::ParseFile(a) => parse_file_cli(a.file_path).await,
     }
 }
 
-async fn fetch_list(links_list_path: String) -> anyhow::Result<()> {
+async fn fetch_list_cli(links_list_path: String) -> anyhow::Result<()> {
     let links_str = fs::read_to_string(links_list_path).unwrap();
     let links = links_str
         .split('\n')
@@ -103,7 +110,6 @@ async fn fetch_and_parse(
     client: &reqwest::Client,
     url: String,
 ) -> Result<PrecioPoint, anyhow::Error> {
-    let url_p = Url::parse(&url).unwrap();
     let policy = RetryPolicy::exponential(Duration::from_millis(300))
         .with_max_retries(10)
         .with_jitter(true);
@@ -122,11 +128,7 @@ async fn fetch_and_parse(
 
     let maybe_point = {
         let dom = tl::parse(&body, tl::ParserOptions::default()).map_err(FetchError::Tl)?;
-        match url_p.host_str().unwrap() {
-            "www.carrefour.com.ar" => sites::carrefour::parse(url, &dom),
-            "diaonline.supermercadosdia.com.ar" => sites::dia::parse(url, &dom),
-            s => bail!("Unknown host {}", s),
-        }
+        parse_url(url, &dom)
     };
 
     let point = match maybe_point {
@@ -142,6 +144,36 @@ async fn fetch_and_parse(
     }?;
 
     Ok(point)
+}
+
+async fn parse_file_cli(file_path: String) -> anyhow::Result<()> {
+    let file = tokio::fs::read_to_string(file_path).await?;
+    let dom = tl::parse(&file, tl::ParserOptions::default())?;
+
+    let url = dom
+        .query_selector("link[rel=\"canonical\"]")
+        .unwrap()
+        .filter_map(|h| h.get(dom.parser()))
+        .filter_map(|n| n.as_tag())
+        .next()
+        .and_then(|t| t.attributes().get("href").flatten())
+        .expect("No meta canonical")
+        .as_utf8_str()
+        .to_string();
+
+    println!("URL: {}", &url);
+    println!("{:?}", parse_url(url, &dom));
+    Ok(())
+}
+
+fn parse_url(url: String, dom: &VDom) -> anyhow::Result<PrecioPoint> {
+    let url_p = Url::parse(&url).unwrap();
+    match url_p.host_str().unwrap() {
+        "www.carrefour.com.ar" => sites::carrefour::parse(url, dom),
+        "diaonline.supermercadosdia.com.ar" => sites::dia::parse(url, dom),
+        "www.cotodigital3.com.ar" => sites::coto::parse(url, dom),
+        s => bail!("Unknown host {}", s),
+    }
 }
 
 async fn db_writer(rx: Receiver<PrecioPoint>) {
