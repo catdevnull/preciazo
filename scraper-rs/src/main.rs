@@ -150,7 +150,7 @@ async fn db_writer(rx: Receiver<PrecioPoint>) {
     let mut n = 0;
     while let Ok(res) = rx.recv().await {
         n += 1;
-        println!("{}", n);
+        // println!("{}", n);
         println!("{:?}", res)
     }
 }

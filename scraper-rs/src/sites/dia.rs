@@ -1,9 +1,7 @@
 use anyhow::Context;
 use simple_error::bail;
-use simple_error::SimpleError;
 
 use crate::sites::common;
-use crate::sites::vtex;
 use crate::PrecioPoint;
 
 use super::vtex::find_product_ld;
