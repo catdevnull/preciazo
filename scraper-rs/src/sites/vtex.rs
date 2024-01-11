@@ -1,7 +1,9 @@
-use anyhow::Context;
+use anyhow::{bail, Context};
 use serde::Deserialize;
 use simple_error::SimpleError;
 use tl::VDom;
+
+use super::common;
 
 pub fn parse_script_json(dom: &VDom, varname: &str) -> Result<serde_json::Value, anyhow::Error> {
     let inner_html = &dom
@@ -84,4 +86,17 @@ pub enum AvailabilityLd {
     InStock,
     #[serde(rename = "http://schema.org/OutOfStock")]
     OutOfStock,
+}
+
+pub fn in_stock_from_meta(dom: &VDom) -> anyhow::Result<bool> {
+    Ok(
+        match common::get_meta_content(dom, "product:availability") {
+            Some(s) => match s.as_ref() {
+                "oos" => false,
+                "instock" => true,
+                _ => bail!("Not a valid product:availability"),
+            },
+            None => bail!("No product:availability in carrefour"),
+        },
+    )
 }

@@ -10,14 +10,7 @@ use super::vtex::find_product_ld;
 pub fn parse(url: String, dom: &tl::VDom) -> Result<PrecioPoint, anyhow::Error> {
     let precio_centavos = common::price_from_meta(dom)?;
 
-    let in_stock = match common::get_meta_content(dom, "product:availability") {
-        Some(s) => match s.as_ref() {
-            "oos" => false,
-            "instock" => true,
-            _ => bail!("Not a valid product:availability"),
-        },
-        None => bail!("No product:availability in carrefour"),
-    };
+    let in_stock = vtex::in_stock_from_meta(dom)?;
 
     let ean = {
         let json = &vtex::parse_script_json(dom, "__STATE__")?;

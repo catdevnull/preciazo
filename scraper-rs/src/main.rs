@@ -78,8 +78,12 @@ async fn fetch_list_cli(links_list_path: String) -> anyhow::Result<()> {
     Ok(())
 }
 
+fn build_client() -> reqwest::Client {
+    reqwest::ClientBuilder::default().build().unwrap()
+}
+
 async fn worker(rx: Receiver<String>, tx: Sender<PrecioPoint>) {
-    let client = reqwest::ClientBuilder::default().build().unwrap();
+    let client = build_client();
     while let Ok(url) = rx.recv().await {
         let res = fetch_and_parse(&client, url.clone()).await;
         match res {
@@ -126,10 +130,7 @@ async fn fetch_and_parse(
     }
     let body = response.text().await.map_err(FetchError::Http)?;
 
-    let maybe_point = {
-        let dom = tl::parse(&body, tl::ParserOptions::default()).map_err(FetchError::Tl)?;
-        parse_url(url, &dom)
-    };
+    let maybe_point = { scrap_url(client, url, &body).await };
 
     let point = match maybe_point {
         Ok(p) => Ok(p),
@@ -148,30 +149,44 @@ async fn fetch_and_parse(
 
 async fn parse_file_cli(file_path: String) -> anyhow::Result<()> {
     let file = tokio::fs::read_to_string(file_path).await?;
-    let dom = tl::parse(&file, tl::ParserOptions::default())?;
 
-    let url = dom
-        .query_selector("link[rel=\"canonical\"]")
-        .unwrap()
-        .filter_map(|h| h.get(dom.parser()))
-        .filter_map(|n| n.as_tag())
-        .next()
-        .and_then(|t| t.attributes().get("href").flatten())
-        .expect("No meta canonical")
-        .as_utf8_str()
-        .to_string();
+    let client = build_client();
+
+    let url = {
+        let dom = tl::parse(&file, tl::ParserOptions::default())?;
+        dom.query_selector("link[rel=\"canonical\"]")
+            .unwrap()
+            .filter_map(|h| h.get(dom.parser()))
+            .filter_map(|n| n.as_tag())
+            .next()
+            .and_then(|t| t.attributes().get("href").flatten())
+            .expect("No meta canonical")
+            .as_utf8_str()
+            .to_string()
+    };
 
     println!("URL: {}", &url);
-    println!("{:?}", parse_url(url, &dom));
+    println!("{:?}", scrap_url(&client, url, &file).await);
     Ok(())
 }
 
-fn parse_url(url: String, dom: &VDom) -> anyhow::Result<PrecioPoint> {
+async fn scrap_url(
+    client: &reqwest::Client,
+    url: String,
+    body: &str,
+) -> anyhow::Result<PrecioPoint> {
     let url_p = Url::parse(&url).unwrap();
     match url_p.host_str().unwrap() {
-        "www.carrefour.com.ar" => sites::carrefour::parse(url, dom),
-        "diaonline.supermercadosdia.com.ar" => sites::dia::parse(url, dom),
-        "www.cotodigital3.com.ar" => sites::coto::parse(url, dom),
+        "www.carrefour.com.ar" => {
+            sites::carrefour::parse(url, &tl::parse(&body, tl::ParserOptions::default())?)
+        }
+        "diaonline.supermercadosdia.com.ar" => {
+            sites::dia::parse(url, &tl::parse(&body, tl::ParserOptions::default())?)
+        }
+        "www.cotodigital3.com.ar" => {
+            sites::coto::parse(url, &tl::parse(&body, tl::ParserOptions::default())?)
+        }
+        "www.jumbo.com.ar" => sites::jumbo::scrap(client, url, body).await,
         s => bail!("Unknown host {}", s),
     }
 }
@@ -182,8 +197,8 @@ async fn db_writer(rx: Receiver<PrecioPoint>) {
     let mut n = 0;
     while let Ok(res) = rx.recv().await {
         n += 1;
-        // println!("{}", n);
-        println!("{:?}", res)
+        println!("{}", n);
+        // println!("{:?}", res)
     }
 }
 
