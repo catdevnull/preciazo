@@ -9,7 +9,8 @@
 		"ghcr.io/devcontainers/features/git-lfs:1": {},
 		"ghcr.io/devcontainers/features/node:1": {},
 		"ghcr.io/swift-server-community/swift-devcontainer-features/sqlite:1": {},
-		"ghcr.io/devcontainers/features/rust:1": {}
+		"ghcr.io/devcontainers/features/rust:1": {},
+		"ghcr.io/devcontainers/features/docker-in-docker:2": {}
 	},
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
