@@ -7,13 +7,13 @@
     {
       "type": "lldb",
       "request": "launch",
-      "name": "warcificator",
-      "cwd": "warcificator/",
+      "name": "scraper-rs",
+      "cwd": "scraper-rs/",
       "cargo": {
         // https://github.com/vadimcn/codelldb/issues/884
-        "args": ["build", "--manifest-path=warcificator/Cargo.toml"]
+        "args": ["build", "--manifest-path=scraper-rs/Cargo.toml"]
       },
-      "args": ["../data/carrefour"],
+      "args": ["../data/Carrefour.txt"],
       "env": {}
     },
     {

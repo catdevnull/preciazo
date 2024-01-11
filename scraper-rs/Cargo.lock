@@ -1012,6 +1012,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
 
 [[package]]
+name = "scraper-rs"
+version = "0.1.0"
+dependencies = [
+ "again",
+ "async-channel",
+ "nanoid",
+ "rand 0.8.5",
+ "reqwest",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "simple-error",
+ "thiserror",
+ "tl",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "sct"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1399,26 +1419,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bfa7760aed19e106de2c7c0b581b509f2f25d3dacaf737cb82ac61bc6d760b0e"
 dependencies = [
  "try-lock",
-]
-
-[[package]]
-name = "warcificator"
-version = "0.1.0"
-dependencies = [
- "again",
- "async-channel",
- "nanoid",
- "rand 0.8.5",
- "reqwest",
- "rusqlite",
- "serde",
- "serde_json",
- "simple-error",
- "thiserror",
- "tl",
- "tokio",
- "tracing",
- "tracing-subscriber",
 ]
 
 [[package]]
