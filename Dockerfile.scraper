@@ -1,0 +1,23 @@
+FROM docker.io/oven/bun:1-alpine AS base
+WORKDIR /usr/src/app
+
+FROM base as build
+ENV NODE_ENV=production
+COPY . .
+RUN bun install --frozen-lockfile
+RUN bun build scraper/cli.ts --target=bun --outfile=/tmp/cli.build.js
+
+FROM base
+
+# Scraper
+COPY --from=build /tmp/cli.build.js /bin/scraper
+COPY --from=build /usr/src/app/db-datos/drizzle /bin/drizzle
+
+ENV NODE_ENV=production
+ENV DB_PATH=/db/db.db
+
+# Cron scraper
+RUN printf "#!/bin/sh\nexec bun /bin/scraper auto\n" > /etc/periodic/daily/scraper \
+    && chmod +x /etc/periodic/daily/scraper
+
+CMD ["busybox", "crond", "-f", "-l2"]
