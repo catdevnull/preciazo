@@ -57,7 +57,7 @@ pub fn parse(url: String, dom: &tl::VDom) -> Result<PrecioPoint, anyhow::Error> 
         .map(|s| s.trim().to_string());
 
     let image_url = dom
-        .query_selector(".zoom img")
+        .query_selector(".zoomImage1")
         .unwrap()
         .filter_map(|h| h.get(dom.parser()))
         .filter_map(|n| n.as_tag())
