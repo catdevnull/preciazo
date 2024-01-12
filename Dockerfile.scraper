@@ -16,7 +16,7 @@ COPY scraper-rs/ .
 RUN cargo install --locked --path .
 
 FROM base
-RUN apk add --no-cache sqlite
+RUN apk add --no-cache sqlite sqlite-libs
 
 # Scraper
 COPY --from=build /tmp/cli.build.js /bin/scraper
