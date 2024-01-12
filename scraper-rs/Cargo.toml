@@ -27,7 +27,7 @@ serde = { version = "1.0.193", features = ["derive"] }
 serde_json = "1.0.109"
 simple-error = "0.3.0"
 thiserror = "1.0.56"
-tl = { git = "https://github.com/evertedsphere/tl", branch = "patch-1", features = ["simd"] }
+tl = "0.7.7"
 tokio = { version = "1.35.1", features = ["full"] }
 tracing = "0.1"
 tracing-subscriber = "0.3"

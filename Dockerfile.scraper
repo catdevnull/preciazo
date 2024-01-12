@@ -1,5 +1,6 @@
-FROM docker.io/oven/bun:1-alpine AS base
+FROM cgr.dev/chainguard/wolfi-base AS base
 WORKDIR /usr/src/app
+RUN apk add --no-cache bun libgcc
 
 FROM base as build
 ENV NODE_ENV=production
@@ -8,19 +9,19 @@ RUN bun install --frozen-lockfile
 RUN bun build scraper/cli.ts --target=bun --outfile=/tmp/cli.build.js
 
 # nightly porque usamos tl con `simd` activado
-FROM ghcr.io/rust-lang/rust:nightly-bookworm-slim as rs-build 
-WORKDIR /usr/src/app
-COPY scraper-rs/ .
-RUN apt-get update && apt-get install -y libsqlite3-dev && rm -rf /var/lib/apt/lists/*
-RUN cargo install --path .
+FROM base as rs-build
+RUN apk add --no-cache rust build-base sqlite-dev
 
-FROM docker.io/oven/bun:1-slim
-RUN apt-get update && apt-get install -y sqlite3 && rm -rf /var/lib/apt/lists/*
+COPY scraper-rs/ .
+RUN cargo install --locked --path .
+
+FROM base
+RUN apk add --no-cache sqlite
 
 # Scraper
 COPY --from=build /tmp/cli.build.js /bin/scraper
 COPY --from=build /usr/src/app/db-datos/drizzle /bin/drizzle
-COPY --from=rs-build /usr/local/cargo/bin/scraper-rs /usr/local/bin/scraper-rs
+COPY --from=rs-build /root/.cargo/bin/scraper-rs /usr/local/bin/scraper-rs
 
 ENV NODE_ENV=production
 ENV DB_PATH=/db/db.db
