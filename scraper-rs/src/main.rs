@@ -139,6 +139,11 @@ enum FetchError {
     Tl(#[from] tl::ParseError),
 }
 
+async fn do_request(client: &reqwest::Client, url: &str) -> reqwest::Result<reqwest::Response> {
+    let request = client.get(url).build()?;
+    client.execute(request).await
+}
+
 #[tracing::instrument(skip(client))]
 async fn fetch_and_parse(
     client: &reqwest::Client,
@@ -149,10 +154,7 @@ async fn fetch_and_parse(
         .with_jitter(true);
 
     let response = policy
-        .retry(|| {
-            let request = client.get(url.as_str()).build().unwrap();
-            client.execute(request)
-        })
+        .retry(|| do_request(client, &url))
         .await
         .map_err(FetchError::Http)?;
     if !response.status().is_success() {
