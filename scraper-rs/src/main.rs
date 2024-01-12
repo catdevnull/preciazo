@@ -1,9 +1,8 @@
 use again::RetryPolicy;
 use clap::{Parser, ValueEnum};
+use deadpool_sqlite::Pool;
 use futures::{future, stream, StreamExt};
 use nanoid::nanoid;
-use r2d2::Pool;
-use r2d2_sqlite::SqliteConnectionManager;
 use reqwest::{StatusCode, Url};
 use simple_error::{bail, SimpleError};
 use std::{
@@ -76,7 +75,7 @@ async fn fetch_list_cli(links_list_path: String) -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn fetch_list(pool: &Pool<SqliteConnectionManager>, links: Vec<String>) -> Counters {
+async fn fetch_list(pool: &Pool, links: Vec<String>) -> Counters {
     let n_coroutines = env::var("N_COROUTINES")
         .map_or(Ok(24), |s| s.parse::<usize>())
         .expect("N_COROUTINES no es un número");
@@ -103,10 +102,10 @@ async fn fetch_list(pool: &Pool<SqliteConnectionManager>, links: Vec<String>) ->
         .await
 }
 
-fn connect_db() -> Pool<SqliteConnectionManager> {
+fn connect_db() -> Pool {
     let db_path = env::var("DB_PATH").unwrap_or("../scraper/sqlite.db".to_string());
-    let manager = SqliteConnectionManager::file(db_path);
-    let pool = Pool::new(manager).unwrap();
+    let cfg = deadpool_sqlite::Config::new(db_path);
+    let pool = cfg.create_pool(deadpool_sqlite::Runtime::Tokio1).unwrap();
     pool
 }
 
@@ -121,27 +120,26 @@ struct Counters {
     skipped: u64,
 }
 
-async fn fetch_and_save(
-    client: reqwest::Client,
-    url: String,
-    pool: Pool<SqliteConnectionManager>,
-) -> Counters {
+async fn fetch_and_save(client: reqwest::Client, url: String, pool: Pool) -> Counters {
     let res = fetch_and_parse(&client, url.clone()).await;
     let mut counters = Counters::default();
     match res {
         Ok(res) => {
             counters.success += 1;
-            pool.get().unwrap().execute("INSERT INTO precios(ean, fetched_at, precio_centavos, in_stock, url, warc_record_id, parser_version, name, image_url) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9);",rusqlite::params![
-                res.ean,
-                res.fetched_at,
-                res.precio_centavos,
-                res.in_stock,
-                res.url,
-                None::<String>,
-                res.parser_version,
-                res.name,
-                res.image_url,
-            ]).unwrap();
+            pool.get().await.unwrap().interact(move |conn| conn.execute(
+                "INSERT INTO precios(ean, fetched_at, precio_centavos, in_stock, url, warc_record_id, parser_version, name, image_url) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9);",
+                    rusqlite::params![
+                    res.ean,
+                    res.fetched_at,
+                    res.precio_centavos,
+                    res.in_stock,
+                    res.url,
+                    None::<String>,
+                    res.parser_version,
+                    res.name,
+                    res.image_url,
+                ]
+            )).await.unwrap().unwrap();
         }
         Err(err) => {
             match err.downcast_ref::<FetchError>() {
@@ -272,7 +270,7 @@ async fn scrap_url(
 
 #[derive(Clone)]
 struct Auto {
-    pool: Pool<SqliteConnectionManager>,
+    pool: Pool,
     telegram_token: String,
     telegram_chat_id: String,
 }
@@ -288,13 +286,20 @@ impl Auto {
             ))
             .await;
         }
-        let links: Vec<String> = self
-            .pool
-            .get()?
-            .prepare(r#"SELECT url FROM producto_urls;"#)?
-            .query_map([], |r| r.get::<_, String>(0))?
-            .map(|r| r.unwrap())
-            .collect();
+        let links: Vec<String> = {
+            self.pool
+                .get()
+                .await?
+                .interact(|conn| -> anyhow::Result<Vec<String>> {
+                    Ok(conn
+                        .prepare(r#"SELECT url FROM producto_urls;"#)?
+                        .query_map([], |r| r.get::<_, String>(0))?
+                        .map(|r| r.unwrap())
+                        .collect())
+                })
+                .await
+                .unwrap()?
+        };
         {
             let t0 = now_sec();
             let counters = fetch_list(&self.pool, links).await;
@@ -311,21 +316,27 @@ impl Auto {
 
     async fn get_and_save_urls(self: &Self, supermercado: &Supermercado) -> anyhow::Result<()> {
         let urls = get_urls(supermercado).await?;
-        let connection = &mut self.pool.get()?;
-        let tx = connection.transaction()?;
-        {
-            let mut stmt = tx.prepare(
-                r#"INSERT INTO producto_urls(url, first_seen, last_seen)
-            VALUES (?1, ?2, ?2)
-            ON CONFLICT(url) DO UPDATE SET last_seen=?2;"#,
-            )?;
-            let now: u64 = now_ms().try_into()?;
-            for url in urls {
-                stmt.execute(rusqlite::params![url, now])?;
-            }
-        }
-        tx.commit()?;
-
+        self.pool
+            .get()
+            .await?
+            .interact(|conn| -> Result<(), anyhow::Error> {
+                let tx = conn.transaction()?;
+                {
+                    let mut stmt = tx.prepare(
+                        r#"INSERT INTO producto_urls(url, first_seen, last_seen)
+                            VALUES (?1, ?2, ?2)
+                            ON CONFLICT(url) DO UPDATE SET last_seen=?2;"#,
+                    )?;
+                    let now: u64 = now_ms().try_into()?;
+                    for url in urls {
+                        stmt.execute(rusqlite::params![url, now])?;
+                    }
+                }
+                tx.commit()?;
+                Ok(())
+            })
+            .await
+            .unwrap()?;
         Ok(())
     }
 
