@@ -88,8 +88,6 @@ async fn fetch_list(pool: &Pool, links: Vec<String>) -> Counters {
             let client = client.clone();
             tokio::spawn(fetch_and_save(client, url, pool))
         })
-        // https://github.com/rust-lang/rust/issues/89976#issuecomment-1073115246
-        .boxed()
         .buffer_unordered(n_coroutines)
         .fold(Counters::default(), move |x, y| {
             let ret = y.unwrap();
