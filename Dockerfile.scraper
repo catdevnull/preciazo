@@ -1,14 +1,7 @@
 FROM cgr.dev/chainguard/wolfi-base AS base
 WORKDIR /usr/src/app
-RUN apk add --no-cache bun libgcc
+RUN apk add --no-cache libgcc
 
-FROM base as build
-ENV NODE_ENV=production
-COPY . .
-RUN bun install --frozen-lockfile
-RUN bun build scraper/cli.ts --target=bun --outfile=/tmp/cli.build.js
-
-# nightly porque usamos tl con `simd` activado
 FROM base as rs-build
 RUN apk add --no-cache rust build-base sqlite-dev
 
@@ -19,11 +12,8 @@ FROM base
 RUN apk add --no-cache sqlite sqlite-libs
 
 # Scraper
-COPY --from=build /tmp/cli.build.js /bin/scraper
-COPY --from=build /usr/src/app/db-datos/drizzle /bin/drizzle
 COPY --from=rs-build /root/.cargo/bin/scraper-rs /usr/local/bin/scraper-rs
 
-ENV NODE_ENV=production
 ENV DB_PATH=/db/db.db
 
-CMD ["bun", "/bin/scraper", "cron"]
+CMD ["scraper-rs", "cron"]
