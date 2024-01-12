@@ -49,5 +49,5 @@ pub async fn get_urls() -> anyhow::Result<Vec<String>> {
         "https://diaonline.supermercadosdia.com.ar/sitemap/product-4.xml",
         "https://diaonline.supermercadosdia.com.ar/sitemap/product-5.xml",
     ];
-    vtex::get_urls_from_sitemap(&urls).await
+    vtex::get_urls_from_sitemap(urls).await
 }

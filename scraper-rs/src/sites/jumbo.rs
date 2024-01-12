@@ -110,5 +110,5 @@ pub async fn get_urls() -> anyhow::Result<Vec<String>> {
         "https://www.jumbo.com.ar/sitemap/product-8.xml",
         "https://www.jumbo.com.ar/sitemap/product-9.xml",
     ];
-    vtex::get_urls_from_sitemap(&urls).await
+    vtex::get_urls_from_sitemap(urls).await
 }

@@ -1,7 +1,7 @@
 use again::RetryPolicy;
 use async_channel::Receiver;
 use clap::{Parser, ValueEnum};
-use futures::{stream, StreamExt, TryStreamExt};
+use futures::future;
 use nanoid::nanoid;
 use r2d2::Pool;
 use r2d2_sqlite::SqliteConnectionManager;
@@ -129,7 +129,8 @@ async fn worker(rx: Receiver<String>, pool: Pool<SqliteConnectionManager>) -> Co
 
     let mut counters = Counters::default();
     while let Ok(url) = rx.recv().await {
-        let res = fetch_and_parse(&client, url.clone()).await;
+        let client = &client;
+        let res = fetch_and_parse(client, url.clone()).await;
         match res {
             Ok(res) => {
                 counters.success += 1;
@@ -274,13 +275,14 @@ async fn scrap_url(
     }
 }
 
+#[derive(Clone)]
 struct Auto {
     pool: Pool<SqliteConnectionManager>,
     telegram_token: String,
     telegram_chat_id: String,
 }
 impl Auto {
-    async fn download_supermercado(self: &Self, supermercado: Supermercado) -> anyhow::Result<()> {
+    async fn download_supermercado(self: Self, supermercado: Supermercado) -> anyhow::Result<()> {
         {
             let t0 = now_sec();
             self.get_and_save_urls(&supermercado).await?;
@@ -357,11 +359,11 @@ async fn auto_cli() -> anyhow::Result<()> {
         telegram_chat_id: env::var("TELEGRAM_BOT_CHAT_ID")?,
     };
     auto.inform("[auto] Empezando scrap").await;
-    stream::iter(Supermercado::value_variants().iter())
-        .map(|s| auto.download_supermercado(s.to_owned()))
-        .buffer_unordered(64)
-        .try_collect()
-        .await?;
+    let handles: Vec<_> = Supermercado::value_variants()
+        .iter()
+        .map(|s| tokio::spawn(auto.clone().download_supermercado(s.to_owned())))
+        .collect();
+    future::try_join_all(handles).await?;
     Ok(())
 }
 async fn cron_cli() -> anyhow::Result<()> {

@@ -117,21 +117,26 @@ pub fn parse_urls_from_sitemap(sitemap: &str) -> anyhow::Result<Vec<String>> {
         .collect())
 }
 
-pub async fn get_urls_from_sitemap<'a>(sitemaps: &[&str]) -> anyhow::Result<Vec<String>> {
+pub async fn get_urls_from_sitemap(sitemaps: Vec<&str>) -> anyhow::Result<Vec<String>> {
     let mut total: Vec<String> = vec![];
     let client = build_client();
     let handles = stream::iter(sitemaps)
         .map(|url| {
-            let client = &client;
+            let client = client.clone();
+            let url = url.to_string();
             async move {
+                let client = client;
+                let url = url;
                 let text = get_retry_policy()
-                    .retry(|| do_request(client, url))
+                    .retry(|| do_request(&client, &url))
                     .await?
                     .text()
                     .await?;
                 parse_urls_from_sitemap(&text)
             }
         })
+        // https://github.com/rust-lang/rust/issues/89976#issuecomment-1073115246
+        .boxed()
         .buffer_unordered(8)
         .try_collect::<Vec<_>>()
         .await?;
