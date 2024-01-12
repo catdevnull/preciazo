@@ -75,6 +75,36 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/scraper
+      - name: Cache root-.cargo-git
+        uses: actions/cache@v3
+        with:
+          path: root-.cargo-git
+          key: root-.cargo-git-${{ hashFiles('Dockerfile') }}
+      - name: inject root-.cargo-git into docker
+        uses: reproducible-containers/buildkit-cache-dance@v2.1.3
+        with:
+          cache-source: root-.cargo-git
+          cache-target: /root/.cargo/git
+      - name: Cache root-.cargo-registry
+        uses: actions/cache@v3
+        with:
+          path: root-.cargo-registry
+          key: root-.cargo-registry-${{ hashFiles('Dockerfile') }}
+      - name: inject root-.cargo-registry into docker
+        uses: reproducible-containers/buildkit-cache-dance@v2.1.3
+        with:
+          cache-source: root-.cargo-registry
+          cache-target: /root/.cargo/registry
+      - name: Cache usr/src/app/target
+        uses: actions/cache@v3
+        with:
+          path: usr/src/app/target
+          key: usr/src/app/target-${{ hashFiles('Dockerfile') }}
+      - name: inject usr/src/app/targetinto docker
+        uses: reproducible-containers/buildkit-cache-dance@v2.1.3
+        with:
+          cache-source: usr/src/app/target
+          cache-target: /usr/src/app/target
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
