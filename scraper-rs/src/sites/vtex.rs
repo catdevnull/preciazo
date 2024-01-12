@@ -125,7 +125,7 @@ pub async fn get_urls_from_sitemap<'a>(sitemaps: &[&str]) -> anyhow::Result<Vec<
             let client = &client;
             async move {
                 let text = get_retry_policy()
-                    .retry(|| do_request(client, &url))
+                    .retry(|| do_request(client, url))
                     .await?
                     .text()
                     .await?;

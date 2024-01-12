@@ -24,8 +24,7 @@ pub fn parse(url: String, dom: &tl::VDom) -> Result<PrecioPoint, anyhow::Error> 
         .query_selector(".atg_store_newPrice")
         .unwrap()
         .filter_map(|h| h.get(dom.parser()))
-        .filter_map(|n| n.as_tag())
-        .next()
+        .find_map(|n| n.as_tag())
         .map(|t| t.inner_text(dom.parser()))
         .filter(|s| !s.is_empty())
         .map(|s| {
@@ -41,8 +40,7 @@ pub fn parse(url: String, dom: &tl::VDom) -> Result<PrecioPoint, anyhow::Error> 
         dom.query_selector(".product_not_available")
             .unwrap()
             .filter_map(|h| h.get(dom.parser()))
-            .filter_map(|n| n.as_tag())
-            .next()
+            .find_map(|n| n.as_tag())
             .is_some(),
     );
 
@@ -50,8 +48,7 @@ pub fn parse(url: String, dom: &tl::VDom) -> Result<PrecioPoint, anyhow::Error> 
         .query_selector("h1.product_page")
         .unwrap()
         .filter_map(|h| h.get(dom.parser()))
-        .filter_map(|n| n.as_tag())
-        .next()
+        .find_map(|n| n.as_tag())
         .map(|t| t.inner_text(dom.parser()))
         .map(|s| s.trim().to_string());
 
@@ -59,8 +56,7 @@ pub fn parse(url: String, dom: &tl::VDom) -> Result<PrecioPoint, anyhow::Error> 
         .query_selector(".zoomImage1")
         .unwrap()
         .filter_map(|h| h.get(dom.parser()))
-        .filter_map(|n| n.as_tag())
-        .next()
+        .find_map(|n| n.as_tag())
         .and_then(|t| t.attributes().get("src").flatten())
         .map(|s| s.as_utf8_str().to_string());
 
