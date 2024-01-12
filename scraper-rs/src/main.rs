@@ -376,8 +376,8 @@ async fn cron_cli() -> anyhow::Result<()> {
     let mut interval = time::interval(std::time::Duration::from_secs(60 * 60 * 24));
 
     loop {
-        tokio::spawn(auto_cli());
         interval.tick().await;
+        tokio::spawn(auto_cli());
     }
 }
 
