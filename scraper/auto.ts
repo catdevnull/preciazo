@@ -18,9 +18,7 @@ const scrapQueue = new PQueue({ concurrency: 1 });
 
 export async function auto() {
   const a = new Auto();
-  await Promise.all(
-    supermercados.filter((x) => x === "Dia").map((supr) => a.downloadList(supr))
-  );
+  await Promise.all(supermercados.map((supr) => a.downloadList(supr)));
 }
 
 class Auto {
