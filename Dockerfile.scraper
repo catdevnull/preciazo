@@ -6,7 +6,10 @@ FROM base as rs-build
 RUN apk add --no-cache rust build-base sqlite-dev
 
 COPY scraper-rs/ .
-RUN cargo install --locked --path .
+RUN --mount=type=cache,target=/root/.cargo/git \
+    --mount=type=cache,target=/root/.cargo/registry \
+    --mount=type=cache,sharing=private,target=/usr/src/app/target \
+	cargo install --locked --path .
 
 FROM base
 RUN apk add --no-cache sqlite sqlite-libs
