@@ -3,7 +3,7 @@ use futures::{stream, StreamExt, TryFutureExt, TryStreamExt};
 use itertools::Itertools;
 use reqwest::Url;
 
-use crate::{build_client, do_request, get_retry_policy, PrecioPoint};
+use crate::{build_client, do_request, get_retry_policy, retry_if_wasnt_not_found, PrecioPoint};
 
 pub fn parse(url: String, dom: &tl::VDom) -> Result<PrecioPoint, anyhow::Error> {
     let ean = dom
@@ -90,7 +90,10 @@ pub async fn get_urls() -> anyhow::Result<Vec<String>> {
             let client = &client;
             async move {
                 let text = get_retry_policy()
-                    .retry(|| do_request(client, u.as_str()).and_then(|r| r.text()))
+                    .retry_if(
+                        || do_request(client, u.as_str()).and_then(|r| r.text()),
+                        retry_if_wasnt_not_found,
+                    )
                     .await?;
                 let dom = tl::parse(&text, tl::ParserOptions::default())?;
 

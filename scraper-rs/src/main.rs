@@ -178,13 +178,17 @@ pub fn get_retry_policy() -> again::RetryPolicy {
         .with_jitter(true)
 }
 
+pub fn retry_if_wasnt_not_found(err: &reqwest::Error) -> bool {
+    !err.status().is_some_and(|s| s == StatusCode::NOT_FOUND)
+}
+
 #[tracing::instrument(skip(client))]
 async fn fetch_and_parse(
     client: &reqwest::Client,
     url: String,
 ) -> Result<PrecioPoint, anyhow::Error> {
     let body = get_retry_policy()
-        .retry(|| do_request(client, &url))
+        .retry_if(|| do_request(client, &url), retry_if_wasnt_not_found)
         .await?
         .text()
         .await

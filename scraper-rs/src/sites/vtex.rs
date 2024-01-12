@@ -5,7 +5,7 @@ use serde::Deserialize;
 use simple_error::SimpleError;
 use tl::VDom;
 
-use crate::{build_client, do_request, get_retry_policy};
+use crate::{build_client, do_request, get_retry_policy, retry_if_wasnt_not_found};
 
 use super::common;
 
@@ -128,7 +128,7 @@ pub async fn get_urls_from_sitemap(sitemaps: Vec<&str>) -> anyhow::Result<Vec<St
                 let client = client;
                 let url = url;
                 let text = get_retry_policy()
-                    .retry(|| do_request(&client, &url))
+                    .retry_if(|| do_request(&client, &url), retry_if_wasnt_not_found)
                     .await?
                     .text()
                     .await?;
