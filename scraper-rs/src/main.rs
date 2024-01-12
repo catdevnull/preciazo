@@ -21,6 +21,16 @@ enum Supermercado {
     Carrefour,
     Coto,
 }
+impl Supermercado {
+    fn host(self: &Self) -> &'static str {
+        match self {
+            Self::Dia => "diaonline.supermercadosdia.com.ar",
+            Self::Carrefour => "www.carrefour.com.ar",
+            Self::Coto => "www.cotodigital3.com.ar",
+            Self::Jumbo => "www.jumbo.com.ar",
+        }
+    }
+}
 
 #[derive(Parser)] // requires `derive` feature
 enum Args {
@@ -126,7 +136,7 @@ async fn fetch_and_save(client: reqwest::Client, url: String, pool: Pool) -> Cou
             counters.success += 1;
             pool.get().await.unwrap().interact(move |conn| conn.execute(
                 "INSERT INTO precios(ean, fetched_at, precio_centavos, in_stock, url, warc_record_id, parser_version, name, image_url) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9);",
-                    rusqlite::params![
+                rusqlite::params![
                     res.ean,
                     res.fetched_at,
                     res.precio_centavos,
@@ -289,19 +299,32 @@ impl Auto {
             .await;
         }
         let links: Vec<String> = {
+            let search = format!("%{}%", supermercado.host());
             self.pool
                 .get()
                 .await?
-                .interact(|conn| -> anyhow::Result<Vec<String>> {
+                .interact(move |conn| -> anyhow::Result<Vec<String>> {
                     Ok(conn
-                        .prepare(r#"SELECT url FROM producto_urls;"#)?
-                        .query_map([], |r| r.get::<_, String>(0))?
+                        .prepare(
+                            r#"SELECT url FROM producto_urls
+                                    WHERE url LIKE ?1;"#,
+                        )?
+                        .query_map(rusqlite::params![search], |r| r.get::<_, String>(0))?
                         .map(|r| r.unwrap())
                         .collect())
                 })
                 .await
                 .unwrap()?
         };
+        // {
+        //     let debug_path = PathBuf::from("debug/");
+        //     tokio::fs::create_dir_all(&debug_path).await.unwrap();
+        //     let file_path = debug_path.join(format!("{}.txt", nanoid!()));
+        //     tokio::fs::write(&file_path, &links.join("\n"))
+        //         .await
+        //         .unwrap();
+        //     tracing::info!("Lista de {:?}: {:?}", &supermercado, file_path.display());
+        // }
         {
             let t0 = now_sec();
             let counters = fetch_list(&self.pool, links).await;
