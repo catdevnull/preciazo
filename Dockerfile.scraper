@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y libsqlite3-dev && rm -rf /var/lib/apt/l
 RUN cargo install --path .
 
 FROM docker.io/oven/bun:1-slim
-RUN apt-get update && apt-get install -y busybox-static sqlite3 && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y sqlite3 && rm -rf /var/lib/apt/lists/*
 
 # Scraper
 COPY --from=build /tmp/cli.build.js /bin/scraper
@@ -25,8 +25,4 @@ COPY --from=rs-build /usr/local/cargo/bin/scraper-rs /usr/local/bin/scraper-rs
 ENV NODE_ENV=production
 ENV DB_PATH=/db/db.db
 
-# Cron scraper
-RUN mkdir -p /var/spool/cron/crontabs \
-    && printf "0 2 * * * bun /bin/scraper auto\n" > /var/spool/cron/crontabs/root
-
-CMD ["busybox", "crond", "-f", "-l2"]
+CMD ["bun", "/bin/scraper", "cron"]

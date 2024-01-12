@@ -4,9 +4,14 @@ import { scrapDiaProducts } from "../link-scrapers/dia.js";
 import { scrapJumboProducts } from "../link-scrapers/jumbo.js";
 import { auto } from "./auto.js";
 import { downloadList, getProduct } from "./scrap.js";
+import Cron from "croner";
 
 if (process.argv[2] === "auto") {
   await auto();
+} else if (process.argv[2] === "cron") {
+  Cron("0 2 * * *", () => {
+    auto();
+  });
 } else if (process.argv[2] === "scrap-carrefour-links") {
   await scrapCarrefourProducts();
 } else if (process.argv[2] === "scrap-dia-links") {
