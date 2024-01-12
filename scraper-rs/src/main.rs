@@ -154,8 +154,8 @@ async fn fetch_and_save(client: reqwest::Client, url: String, pool: Pool) -> Cou
             )).await.unwrap().unwrap();
         }
         Err(err) => {
-            match err.downcast_ref::<FetchError>() {
-                Some(FetchError::Http(e)) => match e.status() {
+            match err.downcast_ref::<reqwest::Error>() {
+                Some(e) => match e.status() {
                     Some(StatusCode::NOT_FOUND) => counters.skipped += 1,
                     _ => counters.errored += 1,
                 },
@@ -170,8 +170,6 @@ async fn fetch_and_save(client: reqwest::Client, url: String, pool: Pool) -> Cou
 
 #[derive(Debug, Error)]
 enum FetchError {
-    #[error("reqwest error")]
-    Http(#[from] reqwest::Error),
     #[error("parse error")]
     Parse(#[from] SimpleError),
     #[error("tl error")]
@@ -203,8 +201,7 @@ async fn fetch_and_parse(
         .retry_if(|| do_request(client, &url), retry_if_wasnt_not_found)
         .await?
         .text()
-        .await
-        .map_err(FetchError::Http)?;
+        .await?;
 
     let maybe_point = { scrap_url(client, url, &body).await };
 
