@@ -54,7 +54,6 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
 
   build-and-push-scraper:
-    needs: check
     runs-on: ubuntu-latest
     permissions:
       contents: read
