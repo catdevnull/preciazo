@@ -118,7 +118,11 @@ fn connect_db() -> Pool {
 }
 
 fn build_client() -> reqwest::Client {
-    reqwest::ClientBuilder::default().build().unwrap()
+    reqwest::ClientBuilder::default()
+        .timeout(Duration::from_secs(60 * 5))
+        .connect_timeout(Duration::from_secs(60))
+        .build()
+        .unwrap()
 }
 
 #[derive(Default, Debug)]
