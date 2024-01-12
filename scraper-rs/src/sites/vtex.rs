@@ -1,7 +1,10 @@
 use anyhow::{bail, Context};
+use itertools::Itertools;
 use serde::Deserialize;
 use simple_error::SimpleError;
 use tl::VDom;
+
+use crate::{build_client, do_request, get_retry_policy};
 
 use super::common;
 
@@ -99,4 +102,31 @@ pub fn in_stock_from_meta(dom: &VDom) -> anyhow::Result<bool> {
             None => bail!("No product:availability in carrefour"),
         },
     )
+}
+
+pub fn parse_urls_from_sitemap(sitemap: &str) -> anyhow::Result<Vec<String>> {
+    let dom = tl::parse(sitemap, tl::ParserOptions::default())?;
+    Ok(dom
+        .query_selector("loc")
+        .unwrap()
+        .filter_map(|h| h.get(dom.parser()))
+        .filter_map(|n| n.as_tag())
+        .map(|t| t.inner_text(dom.parser()))
+        .map(|s| s.to_string())
+        .collect())
+}
+
+pub async fn get_urls_from_sitemap(sitemaps: &[&str]) -> anyhow::Result<Vec<String>> {
+    let mut total = vec![];
+    let client = &build_client();
+    for url in sitemaps {
+        let text = get_retry_policy()
+            .retry(|| do_request(client, url))
+            .await?
+            .text()
+            .await?;
+        let mut urls = parse_urls_from_sitemap(&text)?;
+        total.append(&mut urls);
+    }
+    Ok(total.into_iter().unique().collect())
 }

@@ -90,3 +90,25 @@ pub async fn scrap(
         url,
     })
 }
+
+pub async fn get_urls() -> anyhow::Result<Vec<String>> {
+    // de https://www.jumbo.com.ar/sitemap.xml
+    let urls = vec![
+        "https://www.jumbo.com.ar/sitemap/product-1.xml",
+        "https://www.jumbo.com.ar/sitemap/product-10.xml",
+        "https://www.jumbo.com.ar/sitemap/product-11.xml",
+        "https://www.jumbo.com.ar/sitemap/product-12.xml",
+        "https://www.jumbo.com.ar/sitemap/product-13.xml",
+        "https://www.jumbo.com.ar/sitemap/product-14.xml",
+        "https://www.jumbo.com.ar/sitemap/product-15.xml",
+        "https://www.jumbo.com.ar/sitemap/product-2.xml",
+        "https://www.jumbo.com.ar/sitemap/product-3.xml",
+        "https://www.jumbo.com.ar/sitemap/product-4.xml",
+        "https://www.jumbo.com.ar/sitemap/product-5.xml",
+        "https://www.jumbo.com.ar/sitemap/product-6.xml",
+        "https://www.jumbo.com.ar/sitemap/product-7.xml",
+        "https://www.jumbo.com.ar/sitemap/product-8.xml",
+        "https://www.jumbo.com.ar/sitemap/product-9.xml",
+    ];
+    vtex::get_urls_from_sitemap(&urls).await
+}

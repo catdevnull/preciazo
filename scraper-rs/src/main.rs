@@ -1,6 +1,6 @@
 use again::RetryPolicy;
 use async_channel::Receiver;
-use clap::Parser;
+use clap::{Parser, ValueEnum};
 use nanoid::nanoid;
 use r2d2::Pool;
 use r2d2_sqlite::SqliteConnectionManager;
@@ -14,10 +14,19 @@ use std::{
 };
 use thiserror::Error;
 
+#[derive(ValueEnum, Clone)]
+enum Supermercado {
+    Dia,
+    Jumbo,
+    Carrefour,
+    Coto,
+}
+
 #[derive(Parser)] // requires `derive` feature
 enum Args {
     FetchList(FetchListArgs),
     ParseFile(ParseFileArgs),
+    GetUrlList(GetUrlListArgs),
 }
 #[derive(clap::Args)]
 struct FetchListArgs {
@@ -27,6 +36,11 @@ struct FetchListArgs {
 struct ParseFileArgs {
     file_path: String,
 }
+#[derive(clap::Args)]
+struct GetUrlListArgs {
+    #[arg(value_enum)]
+    supermercado: Supermercado,
+}
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -35,6 +49,7 @@ async fn main() -> anyhow::Result<()> {
     match Args::parse() {
         Args::FetchList(a) => fetch_list_cli(a.list_path).await,
         Args::ParseFile(a) => parse_file_cli(a.file_path).await,
+        Args::GetUrlList(a) => get_url_list_cli(a.supermercado).await,
     }
 }
 
@@ -139,9 +154,19 @@ enum FetchError {
     Tl(#[from] tl::ParseError),
 }
 
-async fn do_request(client: &reqwest::Client, url: &str) -> reqwest::Result<reqwest::Response> {
+pub async fn do_request(client: &reqwest::Client, url: &str) -> anyhow::Result<reqwest::Response> {
     let request = client.get(url).build()?;
-    client.execute(request).await
+    let response = client.execute(request).await?;
+    if !response.status().is_success() {
+        bail!(FetchError::HttpStatus(response.status()));
+    }
+    Ok(response)
+}
+
+pub fn get_retry_policy() -> again::RetryPolicy {
+    RetryPolicy::exponential(Duration::from_millis(300))
+        .with_max_retries(10)
+        .with_jitter(true)
 }
 
 #[tracing::instrument(skip(client))]
@@ -149,18 +174,12 @@ async fn fetch_and_parse(
     client: &reqwest::Client,
     url: String,
 ) -> Result<PrecioPoint, anyhow::Error> {
-    let policy = RetryPolicy::exponential(Duration::from_millis(300))
-        .with_max_retries(10)
-        .with_jitter(true);
-
-    let response = policy
+    let body = get_retry_policy()
         .retry(|| do_request(client, &url))
+        .await?
+        .text()
         .await
         .map_err(FetchError::Http)?;
-    if !response.status().is_success() {
-        bail!(FetchError::HttpStatus(response.status()));
-    }
-    let body = response.text().await.map_err(FetchError::Http)?;
 
     let maybe_point = { scrap_url(client, url, &body).await };
 
@@ -199,6 +218,20 @@ async fn parse_file_cli(file_path: String) -> anyhow::Result<()> {
 
     println!("URL: {}", &url);
     println!("{:?}", scrap_url(&client, url, &file).await);
+    Ok(())
+}
+
+async fn get_url_list_cli(supermercado: Supermercado) -> anyhow::Result<()> {
+    let urls = match supermercado {
+        Supermercado::Dia => sites::dia::get_urls().await?,
+        Supermercado::Jumbo => sites::jumbo::get_urls().await?,
+        Supermercado::Carrefour => sites::carrefour::get_urls().await?,
+        _ => todo!(),
+    };
+    urls.iter().for_each(|s| {
+        println!("{}", s);
+    });
+
     Ok(())
 }
 

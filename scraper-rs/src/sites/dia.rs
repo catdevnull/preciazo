@@ -4,6 +4,7 @@ use simple_error::bail;
 use crate::sites::common;
 use crate::PrecioPoint;
 
+use super::vtex;
 use super::vtex::find_product_ld;
 use super::vtex::AvailabilityLd;
 
@@ -38,4 +39,15 @@ pub fn parse(url: String, dom: &tl::VDom) -> Result<PrecioPoint, anyhow::Error> 
         precio_centavos,
         url,
     })
+}
+
+pub async fn get_urls() -> anyhow::Result<Vec<String>> {
+    let urls = vec![
+        "https://diaonline.supermercadosdia.com.ar/sitemap/product-1.xml",
+        "https://diaonline.supermercadosdia.com.ar/sitemap/product-2.xml",
+        "https://diaonline.supermercadosdia.com.ar/sitemap/product-3.xml",
+        "https://diaonline.supermercadosdia.com.ar/sitemap/product-4.xml",
+        "https://diaonline.supermercadosdia.com.ar/sitemap/product-5.xml",
+    ];
+    vtex::get_urls_from_sitemap(&urls).await
 }

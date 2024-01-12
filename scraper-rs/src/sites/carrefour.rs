@@ -66,3 +66,19 @@ pub fn parse(url: String, dom: &tl::VDom) -> Result<PrecioPoint, anyhow::Error> 
         url,
     })
 }
+
+pub async fn get_urls() -> anyhow::Result<Vec<String>> {
+    let urls = vec![
+        "https://www.carrefour.com.ar/sitemap/product-0.xml",
+        "https://www.carrefour.com.ar/sitemap/product-1.xml",
+        "https://www.carrefour.com.ar/sitemap/product-2.xml",
+        "https://www.carrefour.com.ar/sitemap/product-3.xml",
+        "https://www.carrefour.com.ar/sitemap/product-4.xml",
+        "https://www.carrefour.com.ar/sitemap/product-5.xml",
+        "https://www.carrefour.com.ar/sitemap/product-6.xml",
+        "https://www.carrefour.com.ar/sitemap/product-7.xml",
+        "https://www.carrefour.com.ar/sitemap/product-8.xml",
+        "https://www.carrefour.com.ar/sitemap/product-9.xml",
+    ];
+    vtex::get_urls_from_sitemap(&urls).await
+}
