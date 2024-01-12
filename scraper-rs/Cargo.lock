@@ -1165,6 +1165,7 @@ dependencies = [
  "anyhow",
  "async-channel",
  "clap",
+ "futures",
  "itertools",
  "nanoid",
  "r2d2",

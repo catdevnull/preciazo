@@ -1,4 +1,5 @@
 use anyhow::{bail, Context};
+use futures::{stream, StreamExt, TryStreamExt};
 use itertools::Itertools;
 use serde::Deserialize;
 use simple_error::SimpleError;
@@ -116,16 +117,25 @@ pub fn parse_urls_from_sitemap(sitemap: &str) -> anyhow::Result<Vec<String>> {
         .collect())
 }
 
-pub async fn get_urls_from_sitemap(sitemaps: &[&str]) -> anyhow::Result<Vec<String>> {
-    let mut total = vec![];
-    let client = &build_client();
-    for url in sitemaps {
-        let text = get_retry_policy()
-            .retry(|| do_request(client, url))
-            .await?
-            .text()
-            .await?;
-        let mut urls = parse_urls_from_sitemap(&text)?;
+pub async fn get_urls_from_sitemap<'a>(sitemaps: &[&str]) -> anyhow::Result<Vec<String>> {
+    let mut total: Vec<String> = vec![];
+    let client = build_client();
+    let handles = stream::iter(sitemaps)
+        .map(|url| {
+            let client = &client;
+            async move {
+                let text = get_retry_policy()
+                    .retry(|| do_request(client, &url))
+                    .await?
+                    .text()
+                    .await?;
+                parse_urls_from_sitemap(&text)
+            }
+        })
+        .buffer_unordered(8)
+        .try_collect::<Vec<_>>()
+        .await?;
+    for mut urls in handles {
         total.append(&mut urls);
     }
     Ok(total.into_iter().unique().collect())
