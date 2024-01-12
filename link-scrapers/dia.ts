@@ -104,7 +104,7 @@ async function scrapBySite() {
   await pMap(
     links,
     async (url) => {
-      const res = await fetch(url);
+      const res = await fetch(url, { timeout: false });
       const html = await res.text();
       const { document } = parseHTML(html);
 
