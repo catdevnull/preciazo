@@ -68,7 +68,10 @@ const categorias = [
 ];
 
 export async function scrapDiaProducts() {
-  await Promise.all([scrapBySite(), scrapBySitemap()]);
+  await Promise.all([
+    // scrapBySite(),
+    scrapBySitemap(),
+  ]);
 }
 
 async function scrapBySitemap() {
