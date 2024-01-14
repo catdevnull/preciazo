@@ -107,14 +107,34 @@ pub fn in_stock_from_meta(dom: &VDom) -> anyhow::Result<bool> {
 
 pub fn parse_urls_from_sitemap(sitemap: &str) -> anyhow::Result<Vec<String>> {
     let dom = tl::parse(sitemap, tl::ParserOptions::default())?;
-    Ok(dom
-        .query_selector("loc")
+    dom.query_selector("loc")
         .unwrap()
         .filter_map(|h| h.get(dom.parser()))
         .filter_map(|n| n.as_tag())
         .map(|t| t.inner_text(dom.parser()))
-        .map(|s| s.to_string())
-        .collect())
+        .map(|s| -> anyhow::Result<String> {
+            Ok(quick_xml::escape::unescape(s.as_ref())?.to_string())
+        })
+        .try_collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_decode_url() -> anyhow::Result<()> {
+        let links = parse_urls_from_sitemap(
+            r#"
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+<url>
+    <loc>https://www.carrefour.com.ar/postre-danette-mousse-dulce-de-leche-80-g&#x200B;-684952/p</loc>
+    <lastmod>2024-01-12T10:41:25.962Z</lastmod>
+</url>"#,
+        )?;
+        assert_eq!(links[0], "https://www.carrefour.com.ar/postre-danette-mousse-dulce-de-leche-80-g\u{200b}-684952/p");
+        Ok(())
+    }
 }
 
 pub async fn get_urls_from_sitemap(sitemaps: Vec<&str>) -> anyhow::Result<Vec<String>> {
