@@ -6,8 +6,8 @@ FROM base as build
 RUN apk add --no-cache nodejs npm
 RUN npm install --global pnpm
 COPY . .
-RUN pnpm install
 RUN cd sitio && \
+    pnpm install && \
     pnpm build
 
 FROM base
