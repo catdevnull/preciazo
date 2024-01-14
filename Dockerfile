@@ -5,6 +5,7 @@ FROM base as build
 RUN apk add --no-cache nodejs npm
 RUN npm install --global pnpm
 COPY . .
+COPY db-datos/drizzle .
 RUN cd sitio && \
     pnpm install && \
     pnpm build
