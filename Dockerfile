@@ -1,6 +1,5 @@
 FROM cgr.dev/chainguard/wolfi-base AS base
 WORKDIR /usr/src/app
-ENV NODE_ENV=production
 
 FROM base as build
 RUN apk add --no-cache nodejs npm
@@ -11,6 +10,7 @@ RUN cd sitio && \
     pnpm build
 
 FROM base
+ENV NODE_ENV=production
 RUN apk add --no-cache nodejs npm jq sqlite
 
 # Sitio
