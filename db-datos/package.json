@@ -5,15 +5,19 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "generate": "drizzle-kit generate:sqlite"
+    "generate": "drizzle-kit generate:sqlite",
+    "migrate": "node db.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "better-sqlite3": "^9.2.2",
     "drizzle-orm": "^0.29.1"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.8",
+    "@types/node": "^20.10.6",
     "drizzle-kit": "^0.20.7"
   }
 }

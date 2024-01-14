@@ -1,7 +1,8 @@
-import Database from "bun:sqlite";
+// @ts-check
+import Database from "better-sqlite3";
 import { join, dirname } from "node:path";
-import { drizzle } from "drizzle-orm/bun-sqlite";
-import { migrate } from "drizzle-orm/bun-sqlite/migrator";
+import { drizzle } from "drizzle-orm/better-sqlite3";
+import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import * as schema from "./schema.js";
 import { DB_PATH } from "./drizzle.config.js";
 
@@ -11,7 +12,7 @@ export function migrateDb() {
   const db = drizzle(sqlite, { schema });
 
   migrate(db, { migrationsFolder: join(dirname(url.pathname), "drizzle") });
-  sqlite.run(`
+  sqlite.exec(`
 pragma journal_mode = WAL;
 PRAGMA synchronous = NORMAL;
 `);

@@ -1,3 +1,4 @@
+// @ts-check
 import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const precios = sqliteTable(
@@ -18,10 +19,10 @@ export const precios = sqliteTable(
     return {
       preciosEanIdx: index("precios_ean_idx").on(precios.ean),
     };
-  }
+  },
 );
 
-export type Precio = typeof precios.$inferSelect;
+/** @typedef {typeof precios.$inferSelect} Precio */
 
 export const productoUrls = sqliteTable("producto_urls", {
   id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
@@ -30,4 +31,4 @@ export const productoUrls = sqliteTable("producto_urls", {
   lastSeen: integer("last_seen", { mode: "timestamp" }).notNull(),
 });
 
-export type ProductUrl = typeof productoUrls.$inferSelect;
+/** @typedef {typeof productoUrls.$inferSelect} ProductUrl */
