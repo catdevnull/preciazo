@@ -10,7 +10,7 @@ env:
 
 jobs:
   check:
-    name: chequear typescript
+    name: chequear typescript del sitio
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
