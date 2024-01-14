@@ -1,12 +1,13 @@
 use std::str::FromStr;
 
 use anyhow::Context;
+use futures::TryFutureExt;
 use reqwest::Url;
 use serde::Deserialize;
 use simple_error::bail;
 
 use crate::sites::common;
-use crate::PrecioPoint;
+use crate::{do_request, get_retry_policy, PrecioPoint};
 
 use super::vtex;
 
@@ -23,17 +24,15 @@ async fn get_ean_from_search(
     client: &reqwest::Client,
     retailer_sku: String,
 ) -> anyhow::Result<String> {
-    let s = client
-        .get({
-            let mut url =
-                Url::from_str("https://www.jumbo.com.ar/api/catalog_system/pub/products/search")
-                    .unwrap();
-            url.set_query(Some(&format!("fq=skuId:{}", retailer_sku)));
-            url
-        })
-        .send()
-        .await?
-        .text()
+    let url = {
+        let mut url =
+            Url::from_str("https://www.jumbo.com.ar/api/catalog_system/pub/products/search")
+                .unwrap();
+        url.set_query(Some(&format!("fq=skuId:{}", retailer_sku)));
+        url
+    };
+    let s = get_retry_policy()
+        .retry(|| do_request(client, url.as_str()).and_then(|r| r.text()))
         .await?;
     let ean = {
         let search: Vec<JumboSearch> = serde_json::from_str(&s)?;
