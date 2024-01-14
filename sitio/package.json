@@ -5,8 +5,8 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
-    "build:container": "podman build -t gitea.nulo.in/nulo/preciazo/sitio -f ./Containerfile ..",
-    "push:container": "bun build:container && podman push gitea.nulo.in/nulo/preciazo/sitio",
+    "build:container": "podman build -t gitea.nulo.in/nulo/preciazo/sitio -f ./Dockerfile ..",
+    "push:container": "pnpm build:container && podman push gitea.nulo.in/nulo/preciazo/sitio",
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
