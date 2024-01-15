@@ -111,7 +111,7 @@ async fn fetch_list(pool: &Pool, links: Vec<String>) -> Counters {
 }
 
 fn connect_db() -> Pool {
-    let db_path = env::var("DB_PATH").unwrap_or("../scraper/sqlite.db".to_string());
+    let db_path = env::var("DB_PATH").unwrap_or("../sqlite.db".to_string());
     let cfg = deadpool_sqlite::Config::new(db_path);
     let pool = cfg.create_pool(deadpool_sqlite::Runtime::Tokio1).unwrap();
     pool

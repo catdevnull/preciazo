@@ -1,5 +1,3 @@
 packages:
-  - link-scrapers
-  - scraper
   - sitio
   - db-datos
