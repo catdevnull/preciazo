@@ -2,6 +2,10 @@
 
 scrapeo "masivo" de precios y datos en supermercados argentinos
 
+## proyectos similares
+
+- [ratoneando](https://ratoneando.ar/)
+
 ## componentes
 
 ### scraper-rs
@@ -19,6 +23,7 @@ el [sitio](./sitio/) renderiza páginas a partir de la base de datos y hace grá
 para el schema de la base de datos y el sitio, es necesario [Node.js](https://nodejs.org/) y [pnpm](https://pnpm.io/). para el scraper, es necesario [Rust](https://www.rust-lang.org/) estable.
 
 crea la base de datos:
+
 ```
 cd db-datos/
 pnpm install
