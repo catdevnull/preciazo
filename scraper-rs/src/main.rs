@@ -1,5 +1,6 @@
 use again::RetryPolicy;
 use clap::{Parser, ValueEnum};
+use cron::Schedule;
 use deadpool_sqlite::Pool;
 use futures::{future, stream, StreamExt};
 use nanoid::nanoid;
@@ -9,10 +10,10 @@ use std::{
     env::{self},
     fs,
     path::PathBuf,
-    time::Duration,
+    str::FromStr,
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
 use thiserror::Error;
-use tokio::time;
 
 #[derive(ValueEnum, Clone, Debug)]
 enum Supermercado {
@@ -399,15 +400,23 @@ async fn auto_cli() -> anyhow::Result<()> {
     Ok(())
 }
 async fn cron_cli() -> anyhow::Result<()> {
-    let mut interval = time::interval(std::time::Duration::from_secs(60 * 60 * 24));
+    // https://crontab.guru
+    let schedule = Schedule::from_str("0 0 2 * * * *").unwrap();
+    // let schedule = Schedule::from_str("0 26 21 * * * *").unwrap();
 
     loop {
-        interval.tick().await;
-        tokio::spawn(auto_cli());
+        let t = schedule
+            .upcoming(chrono::Utc)
+            .next()
+            .unwrap()
+            .signed_duration_since(chrono::Utc::now())
+            .to_std()
+            .unwrap();
+        println!("Waiting for {:?}", t);
+        tokio::time::sleep(t).await;
+        auto_cli().await.unwrap();
     }
 }
-
-use std::time::{SystemTime, UNIX_EPOCH};
 
 mod sites;
 
