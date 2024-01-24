@@ -1,10 +1,11 @@
 import { error } from "@sveltejs/kit";
 import { eq, max } from "drizzle-orm";
 import type { PageServerLoad } from "./$types";
-import { db, schema } from "$lib/server/db";
+import { getDb, schema } from "$lib/server/db";
 const { precios } = schema;
 
 export const load: PageServerLoad = async ({ params }) => {
+  const db = await getDb();
   const q = db
     .select()
     .from(precios)

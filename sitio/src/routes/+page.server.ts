@@ -1,11 +1,12 @@
 import type { PageData, PageServerLoad } from "./$types";
-import { db, schema } from "$lib/server/db";
+import { getDb, schema } from "$lib/server/db";
 const { precios } = schema;
 import { sql } from "drizzle-orm";
 
 let cache: Promise<{ key: Date; data: { precios: Precios } }> = doQuery();
 
 async function doQuery() {
+  const db = await getDb();
   const q = db
     .select({
       ean: precios.ean,

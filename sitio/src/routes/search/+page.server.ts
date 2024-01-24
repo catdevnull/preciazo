@@ -1,9 +1,10 @@
 import { error } from "@sveltejs/kit";
 import { sql } from "drizzle-orm";
 import type { PageServerLoad } from "./$types";
-import { db } from "$lib/server/db";
+import { getDb } from "$lib/server/db";
 
 export const load: PageServerLoad = async ({ url }) => {
+  const db = await getDb();
   const query = url.searchParams.get("q");
   let results: null | { ean: string; name: string; imageUrl: string }[] = null;
   if (query) {
