@@ -4,6 +4,10 @@ WORKDIR /usr/src/app
 FROM base as build
 RUN apk add --no-cache nodejs npm
 RUN npm install --global pnpm
+COPY db-datos/package.json db-datos/package.json
+COPY sitio/package.json sitio/package.json
+COPY pnpm-lock.yaml pnpm-workspace.yaml .
+RUN cd sitio && pnpm install
 COPY . .
 COPY db-datos/drizzle .
 RUN cd sitio && \
