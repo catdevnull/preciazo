@@ -17,5 +17,5 @@
     "forceConsistentCasingInFileNames": true
   },
   "include": ["**/*.ts", "**/*.js"],
-  "exclude": ["sitio/build"]
+  "exclude": ["./scraper-rs", "data"]
 }
