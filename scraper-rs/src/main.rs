@@ -38,6 +38,7 @@ enum Args {
     FetchList(FetchListArgs),
     ParseFile(ParseFileArgs),
     GetUrlList(GetUrlListArgs),
+    ScrapUrl(ScrapUrlArgs),
     Auto(AutoArgs),
     Cron(AutoArgs),
 }
@@ -55,6 +56,10 @@ struct GetUrlListArgs {
     supermercado: Supermercado,
 }
 #[derive(clap::Args)]
+struct ScrapUrlArgs {
+    url: String,
+}
+#[derive(clap::Args)]
 struct AutoArgs {}
 
 #[tokio::main]
@@ -65,9 +70,18 @@ async fn main() -> anyhow::Result<()> {
         Args::FetchList(a) => fetch_list_cli(a.list_path).await,
         Args::ParseFile(a) => parse_file_cli(a.file_path).await,
         Args::GetUrlList(a) => get_url_list_cli(a.supermercado).await,
+        Args::ScrapUrl(a) => scrap_url_cli(a.url).await,
         Args::Auto(_) => auto_cli().await,
         Args::Cron(_) => cron_cli().await,
     }
+}
+
+async fn scrap_url_cli(url: String) -> anyhow::Result<()> {
+    let client = build_client();
+    let res = fetch_and_parse(&client, url.clone()).await;
+
+    println!("Result: {:#?}", res);
+    res.map(|_| ())
 }
 
 async fn fetch_list_cli(links_list_path: String) -> anyhow::Result<()> {
