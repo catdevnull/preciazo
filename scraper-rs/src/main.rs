@@ -297,10 +297,15 @@ async fn scrap_url(
 }
 
 #[derive(Clone)]
+struct AutoTelegram {
+    token: String,
+    chat_id: String,
+}
+
+#[derive(Clone)]
 struct Auto {
     pool: Pool,
-    telegram_token: String,
-    telegram_chat_id: String,
+    telegram: Option<AutoTelegram>,
 }
 impl Auto {
     async fn download_supermercado(self: Self, supermercado: Supermercado) -> anyhow::Result<()> {
@@ -383,28 +388,35 @@ impl Auto {
 
     async fn inform(self: &Self, msg: &str) {
         println!("{}", msg);
-        let u = Url::parse_with_params(
-            &format!(
-                "https://api.telegram.org/bot{}/sendMessage",
-                self.telegram_token
-            ),
-            &[
-                ("chat_id", self.telegram_chat_id.clone()),
-                ("text", msg.to_string()),
-            ],
-        )
-        .unwrap();
-        reqwest::get(u).await.unwrap();
+        if let Some(telegram) = &self.telegram {
+            let u = Url::parse_with_params(
+                &format!("https://api.telegram.org/bot{}/sendMessage", telegram.token),
+                &[
+                    ("chat_id", telegram.chat_id.clone()),
+                    ("text", msg.to_string()),
+                ],
+            )
+            .unwrap();
+            reqwest::get(u).await.unwrap();
+        }
     }
 }
 
 async fn auto_cli() -> anyhow::Result<()> {
     let db = connect_db();
-    let auto = Auto {
-        pool: db,
-        telegram_token: env::var("TELEGRAM_BOT_TOKEN")?,
-        telegram_chat_id: env::var("TELEGRAM_BOT_CHAT_ID")?,
+    let telegram = {
+        match (
+            env::var("TELEGRAM_BOT_TOKEN"),
+            env::var("TELEGRAM_BOT_CHAT_ID"),
+        ) {
+            (Ok(token), Ok(chat_id)) => Some(AutoTelegram { token, chat_id }),
+            _ => {
+                tracing::warn!("No token or chat_id for telegram");
+                None
+            }
+        }
     };
+    let auto = Auto { pool: db, telegram };
     auto.inform("[auto] Empezando scrap").await;
     let handles: Vec<_> = Supermercado::value_variants()
         .iter()
