@@ -28,4 +28,4 @@ COPY --from=build /usr/src/app/db-datos/drizzle .
 ENV DB_PATH=/db/db.db
 EXPOSE 3000
 
-CMD "node ."
+CMD ["node", "."]
