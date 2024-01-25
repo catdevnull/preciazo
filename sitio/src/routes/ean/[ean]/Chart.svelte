@@ -42,7 +42,7 @@
   }
 </script>
 
-<div class="h-[300px] w-full min-w-[500px] bg-neutral-200 dark:invert">
+<div class="h-[300px] w-full bg-neutral-200 dark:invert">
   <ChartJs
     type="line"
     data={{ datasets }}
