@@ -7,7 +7,7 @@
 </script>
 
 <div
-  class="relative m-4 rounded-lg border border-yellow-300 bg-yellow-50 p-4 text-yellow-800"
+  class="relative m-4 rounded-lg border border-yellow-300 bg-yellow-50 p-4 text-yellow-800 dark:border-yellow-600 dark:bg-neutral-800 dark:text-yellow-400"
 >
   <div class="text-sm opacity-80">
     <strong>¡Ey!</strong> Preciazo todavía está en beta, y todavía estamos
