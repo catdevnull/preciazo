@@ -23,7 +23,7 @@ enum Supermercado {
     Coto,
 }
 impl Supermercado {
-    fn host(self: &Self) -> &'static str {
+    fn host(&self) -> &'static str {
         match self {
             Self::Dia => "diaonline.supermercadosdia.com.ar",
             Self::Carrefour => "www.carrefour.com.ar",
@@ -128,8 +128,7 @@ async fn fetch_list(pool: &Pool, links: Vec<String>) -> Counters {
 fn connect_db() -> Pool {
     let db_path = env::var("DB_PATH").unwrap_or("../sqlite.db".to_string());
     let cfg = deadpool_sqlite::Config::new(db_path);
-    let pool = cfg.create_pool(deadpool_sqlite::Runtime::Tokio1).unwrap();
-    pool
+    cfg.create_pool(deadpool_sqlite::Runtime::Tokio1).unwrap()
 }
 
 fn build_client() -> reqwest::Client {
@@ -283,13 +282,13 @@ async fn scrap_url(
     let url_p = Url::parse(&url).unwrap();
     match url_p.host_str().unwrap() {
         "www.carrefour.com.ar" => {
-            sites::carrefour::parse(url, &tl::parse(&body, tl::ParserOptions::default())?)
+            sites::carrefour::parse(url, &tl::parse(body, tl::ParserOptions::default())?)
         }
         "diaonline.supermercadosdia.com.ar" => {
-            sites::dia::parse(url, &tl::parse(&body, tl::ParserOptions::default())?)
+            sites::dia::parse(url, &tl::parse(body, tl::ParserOptions::default())?)
         }
         "www.cotodigital3.com.ar" => {
-            sites::coto::parse(url, &tl::parse(&body, tl::ParserOptions::default())?)
+            sites::coto::parse(url, &tl::parse(body, tl::ParserOptions::default())?)
         }
         "www.jumbo.com.ar" => sites::jumbo::scrap(client, url, body).await,
         s => bail!("Unknown host {}", s),
@@ -308,7 +307,7 @@ struct Auto {
     telegram: Option<AutoTelegram>,
 }
 impl Auto {
-    async fn download_supermercado(self: Self, supermercado: Supermercado) -> anyhow::Result<()> {
+    async fn download_supermercado(self, supermercado: Supermercado) -> anyhow::Result<()> {
         {
             let t0 = now_sec();
             self.get_and_save_urls(&supermercado).await?;
@@ -360,7 +359,7 @@ impl Auto {
         Ok(())
     }
 
-    async fn get_and_save_urls(self: &Self, supermercado: &Supermercado) -> anyhow::Result<()> {
+    async fn get_and_save_urls(&self, supermercado: &Supermercado) -> anyhow::Result<()> {
         let urls = get_urls(supermercado).await?;
         self.pool
             .get()
@@ -386,7 +385,7 @@ impl Auto {
         Ok(())
     }
 
-    async fn inform(self: &Self, msg: &str) {
+    async fn inform(&self, msg: &str) {
         println!("{}", msg);
         if let Some(telegram) = &self.telegram {
             let u = Url::parse_with_params(

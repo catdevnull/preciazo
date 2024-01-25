@@ -118,25 +118,6 @@ pub fn parse_urls_from_sitemap(sitemap: &str) -> anyhow::Result<Vec<String>> {
         .try_collect()
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_decode_url() -> anyhow::Result<()> {
-        let links = parse_urls_from_sitemap(
-            r#"
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
-<url>
-    <loc>https://www.carrefour.com.ar/postre-danette-mousse-dulce-de-leche-80-g&#x200B;-684952/p</loc>
-    <lastmod>2024-01-12T10:41:25.962Z</lastmod>
-</url>"#,
-        )?;
-        assert_eq!(links[0], "https://www.carrefour.com.ar/postre-danette-mousse-dulce-de-leche-80-g\u{200b}-684952/p");
-        Ok(())
-    }
-}
-
 pub async fn get_urls_from_sitemap(sitemaps: Vec<&str>) -> anyhow::Result<Vec<String>> {
     let mut total: Vec<String> = vec![];
     let client = build_client();
@@ -146,7 +127,6 @@ pub async fn get_urls_from_sitemap(sitemaps: Vec<&str>) -> anyhow::Result<Vec<St
             let url = url.to_string();
             async move {
                 let client = client;
-                let url = url;
                 let text = get_retry_policy()
                     .retry_if(|| do_request(&client, &url), retry_if_wasnt_not_found)
                     .await?
@@ -164,4 +144,23 @@ pub async fn get_urls_from_sitemap(sitemaps: Vec<&str>) -> anyhow::Result<Vec<St
         total.append(&mut urls);
     }
     Ok(total.into_iter().unique().collect())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_decode_url() -> anyhow::Result<()> {
+        let links = parse_urls_from_sitemap(
+            r#"
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+<url>
+    <loc>https://www.carrefour.com.ar/postre-danette-mousse-dulce-de-leche-80-g&#x200B;-684952/p</loc>
+    <lastmod>2024-01-12T10:41:25.962Z</lastmod>
+</url>"#,
+        )?;
+        assert_eq!(links[0], "https://www.carrefour.com.ar/postre-danette-mousse-dulce-de-leche-80-g\u{200b}-684952/p");
+        Ok(())
+    }
 }
