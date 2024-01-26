@@ -105,7 +105,7 @@ pub fn in_stock_from_meta(dom: &VDom) -> anyhow::Result<bool> {
     )
 }
 
-pub fn parse_urls_from_sitemap(sitemap: &str) -> anyhow::Result<Vec<String>> {
+fn parse_urls_from_sitemap(sitemap: &str) -> anyhow::Result<Vec<String>> {
     let dom = tl::parse(sitemap, tl::ParserOptions::default())?;
     dom.query_selector("loc")
         .unwrap()
