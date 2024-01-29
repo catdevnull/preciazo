@@ -1,10 +1,11 @@
 use again::RetryPolicy;
+use best_selling::BestSellingRecord;
 use clap::{Parser, ValueEnum};
 use cron::Schedule;
 use deadpool_sqlite::Pool;
-use futures::{future, stream, StreamExt};
+use futures::{future, stream, Future, StreamExt};
 use nanoid::nanoid;
-use reqwest::{StatusCode, Url};
+use reqwest::{header::HeaderMap, StatusCode, Url};
 use simple_error::{bail, SimpleError};
 use std::{
     env::{self},
@@ -15,23 +16,8 @@ use std::{
 };
 use thiserror::Error;
 
-#[derive(ValueEnum, Clone, Debug)]
-enum Supermercado {
-    Dia,
-    Jumbo,
-    Carrefour,
-    Coto,
-}
-impl Supermercado {
-    fn host(&self) -> &'static str {
-        match self {
-            Self::Dia => "diaonline.supermercadosdia.com.ar",
-            Self::Carrefour => "www.carrefour.com.ar",
-            Self::Coto => "www.cotodigital3.com.ar",
-            Self::Jumbo => "www.jumbo.com.ar",
-        }
-    }
-}
+mod supermercado;
+use supermercado::Supermercado;
 
 #[derive(Parser)] // requires `derive` feature
 enum Args {
@@ -39,6 +25,7 @@ enum Args {
     ParseFile(ParseFileArgs),
     GetUrlList(GetUrlListArgs),
     ScrapUrl(ScrapUrlArgs),
+    ScrapBestSelling,
     Auto(AutoArgs),
     Cron(AutoArgs),
 }
@@ -71,6 +58,7 @@ async fn main() -> anyhow::Result<()> {
         Args::ParseFile(a) => parse_file_cli(a.file_path).await,
         Args::GetUrlList(a) => get_url_list_cli(a.supermercado).await,
         Args::ScrapUrl(a) => scrap_url_cli(a.url).await,
+        Args::ScrapBestSelling => scrap_best_selling_cli().await,
         Args::Auto(_) => auto_cli().await,
         Args::Cron(_) => cron_cli().await,
     }
@@ -79,6 +67,14 @@ async fn main() -> anyhow::Result<()> {
 async fn scrap_url_cli(url: String) -> anyhow::Result<()> {
     let client = build_client();
     let res = fetch_and_parse(&client, url.clone()).await;
+
+    println!("Result: {:#?}", res);
+    res.map(|_| ())
+}
+mod best_selling;
+async fn scrap_best_selling_cli() -> anyhow::Result<()> {
+    let db = connect_db();
+    let res = best_selling::get_all_best_selling(&db).await;
 
     println!("Result: {:#?}", res);
     res.map(|_| ())
@@ -129,14 +125,6 @@ fn connect_db() -> Pool {
     let db_path = env::var("DB_PATH").unwrap_or("../sqlite.db".to_string());
     let cfg = deadpool_sqlite::Config::new(db_path);
     cfg.create_pool(deadpool_sqlite::Runtime::Tokio1).unwrap()
-}
-
-fn build_client() -> reqwest::Client {
-    reqwest::ClientBuilder::default()
-        .timeout(Duration::from_secs(60 * 5))
-        .connect_timeout(Duration::from_secs(60))
-        .build()
-        .unwrap()
 }
 
 #[derive(Default, Debug)]
@@ -190,6 +178,16 @@ enum FetchError {
     Tl(#[from] tl::ParseError),
 }
 
+fn build_client() -> reqwest::Client {
+    let mut headers = HeaderMap::new();
+    headers.append("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36".parse().unwrap());
+    reqwest::ClientBuilder::default()
+        .timeout(Duration::from_secs(60 * 5))
+        .connect_timeout(Duration::from_secs(60))
+        .default_headers(headers)
+        .build()
+        .unwrap()
+}
 pub async fn do_request(client: &reqwest::Client, url: &str) -> reqwest::Result<reqwest::Response> {
     let request = client.get(url).build()?;
     let response = client.execute(request).await?.error_for_status()?;
@@ -356,7 +354,24 @@ impl Auto {
             ))
             .await;
         }
+
+        let best_selling = self
+            .inform_time(
+                "Downloaded best selling",
+                best_selling::get_all_best_selling(&self.pool),
+            )
+            .await?;
+        self.save_best_selling(best_selling).await?;
+
         Ok(())
+    }
+
+    async fn inform_time<T: Future<Output = R>, R>(&self, msg: &str, action: T) -> R {
+        let t0 = now_sec();
+        let res = action.await;
+        self.inform(&format!("{} (took {})", msg, now_sec() - t0))
+            .await;
+        res
     }
 
     async fn get_and_save_urls(&self, supermercado: &Supermercado) -> anyhow::Result<()> {
@@ -375,6 +390,35 @@ impl Auto {
                     let now: u64 = now_ms().try_into()?;
                     for url in urls {
                         stmt.execute(rusqlite::params![url, now])?;
+                    }
+                }
+                tx.commit()?;
+                Ok(())
+            })
+            .await
+            .unwrap()?;
+        Ok(())
+    }
+
+    async fn save_best_selling(&self, best_selling: Vec<BestSellingRecord>) -> anyhow::Result<()> {
+        self.pool
+            .get()
+            .await?
+            .interact(move |conn| -> Result<(), anyhow::Error> {
+                let tx = conn.transaction()?;
+                {
+                    let mut stmt = tx.prepare(
+                        r#"INSERT INTO db_best_selling(fetched_at, category, eans_json)
+                            VALUES (?1, ?2, ?3);"#,
+                    )?;
+                    for record in best_selling {
+                        let eans_json = serde_json::Value::from(record.eans).to_string();
+                        let fetched_at = record.fetched_at.timestamp_millis();
+                        stmt.execute(rusqlite::params![
+                            fetched_at,
+                            record.category.id(),
+                            eans_json
+                        ])?;
                     }
                 }
                 tx.commit()?;
