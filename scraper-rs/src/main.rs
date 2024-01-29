@@ -355,14 +355,6 @@ impl Auto {
             .await;
         }
 
-        let best_selling = self
-            .inform_time(
-                "Downloaded best selling",
-                best_selling::get_all_best_selling(&self.pool),
-            )
-            .await?;
-        self.save_best_selling(best_selling).await?;
-
         Ok(())
     }
 
@@ -466,6 +458,15 @@ async fn auto_cli() -> anyhow::Result<()> {
         .map(|s| tokio::spawn(auto.clone().download_supermercado(s.to_owned())))
         .collect();
     future::try_join_all(handles).await?;
+
+    let best_selling = auto
+        .inform_time(
+            "Downloaded best selling",
+            best_selling::get_all_best_selling(&auto.pool),
+        )
+        .await?;
+    auto.save_best_selling(best_selling).await?;
+
     Ok(())
 }
 async fn cron_cli() -> anyhow::Result<()> {
