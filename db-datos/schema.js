@@ -19,7 +19,7 @@ export const precios = sqliteTable(
     return {
       preciosEanIdx: index("precios_ean_idx").on(precios.ean),
     };
-  },
+  }
 );
 
 /** @typedef {typeof precios.$inferSelect} Precio */
@@ -32,3 +32,12 @@ export const productoUrls = sqliteTable("producto_urls", {
 });
 
 /** @typedef {typeof productoUrls.$inferSelect} ProductUrl */
+
+export const bestSelling = sqliteTable("db_best_selling", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  fetchedAt: integer("fetched_at", { mode: "timestamp" }).notNull(),
+  category: text("category").notNull(),
+  eansJson: text("eans_json").notNull(),
+});
+
+/** @typedef {typeof bestSelling.$inferSelect} BestSelling */
