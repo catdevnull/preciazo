@@ -1,9 +1,8 @@
 use std::collections::HashMap;
 
-use crate::{build_client, sites::vtex, supermercado::Supermercado};
+use crate::{build_client, db::Db, sites::vtex, supermercado::Supermercado};
 use chrono::{DateTime, Utc};
 use clap::ValueEnum;
-use deadpool_sqlite::Pool;
 use futures::{stream, FutureExt, StreamExt, TryStreamExt};
 use itertools::Itertools;
 use tracing::warn;
@@ -49,21 +48,11 @@ pub struct BestSellingRecord {
     pub eans: Vec<String>,
 }
 
-async fn get_best_selling_eans(pool: &Pool, urls: Vec<String>) -> anyhow::Result<Vec<String>> {
+async fn get_best_selling_eans(db: &Db, urls: Vec<String>) -> anyhow::Result<Vec<String>> {
     let mut eans: Vec<String> = Vec::new();
 
     for url in urls {
-        let q = url.clone();
-        let ean = pool
-            .get()
-            .await?
-            .interact(move |conn| {
-                conn.prepare(r#"SELECT ean FROM precios WHERE url = ?1;"#)?
-                    .query_map(rusqlite::params![q], |r| r.get::<_, String>(0))
-                    .map(|r| r.map(|r| r.unwrap()).next())
-            })
-            .await
-            .unwrap()?;
+        let ean = db.get_ean_by_url(&url).await?;
         match ean {
             Some(e) => eans.push(e),
             None => warn!("No encontré EAN para {}", url),
@@ -75,13 +64,13 @@ async fn get_best_selling_eans(pool: &Pool, urls: Vec<String>) -> anyhow::Result
 
 async fn try_get_best_selling_eans(
     client: reqwest::Client,
-    pool: Pool,
+    db: Db,
     supermercado: &Supermercado,
     category: &Category,
 ) -> anyhow::Result<Option<Vec<String>>> {
     if let Some(query) = category.query(supermercado) {
         let urls = vtex::get_best_selling_by_category(&client, supermercado.host(), query).await?;
-        let eans = get_best_selling_eans(&pool, urls).await?;
+        let eans = get_best_selling_eans(&db, urls).await?;
         Ok(Some(eans))
     } else {
         Ok(None)
@@ -107,18 +96,18 @@ fn rank_eans(eans: Vec<Vec<String>>) -> Vec<String> {
         .collect_vec()
 }
 
-pub async fn get_all_best_selling(pool: &Pool) -> anyhow::Result<Vec<BestSellingRecord>> {
+pub async fn get_all_best_selling(db: &Db) -> anyhow::Result<Vec<BestSellingRecord>> {
     let client = &build_client();
 
     stream::iter(Category::value_variants())
         .map(|category| {
             stream::iter(Supermercado::value_variants())
                 .map(|supermercado| {
-                    let pool = pool.clone();
+                    let db = db.clone();
                     let client = client.clone();
                     tokio::spawn(try_get_best_selling_eans(
                         client,
-                        pool,
+                        db,
                         supermercado,
                         category,
                     ))

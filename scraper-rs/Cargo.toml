@@ -12,8 +12,7 @@ base64 = "0.21.7"
 chrono = "0.4.32"
 clap = { version = "4.4.15", features = ["derive"] }
 cron = "0.12.0"
-deadpool = "0.10.0"
-deadpool-sqlite = "0.7.0"
+sqlx = { version = "0.7", features = [ "runtime-tokio", "sqlite" ] }
 futures = "0.3.30"
 html-escape = "0.2.13"
 itertools = "0.12.0"

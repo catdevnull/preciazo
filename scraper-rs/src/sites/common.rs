@@ -11,9 +11,9 @@ pub fn get_meta_content<'a>(dom: &'a VDom<'a>, prop: &str) -> Option<Cow<'a, str
         .map(|s| s.as_utf8_str())
 }
 
-pub fn price_from_meta(dom: &tl::VDom<'_>) -> Result<Option<u64>, anyhow::Error> {
+pub fn price_from_meta(dom: &tl::VDom<'_>) -> Result<Option<i64>, anyhow::Error> {
     let precio_centavos = get_meta_content(dom, "product:price:amount")
-        .map(|s| s.parse::<f64>().map(|f| (f * 100.0) as u64))
+        .map(|s| s.parse::<f64>().map(|f| (f * 100.0) as i64))
         .transpose()?;
     Ok(precio_centavos)
 }

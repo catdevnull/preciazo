@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT ean FROM precios WHERE url = ?1;",
+  "describe": {
+    "columns": [
+      {
+        "name": "ean",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "f249765f2fb013a81a4157a6ce19744a8d5f70c83ed9ddddfd55009136088a52"
+}

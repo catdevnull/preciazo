@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO db_best_selling(fetched_at, category, eans_json)\n                    VALUES (?1, ?2, ?3);",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "144f4622ac9a937aa4885ceb5a67f6c0a78e7e025cf152a8c176b9fd1de241da"
+}

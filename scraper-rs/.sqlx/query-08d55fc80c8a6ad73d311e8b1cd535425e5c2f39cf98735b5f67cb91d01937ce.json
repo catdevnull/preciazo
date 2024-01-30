@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO producto_urls(url, first_seen, last_seen)\n                    VALUES (?1, ?2, ?2)\n                    ON CONFLICT(url) DO UPDATE SET last_seen=?2;",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "08d55fc80c8a6ad73d311e8b1cd535425e5c2f39cf98735b5f67cb91d01937ce"
+}
