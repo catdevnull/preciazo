@@ -1,8 +1,7 @@
 use again::RetryPolicy;
-use best_selling::BestSellingRecord;
 use clap::{Parser, ValueEnum};
 use cron::Schedule;
-use deadpool_sqlite::Pool;
+use db::Db;
 use futures::{future, stream, Future, StreamExt};
 use nanoid::nanoid;
 use reqwest::{header::HeaderMap, StatusCode, Url};
@@ -73,7 +72,7 @@ async fn scrap_url_cli(url: String) -> anyhow::Result<()> {
 }
 mod best_selling;
 async fn scrap_best_selling_cli() -> anyhow::Result<()> {
-    let db = connect_db();
+    let db = Db::connect().await?;
     let res = best_selling::get_all_best_selling(&db).await;
 
     println!("Result: {:#?}", res);
@@ -89,14 +88,14 @@ async fn fetch_list_cli(links_list_path: String) -> anyhow::Result<()> {
         .map(|s| s.to_owned())
         .collect::<Vec<_>>();
 
-    let pool = connect_db();
-    let counters = fetch_list(&pool, links).await;
+    let db = Db::connect().await?;
+    let counters = fetch_list(&db, links).await;
 
     println!("Finished: {:?}", counters);
     Ok(())
 }
 
-async fn fetch_list(pool: &Pool, links: Vec<String>) -> Counters {
+async fn fetch_list(db: &Db, links: Vec<String>) -> Counters {
     let n_coroutines = env::var("N_COROUTINES")
         .map_or(Ok(24), |s| s.parse::<usize>())
         .expect("N_COROUTINES no es un número");
@@ -105,9 +104,9 @@ async fn fetch_list(pool: &Pool, links: Vec<String>) -> Counters {
 
     stream::iter(links)
         .map(|url| {
-            let pool = pool.clone();
+            let db = db.clone();
             let client = client.clone();
-            tokio::spawn(fetch_and_save(client, url, pool))
+            tokio::spawn(fetch_and_save(client, url, db))
         })
         .buffer_unordered(n_coroutines)
         .fold(Counters::default(), move |x, y| {
@@ -121,11 +120,7 @@ async fn fetch_list(pool: &Pool, links: Vec<String>) -> Counters {
         .await
 }
 
-fn connect_db() -> Pool {
-    let db_path = env::var("DB_PATH").unwrap_or("../sqlite.db".to_string());
-    let cfg = deadpool_sqlite::Config::new(db_path);
-    cfg.create_pool(deadpool_sqlite::Runtime::Tokio1).unwrap()
-}
+mod db;
 
 #[derive(Default, Debug)]
 struct Counters {
@@ -134,26 +129,13 @@ struct Counters {
     skipped: u64,
 }
 
-async fn fetch_and_save(client: reqwest::Client, url: String, pool: Pool) -> Counters {
+async fn fetch_and_save(client: reqwest::Client, url: String, db: Db) -> Counters {
     let res = fetch_and_parse(&client, url.clone()).await;
     let mut counters = Counters::default();
     match res {
         Ok(res) => {
             counters.success += 1;
-            pool.get().await.unwrap().interact(move |conn| conn.execute(
-                "INSERT INTO precios(ean, fetched_at, precio_centavos, in_stock, url, warc_record_id, parser_version, name, image_url) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9);",
-                rusqlite::params![
-                    res.ean,
-                    res.fetched_at,
-                    res.precio_centavos,
-                    res.in_stock,
-                    res.url,
-                    None::<String>,
-                    res.parser_version,
-                    res.name,
-                    res.image_url,
-                ]
-            )).await.unwrap().unwrap();
+            db.insert_precio(res).await.unwrap();
         }
         Err(err) => {
             match err.downcast_ref::<reqwest::Error>() {
@@ -301,7 +283,7 @@ struct AutoTelegram {
 
 #[derive(Clone)]
 struct Auto {
-    pool: Pool,
+    db: Db,
     telegram: Option<AutoTelegram>,
 }
 impl Auto {
@@ -316,24 +298,7 @@ impl Auto {
             ))
             .await;
         }
-        let links: Vec<String> = {
-            let search = format!("%{}%", supermercado.host());
-            self.pool
-                .get()
-                .await?
-                .interact(move |conn| -> anyhow::Result<Vec<String>> {
-                    Ok(conn
-                        .prepare(
-                            r#"SELECT url FROM producto_urls
-                                    WHERE url LIKE ?1;"#,
-                        )?
-                        .query_map(rusqlite::params![search], |r| r.get::<_, String>(0))?
-                        .map(|r| r.unwrap())
-                        .collect())
-                })
-                .await
-                .unwrap()?
-        };
+        let links: Vec<String> = self.db.get_urls_by_domain(supermercado.host()).await?;
         // {
         //     let debug_path = PathBuf::from("debug/");
         //     tokio::fs::create_dir_all(&debug_path).await.unwrap();
@@ -345,7 +310,7 @@ impl Auto {
         // }
         {
             let t0 = now_sec();
-            let counters = fetch_list(&self.pool, links).await;
+            let counters = fetch_list(&self.db, links).await;
             self.inform(&format!(
                 "Downloaded {:?}: {:?} (took {})",
                 &supermercado,
@@ -368,56 +333,7 @@ impl Auto {
 
     async fn get_and_save_urls(&self, supermercado: &Supermercado) -> anyhow::Result<()> {
         let urls = get_urls(supermercado).await?;
-        self.pool
-            .get()
-            .await?
-            .interact(|conn| -> Result<(), anyhow::Error> {
-                let tx = conn.transaction()?;
-                {
-                    let mut stmt = tx.prepare(
-                        r#"INSERT INTO producto_urls(url, first_seen, last_seen)
-                            VALUES (?1, ?2, ?2)
-                            ON CONFLICT(url) DO UPDATE SET last_seen=?2;"#,
-                    )?;
-                    let now: u64 = now_ms().try_into()?;
-                    for url in urls {
-                        stmt.execute(rusqlite::params![url, now])?;
-                    }
-                }
-                tx.commit()?;
-                Ok(())
-            })
-            .await
-            .unwrap()?;
-        Ok(())
-    }
-
-    async fn save_best_selling(&self, best_selling: Vec<BestSellingRecord>) -> anyhow::Result<()> {
-        self.pool
-            .get()
-            .await?
-            .interact(move |conn| -> Result<(), anyhow::Error> {
-                let tx = conn.transaction()?;
-                {
-                    let mut stmt = tx.prepare(
-                        r#"INSERT INTO db_best_selling(fetched_at, category, eans_json)
-                            VALUES (?1, ?2, ?3);"#,
-                    )?;
-                    for record in best_selling {
-                        let eans_json = serde_json::Value::from(record.eans).to_string();
-                        let fetched_at = record.fetched_at.timestamp_millis();
-                        stmt.execute(rusqlite::params![
-                            fetched_at,
-                            record.category.id(),
-                            eans_json
-                        ])?;
-                    }
-                }
-                tx.commit()?;
-                Ok(())
-            })
-            .await
-            .unwrap()?;
+        self.db.save_producto_urls(urls).await?;
         Ok(())
     }
 
@@ -438,20 +354,22 @@ impl Auto {
 }
 
 async fn auto_cli() -> anyhow::Result<()> {
-    let db = connect_db();
-    let telegram = {
-        match (
-            env::var("TELEGRAM_BOT_TOKEN"),
-            env::var("TELEGRAM_BOT_CHAT_ID"),
-        ) {
-            (Ok(token), Ok(chat_id)) => Some(AutoTelegram { token, chat_id }),
-            _ => {
-                tracing::warn!("No token or chat_id for telegram");
-                None
+    let auto = {
+        let db = Db::connect().await?;
+        let telegram = {
+            match (
+                env::var("TELEGRAM_BOT_TOKEN"),
+                env::var("TELEGRAM_BOT_CHAT_ID"),
+            ) {
+                (Ok(token), Ok(chat_id)) => Some(AutoTelegram { token, chat_id }),
+                _ => {
+                    tracing::warn!("No token or chat_id for telegram");
+                    None
+                }
             }
-        }
+        };
+        Auto { db, telegram }
     };
-    let auto = Auto { pool: db, telegram };
     auto.inform("[auto] Empezando scrap").await;
     let handles: Vec<_> = Supermercado::value_variants()
         .iter()
@@ -462,10 +380,10 @@ async fn auto_cli() -> anyhow::Result<()> {
     let best_selling = auto
         .inform_time(
             "Downloaded best selling",
-            best_selling::get_all_best_selling(&auto.pool),
+            best_selling::get_all_best_selling(&auto.db),
         )
         .await?;
-    auto.save_best_selling(best_selling).await?;
+    auto.db.save_best_selling(best_selling).await?;
 
     Ok(())
 }
@@ -494,8 +412,8 @@ mod sites;
 struct PrecioPoint {
     ean: String,
     // unix
-    fetched_at: u64,
-    precio_centavos: Option<u64>,
+    fetched_at: i64,
+    precio_centavos: Option<i64>,
     in_stock: Option<bool>,
     url: String,
     parser_version: u16,
@@ -503,13 +421,9 @@ struct PrecioPoint {
     image_url: Option<String>,
 }
 
-fn now_sec() -> u64 {
-    since_the_epoch().as_secs()
+fn now_sec() -> i64 {
+    since_the_epoch().as_secs().try_into().unwrap()
 }
-fn now_ms() -> u128 {
-    since_the_epoch().as_millis()
-}
-
 fn since_the_epoch() -> Duration {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)

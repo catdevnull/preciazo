@@ -37,7 +37,7 @@ pub fn parse(url: String, dom: &tl::VDom) -> Result<PrecioPoint, anyhow::Error> 
         })
         .transpose()
         .context("Parseando precio")?
-        .map(|f| (f * 100.0) as u64);
+        .map(|f| (f * 100.0) as i64);
 
     let in_stock = Some(
         dom.query_selector(".product_not_available")
