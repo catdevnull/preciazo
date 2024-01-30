@@ -5,6 +5,7 @@ use std::{
 };
 
 use sqlx::{sqlite::SqliteConnectOptions, SqlitePool};
+use tracing::info;
 
 use crate::{best_selling::BestSellingRecord, PrecioPoint};
 
@@ -16,10 +17,11 @@ pub struct Db {
 impl Db {
     pub async fn connect() -> anyhow::Result<Self> {
         let db_path = env::var("DB_PATH").unwrap_or("../sqlite.db".to_string());
+        info!("Opening DB at {}", db_path);
         let pool = sqlx::pool::PoolOptions::new()
             .max_connections(1)
             .connect_with(
-                SqliteConnectOptions::from_str(&db_path)?
+                SqliteConnectOptions::from_str(&format!("sqlite://{}", db_path))?
                     .journal_mode(sqlx::sqlite::SqliteJournalMode::Wal)
                     .synchronous(sqlx::sqlite::SqliteSynchronous::Normal)
                     .optimize_on_close(true, None),
