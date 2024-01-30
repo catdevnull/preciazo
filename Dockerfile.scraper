@@ -2,14 +2,23 @@ FROM cgr.dev/chainguard/wolfi-base AS base
 WORKDIR /usr/src/app
 RUN apk add --no-cache libgcc
 
+# tenemos que generar una DB con las migraciones aplicadas para compilar el codigo por sqlx::query!()
+FROM base as db-build
+RUN apk add --no-cache nodejs npm
+RUN npm install --global pnpm
+COPY db-datos/ .
+RUN pnpm install
+RUN DB_PATH=db.db pnpm migrate
+
 FROM base as rs-build
 RUN apk add --no-cache rust build-base sqlite-dev
 
 COPY scraper-rs/ .
+COPY --from=db-build /usr/src/app/db.db .
 RUN --mount=type=cache,sharing=locked,target=/root/.cargo/git \
     --mount=type=cache,sharing=locked,target=/root/.cargo/registry \
     --mount=type=cache,sharing=locked,target=/usr/src/app/target \
-	cargo install --locked --path .
+	DATABASE_URL=sqlite:db.db cargo install --locked --path .
 
 FROM base
 RUN apk add --no-cache sqlite sqlite-libs
