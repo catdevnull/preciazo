@@ -18,6 +18,7 @@ export const precios = sqliteTable(
   (precios) => {
     return {
       preciosEanIdx: index("precios_ean_idx").on(precios.ean),
+      preciosUrlIdx: index("precios_url_idx").on(precios.url),
     };
   }
 );
