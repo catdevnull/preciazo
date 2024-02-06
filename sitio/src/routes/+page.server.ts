@@ -1,12 +1,7 @@
-import type { PageData, PageServerLoad } from "./$types";
+import type { PageServerLoad } from "./$types";
 import { getDb, schema } from "$lib/server/db";
 const { precios, bestSelling } = schema;
-import { desc, max, sql } from "drizzle-orm";
-import {
-  Supermercado,
-  hostBySupermercado,
-  supermercados,
-} from "db-datos/supermercado";
+import { max, sql } from "drizzle-orm";
 import z from "zod";
 import type { Product } from "$lib/ProductPreview.svelte";
 

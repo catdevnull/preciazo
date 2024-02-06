@@ -1,5 +1,5 @@
 import { error } from "@sveltejs/kit";
-import { eq, max } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import type { PageServerLoad } from "./$types";
 import { getDb, schema } from "$lib/server/db";
 const { precios } = schema;

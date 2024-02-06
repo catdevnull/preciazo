@@ -1,4 +1,3 @@
-import { error } from "@sveltejs/kit";
 import { sql } from "drizzle-orm";
 import type { PageServerLoad } from "./$types";
 import { getDb } from "$lib/server/db";
