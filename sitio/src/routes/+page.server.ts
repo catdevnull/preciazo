@@ -1,64 +1,60 @@
 import type { PageData, PageServerLoad } from "./$types";
 import { getDb, schema } from "$lib/server/db";
-const { precios } = schema;
-import { desc, sql } from "drizzle-orm";
+const { precios, bestSelling } = schema;
+import { desc, max, sql } from "drizzle-orm";
 import {
   Supermercado,
   hostBySupermercado,
   supermercados,
 } from "db-datos/supermercado";
+import z from "zod";
+import type { Product } from "$lib/ProductPreview.svelte";
 
-let cache: Promise<{ key: Date; data: { precios: Precios } }> = doQuery();
+type Data = {
+  category: string;
+  products: Product[];
+}[];
 
+let cache: Promise<{ key: Date; data: Data }> = doQuery();
 
 async function doQuery() {
   const db = await getDb();
-  console.time("ean");
-  const eans = await db
+
+  const categories = await db
     .select({
-      ean: precios.ean,
+      fetchedAt: bestSelling.fetchedAt,
+      category: bestSelling.category,
+      eansJson: bestSelling.eansJson,
     })
-    .from(precios)
-    .groupBy(precios.ean)
-    .orderBy(sql`random()`)
-    .limit(50);
-  console.timeEnd("ean");
+    .from(bestSelling)
+    .groupBy(bestSelling.category)
+    .having(max(bestSelling.fetchedAt));
 
-  return;
+  const categoriesWithProducts = await Promise.all(
+    categories.map(async (category) => {
+      const eans = z.array(z.string()).parse(JSON.parse(category.eansJson));
 
-  const precioss = await Promise.all(
-    supermercados.map(
-      async (
-        supermercado,
-      ): Promise<
-        [
-          Supermercado,
-          { ean: string; name: string | null; imageUrl: string | null }[],
-        ]
-      > => {
-        const host = hostBySupermercado[supermercado];
-        console.time(supermercado);
-        const q = db
-          .select({
-            ean: precios.ean,
-            name: precios.name,
-            imageUrl: precios.imageUrl,
-          })
-          .from(precios)
-          .groupBy(precios.ean)
-          .having(sql`max(fetched_at)`)
-          .where(
-            sql`ean in ${eans.map((x) => x.ean)} and in_stock and url like ${`%${host}%`}`,
-          );
-        // console.debug(q.toSQL());
-        const res = await q;
-        console.timeEnd(supermercado);
-        return [supermercado, res];
-      },
-    ),
+      const products = await db
+        .select({
+          ean: precios.ean,
+          name: precios.name,
+          imageUrl: precios.imageUrl,
+        })
+        .from(precios)
+        .where(sql`${precios.ean} in ${eans}`)
+        .groupBy(precios.ean)
+        .having(max(precios.fetchedAt));
+
+      return {
+        category: category.category,
+        products: eans
+          .map((ean) => products.find((p) => p.ean === ean))
+          .filter((x): x is Product => !!x && !!x.name),
+      };
+    }),
   );
-  const data = { precios: precioss.flatMap(([_, r]) => r) };
-  return { key: new Date(), data };
+
+  return { key: new Date(), data: categoriesWithProducts };
 }
 
 setInterval(
@@ -69,14 +65,8 @@ setInterval(
   4 * 60 * 60 * 1000,
 );
 
-type Precios = {
-  ean: string;
-  name: string | null;
-  imageUrl: string | null;
-}[];
-
 export const load: PageServerLoad = async ({
   params,
-}): Promise<{ precios: Precios }> => {
-  return (await cache).data;
+}): Promise<{ data: Data }> => {
+  return { data: (await cache).data };
 };
