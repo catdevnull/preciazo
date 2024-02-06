@@ -42,6 +42,9 @@ importers:
       drizzle-orm:
         specifier: ^0.29.1
         version: 0.29.3(@types/better-sqlite3@7.6.8)(better-sqlite3@9.2.2)
+      zod:
+        specifier: ^3.22.4
+        version: 3.22.4
     devDependencies:
       '@sveltejs/adapter-node':
         specifier: ^2.0.2
@@ -2859,4 +2862,3 @@ packages:
 
   /zod@3.22.4:
     resolution: {integrity: sha512-iC+8Io04lddc+mVqQ9AZ7OQ2MrUKGN+oIQyq1vemgt46jwCwLfhq7/pwnBnNXXXZb8VTVLKwp9EDkx+ryxIWmg==}
-    dev: true
