@@ -168,7 +168,7 @@ fn build_client() -> reqwest::Client {
     let mut headers = HeaderMap::new();
     headers.append("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36".parse().unwrap());
     reqwest::ClientBuilder::default()
-        .timeout(Duration::from_secs(60 * 5))
+        .timeout(Duration::from_secs(60))
         .connect_timeout(Duration::from_secs(30))
         .default_headers(headers)
         .build()
