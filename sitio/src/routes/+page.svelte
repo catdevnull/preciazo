@@ -7,6 +7,13 @@
     (d): d is { ean: string; name: string; imageUrl: string | null } =>
       !!d.name,
   );
+  $: productos = precios.reduce(
+    (prev, curr) => [
+      ...prev,
+      ...(prev.find((p) => p.ean === curr.ean) ? [] : [curr]),
+    ],
+    [] as { ean: string; name: string; imageUrl: string | null }[],
+  );
 </script>
 
 <h1 class="text-xl">WIP</h1>
@@ -39,7 +46,7 @@
 <section>
   <h2 class="text-lg font-bold">Random</h2>
   <ul class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-    {#each precios as product}
+    {#each productos as product}
       <li>
         <ProductPreview {product} />
       </li>

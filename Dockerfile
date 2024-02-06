@@ -23,7 +23,7 @@ COPY --from=build /usr/src/app/sitio/package.json package.real.json
 RUN sh -c 'echo {\"name\":\"sitio\",\"type\":\"module\",\"dependencies\":$(jq .dependencies < package.real.json)} > package.json' && npm install
 COPY --from=build /usr/src/app/db-datos node_modules/db-datos
 COPY --from=build /usr/src/app/sitio/build .
-COPY --from=build /usr/src/app/db-datos/drizzle .
+COPY --from=build /usr/src/app/db-datos/drizzle drizzle
 
 ENV DB_PATH=/db/db.db
 EXPOSE 3000

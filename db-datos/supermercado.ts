@@ -16,6 +16,9 @@ export const hosts: { [host: string]: Supermercado } = {
   "www.cotodigital3.com.ar": Supermercado.Coto,
   "www.jumbo.com.ar": Supermercado.Jumbo,
 };
+export const hostBySupermercado = Object.fromEntries(
+  Object.entries(hosts).map(([a, b]) => [b, a])
+) as Record<Supermercado, string>;
 export const colorBySupermercado: { [supermercado in Supermercado]: string } = {
   [Supermercado.Dia]: "#d52b1e",
   [Supermercado.Carrefour]: "#19549d",
