@@ -5,7 +5,7 @@ data/carrefour
 p.*
 p
 node_modules/
-*.db
+*.db*
 *.db-shm
 *.db-wal
 scraper/debug/
