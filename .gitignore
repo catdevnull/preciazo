@@ -16,4 +16,4 @@ target/
 
 */flamegraph.svg
 */perf.data*
-scraper-rs/debug/
+scraper-rs/debug*/

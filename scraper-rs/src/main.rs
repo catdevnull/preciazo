@@ -1,4 +1,5 @@
 use again::RetryPolicy;
+use chrono::{DateTime, Utc};
 use clap::{Parser, ValueEnum};
 use cron::Schedule;
 use db::Db;
@@ -202,7 +203,8 @@ async fn fetch_and_parse(
     let point = match maybe_point {
         Ok(p) => Ok(p),
         Err(err) => {
-            let debug_path = PathBuf::from("debug/");
+            let now: DateTime<Utc> = Utc::now();
+            let debug_path = PathBuf::from(format!("debug-{}/", now.format("%Y-%m-%d")));
             tokio::fs::create_dir_all(&debug_path).await.unwrap();
             let file_path = debug_path.join(format!("{}.html", nanoid!()));
             tokio::fs::write(&file_path, &body).await.unwrap();
