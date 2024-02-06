@@ -1,25 +1,63 @@
 import type { PageData, PageServerLoad } from "./$types";
 import { getDb, schema } from "$lib/server/db";
 const { precios } = schema;
-import { sql } from "drizzle-orm";
+import { desc, sql } from "drizzle-orm";
+import {
+  Supermercado,
+  hostBySupermercado,
+  supermercados,
+} from "db-datos/supermercado";
 
 let cache: Promise<{ key: Date; data: { precios: Precios } }> = doQuery();
 
+
 async function doQuery() {
   const db = await getDb();
-  const q = db
+  console.time("ean");
+  const eans = await db
     .select({
       ean: precios.ean,
-      name: precios.name,
-      imageUrl: precios.imageUrl,
     })
     .from(precios)
     .groupBy(precios.ean)
-    .having(sql`max(length(name)) and max(parser_version) and in_stock`)
     .orderBy(sql`random()`)
-    .limit(150);
-  const res = await q;
-  const data = { precios: res };
+    .limit(50);
+  console.timeEnd("ean");
+
+  return;
+
+  const precioss = await Promise.all(
+    supermercados.map(
+      async (
+        supermercado,
+      ): Promise<
+        [
+          Supermercado,
+          { ean: string; name: string | null; imageUrl: string | null }[],
+        ]
+      > => {
+        const host = hostBySupermercado[supermercado];
+        console.time(supermercado);
+        const q = db
+          .select({
+            ean: precios.ean,
+            name: precios.name,
+            imageUrl: precios.imageUrl,
+          })
+          .from(precios)
+          .groupBy(precios.ean)
+          .having(sql`max(fetched_at)`)
+          .where(
+            sql`ean in ${eans.map((x) => x.ean)} and in_stock and url like ${`%${host}%`}`,
+          );
+        // console.debug(q.toSQL());
+        const res = await q;
+        console.timeEnd(supermercado);
+        return [supermercado, res];
+      },
+    ),
+  );
+  const data = { precios: precioss.flatMap(([_, r]) => r) };
   return { key: new Date(), data };
 }
 
