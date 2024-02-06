@@ -85,7 +85,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/scraper
       - name: Cache usr/src/app/target
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: usr/src/app/target
           key: usr/src/app/target-${{ hashFiles('Dockerfile.scraper') }}
@@ -95,7 +95,7 @@ jobs:
           cache-source: usr/src/app/target
           cache-target: /usr/src/app/target
       - name: Cache root/.cargo/registry
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: root/.cargo/registry
           key: root/.cargo/registry-${{ hashFiles('Dockerfile.scraper') }}
@@ -105,7 +105,7 @@ jobs:
           cache-source: root/.cargo/registry
           cache-target: /root/.cargo/registry
       - name: Cache root/.cargo/git
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: root/.cargo/git
           key: root/.cargo/git-${{ hashFiles('Dockerfile.scraper') }}
