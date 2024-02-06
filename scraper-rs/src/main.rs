@@ -168,7 +168,7 @@ fn build_client() -> reqwest::Client {
     let mut headers = HeaderMap::new();
     headers.append("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36".parse().unwrap());
     reqwest::ClientBuilder::default()
-        .timeout(Duration::from_secs(30))
+        .timeout(Duration::from_secs(60 * 5))
         .connect_timeout(Duration::from_secs(30))
         .default_headers(headers)
         .build()
@@ -178,6 +178,15 @@ pub async fn do_request(client: &reqwest::Client, url: &str) -> reqwest::Result<
     let request = client.get(url).build()?;
     let response = client.execute(request).await?.error_for_status()?;
     Ok(response)
+}
+async fn request_and_body(client: &reqwest::Client, url: &str) -> reqwest::Result<String> {
+    let res = do_request(client, url).await?;
+    res.text().await
+}
+pub async fn fetch_body(client: &reqwest::Client, url: &str) -> reqwest::Result<String> {
+    get_retry_policy()
+        .retry_if(|| request_and_body(client, url), retry_if_wasnt_not_found)
+        .await
 }
 
 pub fn get_retry_policy() -> again::RetryPolicy {
@@ -195,11 +204,7 @@ async fn fetch_and_parse(
     client: &reqwest::Client,
     url: String,
 ) -> Result<PrecioPoint, anyhow::Error> {
-    let body = get_retry_policy()
-        .retry_if(|| do_request(client, &url), retry_if_wasnt_not_found)
-        .await?
-        .text()
-        .await?;
+    let body = fetch_body(client, &url).await?;
 
     let maybe_point = { scrap_url(client, url, &body).await };
 
@@ -350,7 +355,7 @@ impl Auto {
     }
 
     async fn inform(&self, msg: &str) {
-        println!("{}", msg);
+        tracing::info!("{}", msg);
         if let Some(telegram) = &self.telegram {
             let u = Url::parse_with_params(
                 &format!("https://api.telegram.org/bot{}/sendMessage", telegram.token),
