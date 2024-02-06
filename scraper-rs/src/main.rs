@@ -192,6 +192,7 @@ pub async fn fetch_body(client: &reqwest::Client, url: &str) -> reqwest::Result<
 pub fn get_retry_policy() -> again::RetryPolicy {
     RetryPolicy::exponential(Duration::from_millis(300))
         .with_max_retries(20)
+        .with_max_delay(Duration::from_secs(40))
         .with_jitter(true)
 }
 
