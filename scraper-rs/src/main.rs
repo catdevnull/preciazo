@@ -165,8 +165,8 @@ fn build_client() -> reqwest::Client {
     let mut headers = HeaderMap::new();
     headers.append("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36".parse().unwrap());
     reqwest::ClientBuilder::default()
-        .timeout(Duration::from_secs(60 * 5))
-        .connect_timeout(Duration::from_secs(60))
+        .timeout(Duration::from_secs(30))
+        .connect_timeout(Duration::from_secs(30))
         .default_headers(headers)
         .build()
         .unwrap()
@@ -179,7 +179,7 @@ pub async fn do_request(client: &reqwest::Client, url: &str) -> reqwest::Result<
 
 pub fn get_retry_policy() -> again::RetryPolicy {
     RetryPolicy::exponential(Duration::from_millis(300))
-        .with_max_retries(10)
+        .with_max_retries(20)
         .with_jitter(true)
 }
 
@@ -378,6 +378,7 @@ async fn auto_cli() -> anyhow::Result<()> {
         .map(|s| tokio::spawn(auto.clone().download_supermercado(s.to_owned())))
         .collect();
     future::try_join_all(handles).await?;
+    auto.inform("[auto] Download supermercados finished").await;
 
     let best_selling = auto
         .inform_time(
