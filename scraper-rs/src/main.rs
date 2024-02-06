@@ -47,7 +47,10 @@ struct ScrapUrlArgs {
     url: String,
 }
 #[derive(clap::Args)]
-struct AutoArgs {}
+struct AutoArgs {
+    #[arg(long)]
+    n_products: Option<usize>,
+}
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -59,7 +62,7 @@ async fn main() -> anyhow::Result<()> {
         Args::GetUrlList(a) => get_url_list_cli(a.supermercado).await,
         Args::ScrapUrl(a) => scrap_url_cli(a.url).await,
         Args::ScrapBestSelling => scrap_best_selling_cli().await,
-        Args::Auto(_) => auto_cli().await,
+        Args::Auto(a) => auto_cli(a).await,
         Args::Cron(_) => cron_cli().await,
     }
 }
@@ -287,6 +290,7 @@ struct AutoTelegram {
 struct Auto {
     db: Db,
     telegram: Option<AutoTelegram>,
+    limit_n_products: Option<usize>,
 }
 impl Auto {
     async fn download_supermercado(self, supermercado: Supermercado) -> anyhow::Result<()> {
@@ -300,7 +304,13 @@ impl Auto {
             ))
             .await;
         }
-        let links: Vec<String> = self.db.get_urls_by_domain(supermercado.host()).await?;
+        let links: Vec<String> = {
+            let mut links = self.db.get_urls_by_domain(supermercado.host()).await?;
+            if let Some(n) = self.limit_n_products {
+                links.truncate(n);
+            }
+            links
+        };
         // {
         //     let debug_path = PathBuf::from("debug/");
         //     tokio::fs::create_dir_all(&debug_path).await.unwrap();
@@ -355,7 +365,7 @@ impl Auto {
     }
 }
 
-async fn auto_cli() -> anyhow::Result<()> {
+async fn auto_cli(args: AutoArgs) -> anyhow::Result<()> {
     let auto = {
         let db = Db::connect().await?;
         let telegram = {
@@ -370,7 +380,11 @@ async fn auto_cli() -> anyhow::Result<()> {
                 }
             }
         };
-        Auto { db, telegram }
+        Auto {
+            db,
+            telegram,
+            limit_n_products: args.n_products,
+        }
     };
     auto.inform("[auto] Empezando scrap").await;
     let handles: Vec<_> = Supermercado::value_variants()
@@ -405,7 +419,7 @@ async fn cron_cli() -> anyhow::Result<()> {
             .unwrap();
         println!("Waiting for {:?}", t);
         tokio::time::sleep(t).await;
-        auto_cli().await.unwrap();
+        auto_cli(AutoArgs { n_products: None }).await.unwrap();
     }
 }
 
