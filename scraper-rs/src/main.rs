@@ -199,8 +199,8 @@ pub fn get_fetch_retry_policy() -> again::RetryPolicy {
 }
 
 pub fn get_parse_retry_policy() -> again::RetryPolicy {
-    RetryPolicy::exponential(Duration::from_millis(300))
-        .with_max_retries(3)
+    RetryPolicy::exponential(Duration::from_millis(1500))
+        .with_max_retries(5)
         .with_max_delay(Duration::from_secs(5))
         .with_jitter(true)
 }
