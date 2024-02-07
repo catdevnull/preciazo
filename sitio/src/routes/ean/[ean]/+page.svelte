@@ -18,6 +18,7 @@
     [Supermercado.Carrefour]: "bg-[#19549d] focus:ring-[#19549d]",
     [Supermercado.Coto]: "bg-[#e20025] focus:ring-[#e20025]",
     [Supermercado.Jumbo]: "bg-[#2dc850] focus:ring-[#2dc850]",
+    [Supermercado.Farmacity]: "bg-[#EF7603] focus:ring-[#EF7603]",
   };
 </script>
 

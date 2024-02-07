@@ -285,6 +285,7 @@ async fn get_urls(supermercado: &Supermercado) -> Result<Vec<String>, anyhow::Er
         Supermercado::Jumbo => sites::jumbo::get_urls().await?,
         Supermercado::Carrefour => sites::carrefour::get_urls().await?,
         Supermercado::Coto => sites::coto::get_urls().await?,
+        Supermercado::Farmacity => sites::farmacity::get_urls().await?,
     })
 }
 
@@ -305,6 +306,9 @@ async fn scrap_url(
             sites::coto::parse(url, &tl::parse(body, tl::ParserOptions::default())?)
         }
         "www.jumbo.com.ar" => sites::jumbo::scrap(client, url, body).await,
+        "www.farmacity.com" => {
+            sites::farmacity::parse(url, &tl::parse(body, tl::ParserOptions::default())?)
+        }
         s => bail!("Unknown host {}", s),
     }
 }

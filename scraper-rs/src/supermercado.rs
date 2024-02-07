@@ -6,6 +6,7 @@ pub enum Supermercado {
     Jumbo,
     Carrefour,
     Coto,
+    Farmacity,
 }
 impl Supermercado {
     pub fn host(&self) -> &'static str {
@@ -14,6 +15,7 @@ impl Supermercado {
             Self::Carrefour => "www.carrefour.com.ar",
             Self::Coto => "www.cotodigital3.com.ar",
             Self::Jumbo => "www.jumbo.com.ar",
+            Self::Farmacity => "www.farmacity.com",
         }
     }
 }
