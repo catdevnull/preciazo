@@ -46,10 +46,12 @@ struct GetUrlListArgs {
 struct ScrapUrlArgs {
     url: String,
 }
-#[derive(clap::Args)]
+#[derive(clap::Args, Clone, Copy)]
 struct AutoArgs {
     #[arg(long)]
     n_products: Option<usize>,
+    #[arg(long)]
+    only_supermercado: Option<Supermercado>,
 }
 
 #[tokio::main]
@@ -296,7 +298,7 @@ struct AutoTelegram {
 struct Auto {
     db: Db,
     telegram: Option<AutoTelegram>,
-    limit_n_products: Option<usize>,
+    args: AutoArgs,
 }
 impl Auto {
     async fn download_supermercado(self, supermercado: Supermercado) -> anyhow::Result<()> {
@@ -312,7 +314,7 @@ impl Auto {
         }
         let links: Vec<String> = {
             let mut links = self.db.get_urls_by_domain(supermercado.host()).await?;
-            if let Some(n) = self.limit_n_products {
+            if let Some(n) = self.args.n_products {
                 links.truncate(n);
             }
             links
@@ -386,14 +388,16 @@ async fn auto_cli(args: AutoArgs) -> anyhow::Result<()> {
                 }
             }
         };
-        Auto {
-            db,
-            telegram,
-            limit_n_products: args.n_products,
-        }
+        Auto { db, telegram, args }
     };
     auto.inform("[auto] Empezando scrap").await;
-    let handles: Vec<_> = Supermercado::value_variants()
+
+    let supermercados = match args.only_supermercado {
+        Some(supermercado) => [supermercado].to_vec(),
+        None => Supermercado::value_variants().to_vec(),
+    };
+
+    let handles: Vec<_> = supermercados
         .iter()
         .map(|s| tokio::spawn(auto.clone().download_supermercado(s.to_owned())))
         .collect();
@@ -425,7 +429,12 @@ async fn cron_cli() -> anyhow::Result<()> {
             .unwrap();
         println!("Waiting for {:?}", t);
         tokio::time::sleep(t).await;
-        auto_cli(AutoArgs { n_products: None }).await.unwrap();
+        auto_cli(AutoArgs {
+            n_products: None,
+            only_supermercado: None,
+        })
+        .await
+        .unwrap();
     }
 }
 
