@@ -9,7 +9,7 @@ import { migrateDb } from "./migrate.js";
 let db = null;
 export function getDb() {
   const sqlite = new Database(DB_PATH);
-  db = drizzle(sqlite, { schema });
+  db = drizzle(sqlite, { schema, logger: true });
   migrateDb(db);
   return db;
 }
