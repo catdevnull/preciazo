@@ -10,7 +10,7 @@ use serde_json::json;
 use simple_error::SimpleError;
 use tl::VDom;
 
-use crate::{build_client, do_request, get_retry_policy, retry_if_wasnt_not_found};
+use crate::{build_client, do_request, get_fetch_retry_policy, retry_if_wasnt_not_found};
 
 use super::common;
 
@@ -132,7 +132,7 @@ pub async fn get_urls_from_sitemap(sitemaps: Vec<&str>) -> anyhow::Result<Vec<St
             let url = url.to_string();
             async move {
                 let client = client;
-                let text = get_retry_policy()
+                let text = get_fetch_retry_policy()
                     .retry_if(|| do_request(&client, &url), retry_if_wasnt_not_found)
                     .await?
                     .text()
@@ -152,7 +152,7 @@ pub async fn get_urls_from_sitemap(sitemaps: Vec<&str>) -> anyhow::Result<Vec<St
 }
 
 async fn fetch_body<'a>(client: &reqwest::Client, url: &str) -> anyhow::Result<String> {
-    let body = get_retry_policy()
+    let body = get_fetch_retry_policy()
         .retry_if(|| do_request(client, url), retry_if_wasnt_not_found)
         .await?
         .text()

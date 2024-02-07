@@ -186,15 +186,22 @@ async fn request_and_body(client: &reqwest::Client, url: &str) -> reqwest::Resul
     res.text().await
 }
 pub async fn fetch_body(client: &reqwest::Client, url: &str) -> reqwest::Result<String> {
-    get_retry_policy()
+    get_fetch_retry_policy()
         .retry_if(|| request_and_body(client, url), retry_if_wasnt_not_found)
         .await
 }
 
-pub fn get_retry_policy() -> again::RetryPolicy {
+pub fn get_fetch_retry_policy() -> again::RetryPolicy {
     RetryPolicy::exponential(Duration::from_millis(300))
         .with_max_retries(20)
         .with_max_delay(Duration::from_secs(40))
+        .with_jitter(true)
+}
+
+pub fn get_parse_retry_policy() -> again::RetryPolicy {
+    RetryPolicy::exponential(Duration::from_millis(1500))
+        .with_max_retries(5)
+        .with_max_delay(Duration::from_secs(5))
         .with_jitter(true)
 }
 
@@ -207,24 +214,38 @@ async fn fetch_and_parse(
     client: &reqwest::Client,
     url: String,
 ) -> Result<PrecioPoint, anyhow::Error> {
-    let body = fetch_body(client, &url).await?;
+    async fn fetch_and_scrap(
+        client: &reqwest::Client,
+        url: String,
+    ) -> Result<PrecioPoint, anyhow::Error> {
+        let body = fetch_body(client, &url).await?;
+        let maybe_point = { scrap_url(client, url, &body).await };
 
-    let maybe_point = { scrap_url(client, url, &body).await };
+        let point = match maybe_point {
+            Ok(p) => Ok(p),
+            Err(err) => {
+                let now: DateTime<Utc> = Utc::now();
+                let debug_path = PathBuf::from(format!("debug-{}/", now.format("%Y-%m-%d")));
+                tokio::fs::create_dir_all(&debug_path).await.unwrap();
+                let file_path = debug_path.join(format!("{}.html", nanoid!()));
+                tokio::fs::write(&file_path, &body).await.unwrap();
+                tracing::debug!(error=%err, "Failed to parse, saved body at {}",file_path.display());
+                Err(err)
+            }
+        }?;
 
-    let point = match maybe_point {
-        Ok(p) => Ok(p),
-        Err(err) => {
-            let now: DateTime<Utc> = Utc::now();
-            let debug_path = PathBuf::from(format!("debug-{}/", now.format("%Y-%m-%d")));
-            tokio::fs::create_dir_all(&debug_path).await.unwrap();
-            let file_path = debug_path.join(format!("{}.html", nanoid!()));
-            tokio::fs::write(&file_path, &body).await.unwrap();
-            tracing::debug!(error=%err, "Failed to parse, saved body at {}",file_path.display());
-            Err(err)
-        }
-    }?;
+        Ok(point)
+    }
 
-    Ok(point)
+    get_parse_retry_policy()
+        .retry_if(
+            || fetch_and_scrap(client, url.clone()),
+            |err: &anyhow::Error| match err.downcast_ref::<reqwest::Error>() {
+                Some(e) => !e.status().is_some_and(|s| s == StatusCode::NOT_FOUND),
+                None => true,
+            },
+        )
+        .await
 }
 
 async fn parse_file_cli(file_path: String) -> anyhow::Result<()> {
@@ -264,6 +285,7 @@ async fn get_urls(supermercado: &Supermercado) -> Result<Vec<String>, anyhow::Er
         Supermercado::Jumbo => sites::jumbo::get_urls().await?,
         Supermercado::Carrefour => sites::carrefour::get_urls().await?,
         Supermercado::Coto => sites::coto::get_urls().await?,
+        Supermercado::Farmacity => sites::farmacity::get_urls().await?,
     })
 }
 
@@ -284,6 +306,9 @@ async fn scrap_url(
             sites::coto::parse(url, &tl::parse(body, tl::ParserOptions::default())?)
         }
         "www.jumbo.com.ar" => sites::jumbo::scrap(client, url, body).await,
+        "www.farmacity.com" => {
+            sites::farmacity::parse(url, &tl::parse(body, tl::ParserOptions::default())?)
+        }
         s => bail!("Unknown host {}", s),
     }
 }
