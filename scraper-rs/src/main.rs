@@ -238,7 +238,13 @@ async fn fetch_and_parse(
     }
 
     get_parse_retry_policy()
-        .retry(|| fetch_and_scrap(client, url.clone()))
+        .retry_if(
+            || fetch_and_scrap(client, url.clone()),
+            |err: &anyhow::Error| match err.downcast_ref::<reqwest::Error>() {
+                Some(e) => !e.status().is_some_and(|s| s == StatusCode::NOT_FOUND),
+                None => true,
+            },
+        )
         .await
 }
 
