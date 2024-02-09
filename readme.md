@@ -2,6 +2,10 @@
 
 scrapeo "masivo" de precios y datos en supermercados argentinos
 
+## [¡entrá a la demo!](https://preciazo.experimentos.nulo.ar/)
+
+¿te interesa colaborar con el proyecto? hablame [por Twitter](https://twitter.com/esoesnulo), por [email](mailto:preciazo@nulo.ar) o por GitHub :)
+
 ## proyectos similares
 
 - [ratoneando](https://ratoneando.ar/)
