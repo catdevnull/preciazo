@@ -225,11 +225,12 @@ async fn fetch_and_parse(
             Ok(p) => Ok(p),
             Err(err) => {
                 let now: DateTime<Utc> = Utc::now();
-                let debug_path = PathBuf::from(format!("debug-{}/", now.format("%Y-%m-%d")));
-                tokio::fs::create_dir_all(&debug_path).await.unwrap();
-                let file_path = debug_path.join(format!("{}.html", nanoid!()));
-                tokio::fs::write(&file_path, &body).await.unwrap();
-                tracing::debug!(error=%err, "Failed to parse, saved body at {}",file_path.display());
+                // let debug_path = PathBuf::from(format!("debug-{}/", now.format("%Y-%m-%d")));
+                // tokio::fs::create_dir_all(&debug_path).await.unwrap();
+                // let file_path = debug_path.join(format!("{}.html", nanoid!()));
+                // tokio::fs::write(&file_path, &body).await.unwrap();
+                // tracing::debug!(error=%err, "Failed to parse, saved body at {}",file_path.display());
+                tracing::debug!(error=%err, "Failed to parse");
                 Err(err)
             }
         }?;
