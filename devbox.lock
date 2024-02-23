@@ -1,0 +1,85 @@
+{
+  "lockfile_version": "1",
+  "packages": {
+    "cargo@latest": {
+      "last_modified": "2024-02-10T18:15:24Z",
+      "resolved": "github:NixOS/nixpkgs/10b813040df67c4039086db0f6eaf65c536886c6#cargo",
+      "source": "devbox-search",
+      "version": "1.75.0",
+      "systems": {
+        "aarch64-darwin": {
+          "store_path": "/nix/store/qqkszbl164szilwiz0sxjk798lvrhc52-cargo-1.75.0"
+        },
+        "aarch64-linux": {
+          "store_path": "/nix/store/a8lp0lgqckvgxy3vadldc54js822ypix-cargo-1.75.0"
+        },
+        "x86_64-darwin": {
+          "store_path": "/nix/store/0b4lhzk1mrqkidks7x97f7jfryqg5vza-cargo-1.75.0"
+        },
+        "x86_64-linux": {
+          "store_path": "/nix/store/r7a1rz942f5yvbknm262sg369kwbv7b7-cargo-1.75.0"
+        }
+      }
+    },
+    "git-lfs@latest": {
+      "last_modified": "2024-02-10T18:15:24Z",
+      "resolved": "github:NixOS/nixpkgs/10b813040df67c4039086db0f6eaf65c536886c6#git-lfs",
+      "source": "devbox-search",
+      "version": "3.4.1",
+      "systems": {
+        "aarch64-darwin": {
+          "store_path": "/nix/store/a6paw80iqyaa3s56afd7lx41kh4j7rm2-git-lfs-3.4.1"
+        },
+        "aarch64-linux": {
+          "store_path": "/nix/store/6prz36drh0sa8ir9ns5qx2ca582009a1-git-lfs-3.4.1"
+        },
+        "x86_64-darwin": {
+          "store_path": "/nix/store/ds3g9yds887fabw77mxi6wfgl9rizmn3-git-lfs-3.4.1"
+        },
+        "x86_64-linux": {
+          "store_path": "/nix/store/gla65g2rjqy51v3ydcg2rdxs6ij2zfdj-git-lfs-3.4.1"
+        }
+      }
+    },
+    "nodejs@latest": {
+      "last_modified": "2024-02-15T12:53:33Z",
+      "resolved": "github:NixOS/nixpkgs/085589047343aad800c4d305cf7b98e8a3d51ae2#nodejs_21",
+      "source": "devbox-search",
+      "version": "21.6.2",
+      "systems": {
+        "aarch64-darwin": {
+          "store_path": "/nix/store/g1v8xrnj54xyvn6gf73mnw9pdwrdzmdi-nodejs-21.6.2"
+        },
+        "aarch64-linux": {
+          "store_path": "/nix/store/7ywds3cnww6ahc45g28c3c2rnf2aky2s-nodejs-21.6.2"
+        },
+        "x86_64-darwin": {
+          "store_path": "/nix/store/scbarnsw7m2g4j2m6rp5c82wyv1fzg8l-nodejs-21.6.2"
+        },
+        "x86_64-linux": {
+          "store_path": "/nix/store/6cip7ljx563rlyfnzwkfzf6gxpy1lid0-nodejs-21.6.2"
+        }
+      }
+    },
+    "sqlite@latest": {
+      "last_modified": "2024-02-20T05:36:14Z",
+      "resolved": "github:NixOS/nixpkgs/f33dd27a47ebdf11dc8a5eb05e7c8fbdaf89e73f#sqlite",
+      "source": "devbox-search",
+      "version": "3.45.1",
+      "systems": {
+        "aarch64-darwin": {
+          "store_path": "/nix/store/ay9wvqp3p548p08symcy3q7avm86ck00-sqlite-3.45.1-bin"
+        },
+        "aarch64-linux": {
+          "store_path": "/nix/store/1j3xiiq0i2q69nmwi9ja99grnwlpqzgy-sqlite-3.45.1-bin"
+        },
+        "x86_64-darwin": {
+          "store_path": "/nix/store/c9wndvymfnm4dcmi0bgy1lmljzx8dv4n-sqlite-3.45.1-bin"
+        },
+        "x86_64-linux": {
+          "store_path": "/nix/store/b3pbwqqpfllg2lxwhhv4iyw3m9xxbgld-sqlite-3.45.1-bin"
+        }
+      }
+    }
+  }
+}
