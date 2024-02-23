@@ -3,7 +3,8 @@
     "nodejs@latest",
     "cargo@latest",
     "sqlite@latest",
-    "git-lfs@latest"
+    "git-lfs@latest",
+    "nodePackages.pnpm@latest"
   ],
   "shell": {
     "init_hook": [
