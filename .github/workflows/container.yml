@@ -61,6 +61,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/sitio:buildcache
           cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/sitio:buildcache,mode=max
+          platforms: linux/amd64,linux/arm64
 
   build-and-push-scraper:
     name: Compilar contenedor del scraper
@@ -124,3 +125,4 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/scraper:buildcache
           cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/scraper:buildcache,mode=max
+          platforms: linux/amd64,linux/arm64
