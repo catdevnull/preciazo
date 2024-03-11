@@ -100,6 +100,26 @@
           "store_path": "/nix/store/b3pbwqqpfllg2lxwhhv4iyw3m9xxbgld-sqlite-3.45.1-bin"
         }
       }
+    },
+    "sqlx-cli@latest": {
+      "last_modified": "2024-02-24T23:06:34Z",
+      "resolved": "github:NixOS/nixpkgs/9a9dae8f6319600fa9aebde37f340975cab4b8c0#sqlx-cli",
+      "source": "devbox-search",
+      "version": "0.7.3",
+      "systems": {
+        "aarch64-darwin": {
+          "store_path": "/nix/store/llc00frrxnz2fp2xgp089d947rw7inq5-sqlx-cli-0.7.3"
+        },
+        "aarch64-linux": {
+          "store_path": "/nix/store/l9k33dxzg7qnhdzqmlw70xcqf8dshkvc-sqlx-cli-0.7.3"
+        },
+        "x86_64-darwin": {
+          "store_path": "/nix/store/3wpq5f4yva6llf9zfbskq1nyy06f94xj-sqlx-cli-0.7.3"
+        },
+        "x86_64-linux": {
+          "store_path": "/nix/store/hnzrhv4043xra2s8zmbxif8c9ff87lc2-sqlx-cli-0.7.3"
+        }
+      }
     }
   }
 }

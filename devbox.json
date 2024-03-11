@@ -4,7 +4,8 @@
     "cargo@latest",
     "sqlite@latest",
     "git-lfs@latest",
-    "nodePackages.pnpm@latest"
+    "nodePackages.pnpm@latest",
+    "sqlx-cli@latest"
   ],
   "shell": {
     "init_hook": [
