@@ -3,14 +3,13 @@ use chrono::{DateTime, Utc};
 use clap::{Parser, ValueEnum};
 use cron::Schedule;
 use db::Db;
-use futures::{future, stream, Future, StreamExt};
-use nanoid::nanoid;
+use futures::{future, stream, Future, StreamExt, TryFutureExt};
+
 use reqwest::{header::HeaderMap, StatusCode, Url};
 use simple_error::{bail, SimpleError};
 use std::{
     env::{self},
     fs,
-    path::PathBuf,
     str::FromStr,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
@@ -425,7 +424,16 @@ async fn auto_cli(args: AutoArgs) -> anyhow::Result<()> {
 
     let handles: Vec<_> = supermercados
         .iter()
-        .map(|s| tokio::spawn(auto.clone().download_supermercado(s.to_owned())))
+        .map(|s| {
+            let x = s.clone();
+            tokio::spawn(
+                auto.clone()
+                    .download_supermercado(s.to_owned())
+                    .inspect_err(move |err| {
+                        tracing::error!(error=%err, supermercado=?x);
+                    }),
+            )
+        })
         .collect();
     future::try_join_all(handles).await?;
     auto.inform("[auto] Download supermercados finished").await;
