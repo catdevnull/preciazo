@@ -15,4 +15,8 @@ export function migrateDb(db) {
   migrate(db, { migrationsFolder: path });
   db.run(sql`pragma journal_mode = WAL;`);
   db.run(sql`PRAGMA synchronous = NORMAL;`);
+  db.run(sql`PRAGMA busy_timeout = 15000;`);
+  db.run(sql`PRAGMA cache_size = 1000000000;`);
+  // db.run(sql`PRAGMA foreign_keys = true;`);
+  db.run(sql`PRAGMA temp_store = memory;`);
 }

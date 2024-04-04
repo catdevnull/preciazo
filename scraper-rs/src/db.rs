@@ -1,7 +1,7 @@
 use std::{
     env,
     str::FromStr,
-    time::{SystemTime, UNIX_EPOCH},
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
 use sqlx::{sqlite::SqliteConnectOptions, SqlitePool};
@@ -24,6 +24,9 @@ impl Db {
                 SqliteConnectOptions::from_str(&format!("sqlite://{}", db_path))?
                     .journal_mode(sqlx::sqlite::SqliteJournalMode::Wal)
                     .synchronous(sqlx::sqlite::SqliteSynchronous::Normal)
+                    .busy_timeout(Duration::from_secs(15))
+                    .pragma("cache_size", "1000000000")
+                    .pragma("temp_store", "memory")
                     .optimize_on_close(true, None),
             )
             .await?;
