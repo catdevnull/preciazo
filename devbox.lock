@@ -1,26 +1,6 @@
 {
   "lockfile_version": "1",
   "packages": {
-    "cargo@latest": {
-      "last_modified": "2024-02-10T18:15:24Z",
-      "resolved": "github:NixOS/nixpkgs/10b813040df67c4039086db0f6eaf65c536886c6#cargo",
-      "source": "devbox-search",
-      "version": "1.75.0",
-      "systems": {
-        "aarch64-darwin": {
-          "store_path": "/nix/store/qqkszbl164szilwiz0sxjk798lvrhc52-cargo-1.75.0"
-        },
-        "aarch64-linux": {
-          "store_path": "/nix/store/a8lp0lgqckvgxy3vadldc54js822ypix-cargo-1.75.0"
-        },
-        "x86_64-darwin": {
-          "store_path": "/nix/store/0b4lhzk1mrqkidks7x97f7jfryqg5vza-cargo-1.75.0"
-        },
-        "x86_64-linux": {
-          "store_path": "/nix/store/r7a1rz942f5yvbknm262sg369kwbv7b7-cargo-1.75.0"
-        }
-      }
-    },
     "git-lfs@latest": {
       "last_modified": "2024-02-10T18:15:24Z",
       "resolved": "github:NixOS/nixpkgs/10b813040df67c4039086db0f6eaf65c536886c6#git-lfs",
@@ -63,6 +43,7 @@
     },
     "nodejs@latest": {
       "last_modified": "2024-02-15T12:53:33Z",
+      "plugin_version": "0.0.2",
       "resolved": "github:NixOS/nixpkgs/085589047343aad800c4d305cf7b98e8a3d51ae2#nodejs_21",
       "source": "devbox-search",
       "version": "21.6.2",
