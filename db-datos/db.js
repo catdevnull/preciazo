@@ -8,6 +8,7 @@ import { migrateDb } from "./migrate.js";
 /** @type {null | import("drizzle-orm/better-sqlite3").BetterSQLite3Database<schema>} */
 let db = null;
 export function getDb() {
+  if (db) return db;
   const sqlite = new Database(DB_PATH);
   db = drizzle(sqlite, { schema, logger: true });
   migrateDb(db);
