@@ -9,6 +9,8 @@ scrapeo "masivo" de precios y datos en supermercados argentinos
 ## proyectos similares
 
 - [ratoneando](https://ratoneando.ar/)
+- [Coto_bot](https://twitter.com/BotCoto) (repo: [Vosinepi/webScrapping_ETL_canasta_basica](https://github.com/Vosinepi/webScrapping_ETL_canasta_basica))
+- [@canastita_bot](https://twitter.com/canastita_bot) y [@asadito_bot](https://twitter.com/asadito_bot) de [Charly Maslaton](https://twitter.com/charlymasla)
 
 ## componentes
 
