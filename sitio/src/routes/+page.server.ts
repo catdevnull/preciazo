@@ -52,6 +52,7 @@ async function doQuery() {
   return { key: new Date(), data: categoriesWithProducts };
 }
 
+console.log("setting up interval");
 setInterval(
   async () => {
     const c = await doQuery();
