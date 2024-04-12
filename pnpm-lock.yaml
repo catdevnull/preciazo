@@ -12,8 +12,8 @@ importers:
         specifier: ^9.5.0
         version: 9.5.0
       drizzle-orm:
-        specifier: ^0.29.5
-        version: 0.29.5(@types/better-sqlite3@7.6.9)(better-sqlite3@9.5.0)
+        specifier: ^0.30.8
+        version: 0.30.8(@types/better-sqlite3@7.6.9)(better-sqlite3@9.5.0)
     devDependencies:
       '@types/better-sqlite3':
         specifier: ^7.6.9
@@ -40,8 +40,8 @@ importers:
         specifier: ^1.11.10
         version: 1.11.10
       drizzle-orm:
-        specifier: ^0.29.5
-        version: 0.29.5(@types/better-sqlite3@7.6.9)(better-sqlite3@9.5.0)
+        specifier: ^0.30.8
+        version: 0.30.8(@types/better-sqlite3@7.6.9)(better-sqlite3@9.5.0)
       zod:
         specifier: ^3.22.4
         version: 3.22.4
@@ -1518,20 +1518,23 @@ packages:
       - supports-color
     dev: true
 
-  /drizzle-orm@0.29.5(@types/better-sqlite3@7.6.9)(better-sqlite3@9.5.0):
-    resolution: {integrity: sha512-jS3+uyzTz4P0Y2CICx8FmRQ1eplURPaIMWDn/yq6k4ShRFj9V7vlJk67lSf2kyYPzQ60GkkNGXcJcwrxZ6QCRw==}
+  /drizzle-orm@0.30.8(@types/better-sqlite3@7.6.9)(better-sqlite3@9.5.0):
+    resolution: {integrity: sha512-9pBJA0IjnpPpzZ6s9jlS1CQAbKoBmbn2GJesPhXaVblAA/joOJ4AWWevYcqvLGj9SvThBAl7WscN8Zwgg5mnTw==}
     peerDependencies:
       '@aws-sdk/client-rds-data': '>=3'
       '@cloudflare/workers-types': '>=3'
+      '@electric-sql/pglite': '>=0.1.1'
       '@libsql/client': '*'
       '@neondatabase/serverless': '>=0.1'
+      '@op-engineering/op-sqlite': '>=2'
       '@opentelemetry/api': ^1.4.1
       '@planetscale/database': '>=1'
       '@types/better-sqlite3': '*'
       '@types/pg': '*'
       '@types/react': '>=18'
       '@types/sql.js': '*'
-      '@vercel/postgres': '*'
+      '@vercel/postgres': '>=0.8.0'
+      '@xata.io/client': '*'
       better-sqlite3: '>=7'
       bun-types: '*'
       expo-sqlite: '>=13.2.0'
@@ -1548,9 +1551,13 @@ packages:
         optional: true
       '@cloudflare/workers-types':
         optional: true
+      '@electric-sql/pglite':
+        optional: true
       '@libsql/client':
         optional: true
       '@neondatabase/serverless':
+        optional: true
+      '@op-engineering/op-sqlite':
         optional: true
       '@opentelemetry/api':
         optional: true
@@ -1565,6 +1572,8 @@ packages:
       '@types/sql.js':
         optional: true
       '@vercel/postgres':
+        optional: true
+      '@xata.io/client':
         optional: true
       better-sqlite3:
         optional: true
