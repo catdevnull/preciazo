@@ -329,13 +329,25 @@ impl Auto {
     async fn download_supermercado(self, supermercado: Supermercado) -> anyhow::Result<()> {
         {
             let t0 = now_sec();
-            self.get_and_save_urls(&supermercado).await?;
-            self.inform(&format!(
-                "Downloaded url list {:?} (took {})",
-                &supermercado,
-                now_sec() - t0
-            ))
-            .await;
+            match self.get_and_save_urls(&supermercado).await {
+                Ok(_) => {
+                    self.inform(&format!(
+                        "Downloaded url list {:?} (took {})",
+                        &supermercado,
+                        now_sec() - t0
+                    ))
+                    .await
+                }
+                Err(err) => {
+                    self.inform(&format!(
+                        "[{:?}] FAILED url list: {:?} (took {})",
+                        &supermercado,
+                        err,
+                        now_sec() - t0
+                    ))
+                    .await
+                }
+            }
         }
         let links: Vec<String> = {
             let mut links = self.db.get_urls_by_domain(supermercado.host()).await?;
