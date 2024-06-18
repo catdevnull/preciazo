@@ -165,13 +165,28 @@ enum FetchError {
     Tl(#[from] tl::ParseError),
 }
 
-fn build_client() -> reqwest::Client {
+fn get_user_agent() -> &'static str {
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
+}
+fn build_header_map() -> HeaderMap {
     let mut headers = HeaderMap::new();
-    headers.append("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36".parse().unwrap());
+    headers.append("User-Agent", get_user_agent().parse().unwrap());
+    headers
+}
+
+fn build_client() -> reqwest::Client {
     reqwest::ClientBuilder::default()
         .timeout(Duration::from_secs(60))
         .connect_timeout(Duration::from_secs(30))
-        .default_headers(headers)
+        .default_headers(build_header_map())
+        .build()
+        .unwrap()
+}
+fn build_coto_client() -> reqwest::Client {
+    reqwest::ClientBuilder::default()
+        .timeout(Duration::from_secs(300))
+        .connect_timeout(Duration::from_secs(150))
+        .default_headers(build_header_map())
         .build()
         .unwrap()
 }
