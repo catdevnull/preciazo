@@ -65,7 +65,7 @@ jobs:
 
   build-and-push-scraper-amd64:
     name: "[amd64] oci:scraper"
-    runs-on: buildjet-16vcpu-ubuntu-2204
+    runs-on: buildjet-8vcpu-ubuntu-2204
     permissions:
       contents: read
       packages: write
@@ -97,7 +97,7 @@ jobs:
 
   build-and-push-scraper-arm64:
     name: "[arm64] oci:scraper"
-    runs-on: buildjet-16vcpu-ubuntu-2204-arm
+    runs-on: buildjet-8vcpu-ubuntu-2204-arm
     permissions:
       contents: read
       packages: write
