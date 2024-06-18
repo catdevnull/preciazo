@@ -61,7 +61,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
           cache-to: type=inline
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
 
   build-and-push-scraper-amd64:
     name: "[amd64] oci:scraper"
