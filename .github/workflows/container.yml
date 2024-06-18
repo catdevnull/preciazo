@@ -11,7 +11,7 @@ env:
 jobs:
   check:
     name: chequear typescript del sitio
-    runs-on: buildjet-4vcpu-ubuntu-2204
+    runs-on: ubicloud-standard-4
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v3
@@ -65,7 +65,7 @@ jobs:
 
   build-and-push-scraper-amd64:
     name: "[amd64] oci:scraper"
-    runs-on: buildjet-8vcpu-ubuntu-2204
+    runs-on: ubicloud-standard-16
     permissions:
       contents: read
       packages: write
@@ -97,7 +97,7 @@ jobs:
 
   build-and-push-scraper-arm64:
     name: "[arm64] oci:scraper"
-    runs-on: buildjet-8vcpu-ubuntu-2204-arm
+    runs-on: ubicloud-standard-16-arm
     permissions:
       contents: read
       packages: write
