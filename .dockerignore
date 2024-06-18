@@ -13,3 +13,5 @@ Dockerfile
 .git
 scraper/debug/
 */target/
+scraper-rs/target/
+*.db*
