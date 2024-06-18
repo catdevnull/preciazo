@@ -11,7 +11,7 @@ env:
 jobs:
   check:
     name: chequear typescript del sitio
-    runs-on: ubuntu-latest
+    runs-on: buildjet-4vcpu-ubuntu-2204
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v3
@@ -31,7 +31,7 @@ jobs:
   build-and-push-sitio:
     name: Compilar contenedor del sitio
     needs: check
-    runs-on: ubuntu-latest
+    runs-on: buildjet-4vcpu-ubuntu-2204
     permissions:
       contents: read
       packages: write
