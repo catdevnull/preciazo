@@ -1,10 +1,12 @@
+use again::Task;
 use anyhow::{anyhow, Context};
 use futures::{stream, StreamExt, TryFutureExt, TryStreamExt};
 use itertools::Itertools;
 use reqwest::Url;
 
 use crate::{
-    build_client, build_coto_client, do_request, get_fetch_retry_policy, retry_if_wasnt_not_found, PrecioPoint
+    anyhow_retry_if_wasnt_not_found, get_fetch_retry_policy, proxy_client::ProxyClient,
+    retry_if_wasnt_not_found, PrecioPoint,
 };
 
 pub fn parse(url: String, dom: &tl::VDom) -> Result<PrecioPoint, anyhow::Error> {
@@ -78,8 +80,7 @@ pub fn parse(url: String, dom: &tl::VDom) -> Result<PrecioPoint, anyhow::Error> 
     })
 }
 
-pub async fn get_urls() -> anyhow::Result<Vec<String>> {
-    let client = build_coto_client();
+pub async fn get_urls(proxy_client: &ProxyClient) -> anyhow::Result<Vec<String>> {
     let initial = Url::parse("https://www.cotodigital3.com.ar/sitios/cdigi/browse?Nf=product.endDate%7CGTEQ+1.7032032E12%7C%7Cproduct.startDate%7CLTEQ+1.7032032E12&Nr=AND%28product.sDisp_200%3A1004%2Cproduct.language%3Aespa%C3%B1ol%2COR%28product.siteId%3ACotoDigital%29%29")?;
 
     let page_size = 50;
@@ -90,12 +91,21 @@ pub async fn get_urls() -> anyhow::Result<Vec<String>> {
                 .append_pair("No", &(i * page_size).to_string())
                 .append_pair("Nrpp", &(page_size).to_string())
                 .finish();
-            let client = &client;
             async move {
-                let text = get_fetch_retry_policy()
+                let text: String = get_fetch_retry_policy()
                     .retry_if(
-                        || do_request(client, u.as_str()).and_then(|r| r.text()),
-                        retry_if_wasnt_not_found,
+                        || {
+                            async fn asdf(
+                                proxy_client: &ProxyClient,
+                                url: Url,
+                            ) -> anyhow::Result<String> {
+                                let res = proxy_client.do_request(url).await?.error_for_status()?;
+                                Ok(res.text().await?)
+                            }
+                            let url = u.clone();
+                            asdf(proxy_client, url)
+                        },
+                        anyhow_retry_if_wasnt_not_found,
                     )
                     .await?;
                 let dom = tl::parse(&text, tl::ParserOptions::default())?;

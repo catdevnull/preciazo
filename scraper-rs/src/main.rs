@@ -1,12 +1,12 @@
 use again::RetryPolicy;
-use chrono::{DateTime, Utc};
 use clap::{Parser, ValueEnum};
 use cron::Schedule;
 use db::Db;
-use futures::{future, stream, Future, StreamExt, TryFutureExt};
+use futures::{future, stream, StreamExt, TryFutureExt};
 
-use reqwest::{header::HeaderMap, StatusCode, Url};
-use simple_error::{bail, SimpleError};
+use reqwest::{header::HeaderMap, IntoUrl, StatusCode};
+use scraper::Scraper;
+use simple_error::SimpleError;
 use std::{
     env::{self},
     fs,
@@ -17,6 +17,10 @@ use thiserror::Error;
 
 mod supermercado;
 use supermercado::Supermercado;
+mod auto;
+use auto::Auto;
+mod proxy_client;
+mod scraper;
 
 #[derive(Parser)] // requires `derive` feature
 enum Args {
@@ -69,8 +73,8 @@ async fn main() -> anyhow::Result<()> {
 }
 
 async fn scrap_url_cli(url: String) -> anyhow::Result<()> {
-    let client = build_client();
-    let res = fetch_and_parse(&client, url.clone()).await;
+    let scraper = Scraper::new();
+    let res = scraper.fetch_and_parse(url.clone()).await;
 
     println!("Result: {:#?}", res);
     res.map(|_| ())
@@ -105,13 +109,13 @@ async fn fetch_list(db: &Db, links: Vec<String>) -> Counters {
         .map_or(Ok(24), |s| s.parse::<usize>())
         .expect("N_COROUTINES no es un número");
 
-    let client = build_client();
+    let scraper = Scraper::new();
 
     stream::iter(links)
         .map(|url| {
             let db = db.clone();
-            let client = client.clone();
-            tokio::spawn(fetch_and_save(client, url, db))
+            let scraper = scraper.clone();
+            tokio::spawn(fetch_and_save(scraper, url, db))
         })
         .buffer_unordered(n_coroutines)
         .fold(Counters::default(), move |x, y| {
@@ -134,8 +138,8 @@ struct Counters {
     skipped: u64,
 }
 
-async fn fetch_and_save(client: reqwest::Client, url: String, db: Db) -> Counters {
-    let res = fetch_and_parse(&client, url.clone()).await;
+async fn fetch_and_save(scraper: Scraper, url: String, db: Db) -> Counters {
+    let res = scraper.fetch_and_parse(url.clone()).await;
     let mut counters = Counters::default();
     match res {
         Ok(res) => {
@@ -182,27 +186,13 @@ fn build_client() -> reqwest::Client {
         .build()
         .unwrap()
 }
-fn build_coto_client() -> reqwest::Client {
-    reqwest::ClientBuilder::default()
-        .timeout(Duration::from_secs(300))
-        .connect_timeout(Duration::from_secs(150))
-        .default_headers(build_header_map())
-        .build()
-        .unwrap()
-}
-pub async fn do_request(client: &reqwest::Client, url: &str) -> reqwest::Result<reqwest::Response> {
+pub async fn do_request<U: IntoUrl>(
+    client: &reqwest::Client,
+    url: U,
+) -> reqwest::Result<reqwest::Response> {
     let request = client.get(url).build()?;
     let response = client.execute(request).await?.error_for_status()?;
     Ok(response)
-}
-async fn request_and_body(client: &reqwest::Client, url: &str) -> reqwest::Result<String> {
-    let res = do_request(client, url).await?;
-    res.text().await
-}
-pub async fn fetch_body(client: &reqwest::Client, url: &str) -> reqwest::Result<String> {
-    get_fetch_retry_policy()
-        .retry_if(|| request_and_body(client, url), retry_if_wasnt_not_found)
-        .await
 }
 
 pub fn get_fetch_retry_policy() -> again::RetryPolicy {
@@ -222,51 +212,17 @@ pub fn get_parse_retry_policy() -> again::RetryPolicy {
 pub fn retry_if_wasnt_not_found(err: &reqwest::Error) -> bool {
     !err.status().is_some_and(|s| s == StatusCode::NOT_FOUND)
 }
-
-#[tracing::instrument(skip(client))]
-async fn fetch_and_parse(
-    client: &reqwest::Client,
-    url: String,
-) -> Result<PrecioPoint, anyhow::Error> {
-    async fn fetch_and_scrap(
-        client: &reqwest::Client,
-        url: String,
-    ) -> Result<PrecioPoint, anyhow::Error> {
-        let body = fetch_body(client, &url).await?;
-        let maybe_point = { scrap_url(client, url, &body).await };
-
-        let point = match maybe_point {
-            Ok(p) => Ok(p),
-            Err(err) => {
-                let now: DateTime<Utc> = Utc::now();
-                // let debug_path = PathBuf::from(format!("debug-{}/", now.format("%Y-%m-%d")));
-                // tokio::fs::create_dir_all(&debug_path).await.unwrap();
-                // let file_path = debug_path.join(format!("{}.html", nanoid!()));
-                // tokio::fs::write(&file_path, &body).await.unwrap();
-                // tracing::debug!(error=%err, "Failed to parse, saved body at {}",file_path.display());
-                tracing::debug!(error=%err, "Failed to parse");
-                Err(err)
-            }
-        }?;
-
-        Ok(point)
+pub fn anyhow_retry_if_wasnt_not_found(err: &anyhow::Error) -> bool {
+    match err.downcast_ref::<reqwest::Error>() {
+        Some(e) => retry_if_wasnt_not_found(e),
+        None => true,
     }
-
-    get_parse_retry_policy()
-        .retry_if(
-            || fetch_and_scrap(client, url.clone()),
-            |err: &anyhow::Error| match err.downcast_ref::<reqwest::Error>() {
-                Some(e) => !e.status().is_some_and(|s| s == StatusCode::NOT_FOUND),
-                None => true,
-            },
-        )
-        .await
 }
 
 async fn parse_file_cli(file_path: String) -> anyhow::Result<()> {
     let file = tokio::fs::read_to_string(file_path).await?;
 
-    let client = build_client();
+    let scraper = Scraper::new();
 
     let url = {
         let dom = tl::parse(&file, tl::ParserOptions::default())?;
@@ -281,12 +237,13 @@ async fn parse_file_cli(file_path: String) -> anyhow::Result<()> {
     };
 
     println!("URL: {}", &url);
-    println!("{:?}", scrap_url(&client, url, &file).await);
+    println!("{:?}", scraper.scrap_url(url, &file).await);
     Ok(())
 }
 
 async fn get_url_list_cli(supermercado: Supermercado) -> anyhow::Result<()> {
-    let urls = get_urls(&supermercado).await?;
+    let scraper = Scraper::new();
+    let urls = scraper.get_urls_for_supermercado(&supermercado).await?;
     urls.iter().for_each(|s| {
         println!("{}", s);
     });
@@ -294,135 +251,10 @@ async fn get_url_list_cli(supermercado: Supermercado) -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn get_urls(supermercado: &Supermercado) -> Result<Vec<String>, anyhow::Error> {
-    Ok(match supermercado {
-        Supermercado::Dia => sites::dia::get_urls().await?,
-        Supermercado::Jumbo => sites::jumbo::get_urls().await?,
-        Supermercado::Carrefour => sites::carrefour::get_urls().await?,
-        Supermercado::Coto => sites::coto::get_urls().await?,
-        Supermercado::Farmacity => sites::farmacity::get_urls().await?,
-    })
-}
-
-async fn scrap_url(
-    client: &reqwest::Client,
-    url: String,
-    body: &str,
-) -> anyhow::Result<PrecioPoint> {
-    let url_p = Url::parse(&url).unwrap();
-    match url_p.host_str().unwrap() {
-        "www.carrefour.com.ar" => {
-            sites::carrefour::parse(url, &tl::parse(body, tl::ParserOptions::default())?)
-        }
-        "diaonline.supermercadosdia.com.ar" => {
-            sites::dia::parse(url, &tl::parse(body, tl::ParserOptions::default())?)
-        }
-        "www.cotodigital3.com.ar" => {
-            sites::coto::parse(url, &tl::parse(body, tl::ParserOptions::default())?)
-        }
-        "www.jumbo.com.ar" => sites::jumbo::scrap(client, url, body).await,
-        "www.farmacity.com" => {
-            sites::farmacity::parse(url, &tl::parse(body, tl::ParserOptions::default())?)
-        }
-        s => bail!("Unknown host {}", s),
-    }
-}
-
 #[derive(Clone)]
 struct AutoTelegram {
     token: String,
     chat_id: String,
-}
-
-#[derive(Clone)]
-struct Auto {
-    db: Db,
-    telegram: Option<AutoTelegram>,
-    args: AutoArgs,
-}
-impl Auto {
-    async fn download_supermercado(self, supermercado: Supermercado) -> anyhow::Result<()> {
-        {
-            let t0 = now_sec();
-            match self.get_and_save_urls(&supermercado).await {
-                Ok(_) => {
-                    self.inform(&format!(
-                        "Downloaded url list {:?} (took {})",
-                        &supermercado,
-                        now_sec() - t0
-                    ))
-                    .await
-                }
-                Err(err) => {
-                    self.inform(&format!(
-                        "[{:?}] FAILED url list: {:?} (took {})",
-                        &supermercado,
-                        err,
-                        now_sec() - t0
-                    ))
-                    .await
-                }
-            }
-        }
-        let links: Vec<String> = {
-            let mut links = self.db.get_urls_by_domain(supermercado.host()).await?;
-            if let Some(n) = self.args.n_products {
-                links.truncate(n);
-            }
-            links
-        };
-        // {
-        //     let debug_path = PathBuf::from("debug/");
-        //     tokio::fs::create_dir_all(&debug_path).await.unwrap();
-        //     let file_path = debug_path.join(format!("{}.txt", nanoid!()));
-        //     tokio::fs::write(&file_path, &links.join("\n"))
-        //         .await
-        //         .unwrap();
-        //     tracing::info!("Lista de {:?}: {:?}", &supermercado, file_path.display());
-        // }
-        {
-            let t0 = now_sec();
-            let counters = fetch_list(&self.db, links).await;
-            self.inform(&format!(
-                "Downloaded {:?}: {:?} (took {})",
-                &supermercado,
-                counters,
-                now_sec() - t0
-            ))
-            .await;
-        }
-
-        Ok(())
-    }
-
-    async fn inform_time<T: Future<Output = R>, R>(&self, msg: &str, action: T) -> R {
-        let t0 = now_sec();
-        let res = action.await;
-        self.inform(&format!("{} (took {})", msg, now_sec() - t0))
-            .await;
-        res
-    }
-
-    async fn get_and_save_urls(&self, supermercado: &Supermercado) -> anyhow::Result<()> {
-        let urls = get_urls(supermercado).await?;
-        self.db.save_producto_urls(urls).await?;
-        Ok(())
-    }
-
-    async fn inform(&self, msg: &str) {
-        tracing::info!("{}", msg);
-        if let Some(telegram) = &self.telegram {
-            let u = Url::parse_with_params(
-                &format!("https://api.telegram.org/bot{}/sendMessage", telegram.token),
-                &[
-                    ("chat_id", telegram.chat_id.clone()),
-                    ("text", msg.to_string()),
-                ],
-            )
-            .unwrap();
-            reqwest::get(u).await.unwrap();
-        }
-    }
 }
 
 async fn auto_cli(args: AutoArgs) -> anyhow::Result<()> {
@@ -440,7 +272,12 @@ async fn auto_cli(args: AutoArgs) -> anyhow::Result<()> {
                 }
             }
         };
-        Auto { db, telegram, args }
+        Auto {
+            db,
+            telegram,
+            args,
+            scraper: Scraper::new(),
+        }
     };
     auto.inform("[auto] Empezando scrap").await;
 
