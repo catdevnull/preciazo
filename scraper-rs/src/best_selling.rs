@@ -3,8 +3,9 @@ use std::collections::HashMap;
 use crate::{build_client, db::Db, sites::vtex, supermercado::Supermercado};
 use chrono::{DateTime, Utc};
 use clap::ValueEnum;
-use futures::{stream, FutureExt, StreamExt, TryStreamExt};
+use futures::{stream, FutureExt, StreamExt};
 use itertools::Itertools;
+use simple_error::SimpleError;
 use tracing::warn;
 
 #[derive(ValueEnum, Clone, Debug)]
@@ -77,10 +78,6 @@ async fn try_get_best_selling_eans(
     }
 }
 
-async fn noop<T>(t: T) -> anyhow::Result<T> {
-    Ok(t)
-}
-
 fn rank_eans(eans: Vec<Vec<String>>) -> Vec<String> {
     let mut map: HashMap<String, usize> = HashMap::new();
     for eans in eans {
@@ -98,34 +95,45 @@ fn rank_eans(eans: Vec<Vec<String>>) -> Vec<String> {
 
 pub async fn get_all_best_selling(db: &Db) -> anyhow::Result<Vec<BestSellingRecord>> {
     let client = &build_client();
-
-    stream::iter(Category::value_variants())
+    let records = stream::iter(Category::value_variants())
         .map(|category| {
             stream::iter(Supermercado::value_variants())
                 .map(|supermercado| {
-                    let db = db.clone();
-                    let client = client.clone();
                     tokio::spawn(try_get_best_selling_eans(
-                        client,
-                        db,
+                        client.clone(),
+                        db.clone(),
                         supermercado,
                         category,
                     ))
                 })
                 .buffer_unordered(5)
                 .map(|f| f.unwrap())
-                .try_filter_map(noop)
-                .try_collect::<Vec<Vec<String>>>()
+                .filter_map(|r| async {
+                    match r {
+                        Err(err) => {
+                            tracing::error!("Error getting best selling: {}", err);
+                            None
+                        }
+                        Ok(v) => v,
+                    }
+                })
+                .collect::<Vec<Vec<String>>>()
                 .map(|r| {
-                    r.map(rank_eans).map(|eans| BestSellingRecord {
+                    let ranked = rank_eans(r);
+                    BestSellingRecord {
                         fetched_at: Utc::now(),
                         category: category.clone(),
-                        eans,
-                    })
+                        eans: ranked,
+                    }
                 })
         })
         .buffer_unordered(5)
         .boxed()
-        .try_collect()
-        .await
+        .collect::<Vec<BestSellingRecord>>()
+        .await;
+    if records.len() < 10 {
+        Err(SimpleError::new("Too few BestSellingRecords").into())
+    } else {
+        Ok(records)
+    }
 }

@@ -225,19 +225,30 @@ pub async fn get_best_selling_by_category(
         url
     };
     let body = fetch_body(client, url.as_str()).await?;
-    let urls: Vec<String> = serde_json::from_str::<serde_json::Value>(&body)?
+    tracing::debug!("best selling body: {}", body);
+    let json = &serde_json::from_str::<serde_json::Value>(&body)?;
+    if let Some(errors_array) = json.pointer("/errors") {
+        if let Some(error_messages) = errors_array.as_array().map(|a| {
+            a.into_iter()
+                .map(|obj| obj.get("message").and_then(|v| v.as_str()))
+                .collect_vec()
+        }) {
+            bail!("Errors from API: {:?}", error_messages);
+        } else {
+            bail!("Unknown error from API")
+        }
+    }
+    let urls: Vec<String> = json
         .pointer("/data/productSearch/products")
         .and_then(|v| v.as_array())
-        .map(|a| {
-            a.iter()
-                .filter_map(|p| {
-                    p.get("link")
-                        .and_then(|v| v.as_str())
-                        .map(|s| format!("https://{}{}", domain, s))
-                })
-                .collect()
+        .ok_or(SimpleError::new("failed to get best selling product urls"))?
+        .iter()
+        .filter_map(|p| {
+            p.get("link")
+                .and_then(|v| v.as_str())
+                .map(|s| format!("https://{}{}", domain, s))
         })
-        .ok_or(SimpleError::new("failed to get best selling product urls"))?;
+        .collect();
 
     if urls.len() < 2 {
         bail!("Too few best selling");
