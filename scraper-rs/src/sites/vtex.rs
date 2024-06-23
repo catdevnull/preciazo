@@ -81,8 +81,8 @@ pub struct OffersLd {
 pub struct OfferLd {
     #[serde(rename = "@type")]
     _type: OfferTypeLd,
-    pub price: f64,
-    pub price_currency: String,
+    // pub price: f64,
+    // pub price_currency: String,
     pub availability: AvailabilityLd,
 }
 #[derive(Deserialize)]
