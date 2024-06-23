@@ -35,5 +35,3 @@ tl = { git = "https://github.com/evertedsphere/tl", branch = "patch-1" }
 tokio = { version = "1.35.1", features = ["full"] }
 tracing = "0.1"
 tracing-subscriber = "0.3"
-proxy-scraper-checker = { git = "https://github.com/catdevnull/Proxy-Scraper-Checker", rev = "429ca83d137abdf5377a1d22ee85d62bfb00437c" }
-indicatif = "0.17.8"

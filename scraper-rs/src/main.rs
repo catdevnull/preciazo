@@ -2,7 +2,7 @@ use again::RetryPolicy;
 use clap::{Parser, ValueEnum};
 use cron::Schedule;
 use db::Db;
-use futures::{future, stream, StreamExt, TryFutureExt};
+use futures::{future, TryFutureExt};
 
 use reqwest::{header::HeaderMap, IntoUrl, StatusCode};
 use scraper::Scraper;
@@ -58,7 +58,7 @@ struct AutoArgs {
 }
 
 #[tokio::main]
-async fn main() -> anyhow::Result<()> {
+async fn main() -> () {
     tracing_subscriber::fmt::init();
 
     match Args::parse() {
@@ -70,11 +70,12 @@ async fn main() -> anyhow::Result<()> {
         Args::Auto(a) => auto_cli(a).await,
         Args::Cron(_) => cron_cli().await,
     }
+    .unwrap()
 }
 
 async fn scrap_url_cli(url: String) -> anyhow::Result<()> {
-    let scraper = Scraper::new();
-    let res = scraper.fetch_and_parse(url.clone()).await;
+    let scraper = Scraper::from_env().await?;
+    let res = scraper.fetch_and_scrap(url.clone()).await;
 
     println!("Result: {:#?}", res);
     res.map(|_| ())
@@ -98,35 +99,11 @@ async fn fetch_list_cli(links_list_path: String) -> anyhow::Result<()> {
         .collect::<Vec<_>>();
 
     let db = Db::connect().await?;
-    let counters = fetch_list(&db, links).await;
+    let scraper = Scraper::from_env().await?;
+    let counters = scraper.fetch_list(&db, links).await;
 
     println!("Finished: {:?}", counters);
     Ok(())
-}
-
-async fn fetch_list(db: &Db, links: Vec<String>) -> Counters {
-    let n_coroutines = env::var("N_COROUTINES")
-        .map_or(Ok(24), |s| s.parse::<usize>())
-        .expect("N_COROUTINES no es un número");
-
-    let scraper = Scraper::new();
-
-    stream::iter(links)
-        .map(|url| {
-            let db = db.clone();
-            let scraper = scraper.clone();
-            tokio::spawn(fetch_and_save(scraper, url, db))
-        })
-        .buffer_unordered(n_coroutines)
-        .fold(Counters::default(), move |x, y| {
-            let ret = y.unwrap();
-            future::ready(Counters {
-                success: x.success + ret.success,
-                errored: x.errored + ret.errored,
-                skipped: x.skipped + ret.skipped,
-            })
-        })
-        .await
 }
 
 mod db;
@@ -136,29 +113,6 @@ struct Counters {
     success: u64,
     errored: u64,
     skipped: u64,
-}
-
-async fn fetch_and_save(scraper: Scraper, url: String, db: Db) -> Counters {
-    let res = scraper.fetch_and_parse(url.clone()).await;
-    let mut counters = Counters::default();
-    match res {
-        Ok(res) => {
-            counters.success += 1;
-            db.insert_precio(res).await.unwrap();
-        }
-        Err(err) => {
-            match err.downcast_ref::<reqwest::Error>() {
-                Some(e) => match e.status() {
-                    Some(StatusCode::NOT_FOUND) => counters.skipped += 1,
-                    _ => counters.errored += 1,
-                },
-                _ => counters.errored += 1,
-            }
-
-            tracing::error!(error=%err, url=url);
-        }
-    }
-    counters
 }
 
 #[derive(Debug, Error)]
@@ -222,7 +176,7 @@ pub fn anyhow_retry_if_wasnt_not_found(err: &anyhow::Error) -> bool {
 async fn parse_file_cli(file_path: String) -> anyhow::Result<()> {
     let file = tokio::fs::read_to_string(file_path).await?;
 
-    let scraper = Scraper::new();
+    let scraper = Scraper::from_env().await?;
 
     let url = {
         let dom = tl::parse(&file, tl::ParserOptions::default())?;
@@ -242,7 +196,7 @@ async fn parse_file_cli(file_path: String) -> anyhow::Result<()> {
 }
 
 async fn get_url_list_cli(supermercado: Supermercado) -> anyhow::Result<()> {
-    let scraper = Scraper::new();
+    let scraper = Scraper::from_env().await?;
     let urls = scraper.get_urls_for_supermercado(&supermercado).await?;
     urls.iter().for_each(|s| {
         println!("{}", s);
@@ -276,7 +230,7 @@ async fn auto_cli(args: AutoArgs) -> anyhow::Result<()> {
             db,
             telegram,
             args,
-            scraper: Scraper::new(),
+            scraper: Scraper::from_env().await?,
         }
     };
     auto.inform("[auto] Empezando scrap").await;
@@ -289,7 +243,7 @@ async fn auto_cli(args: AutoArgs) -> anyhow::Result<()> {
     let handles: Vec<_> = supermercados
         .iter()
         .map(|s| {
-            let x = s.clone();
+            let x = *s;
             tokio::spawn(
                 auto.clone()
                     .download_supermercado(s.to_owned())

@@ -1,4 +1,3 @@
-use super::fetch_list;
 use super::now_sec;
 use super::supermercado::Supermercado;
 use super::AutoArgs;
@@ -58,7 +57,7 @@ impl Auto {
         // }
         {
             let t0 = now_sec();
-            let counters = fetch_list(&self.db, links).await;
+            let counters = self.scraper.fetch_list(&self.db, links).await;
             self.inform(&format!(
                 "Downloaded {:?}: {:?} (took {})",
                 &supermercado,

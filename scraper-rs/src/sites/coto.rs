@@ -1,12 +1,10 @@
-use again::Task;
 use anyhow::{anyhow, Context};
-use futures::{stream, StreamExt, TryFutureExt, TryStreamExt};
+use futures::{stream, StreamExt, TryStreamExt};
 use itertools::Itertools;
 use reqwest::Url;
 
 use crate::{
-    anyhow_retry_if_wasnt_not_found, get_fetch_retry_policy, proxy_client::ProxyClient,
-    retry_if_wasnt_not_found, PrecioPoint,
+    anyhow_retry_if_wasnt_not_found, get_fetch_retry_policy, proxy_client::ProxyClient, PrecioPoint,
 };
 
 pub fn parse(url: String, dom: &tl::VDom) -> Result<PrecioPoint, anyhow::Error> {
@@ -83,7 +81,7 @@ pub fn parse(url: String, dom: &tl::VDom) -> Result<PrecioPoint, anyhow::Error> 
 pub async fn get_urls(proxy_client: &ProxyClient) -> anyhow::Result<Vec<String>> {
     let initial = Url::parse("https://www.cotodigital3.com.ar/sitios/cdigi/browse?Nf=product.endDate%7CGTEQ+1.7032032E12%7C%7Cproduct.startDate%7CLTEQ+1.7032032E12&Nr=AND%28product.sDisp_200%3A1004%2Cproduct.language%3Aespa%C3%B1ol%2COR%28product.siteId%3ACotoDigital%29%29")?;
 
-    let page_size = 50;
+    let page_size = 100;
     let handles: Vec<Vec<String>> = stream::iter(0..29000 / page_size)
         .map(|i| {
             let mut u = initial.clone();
@@ -136,6 +134,7 @@ pub async fn get_urls(proxy_client: &ProxyClient) -> anyhow::Result<Vec<String>>
                             })
                     })
                     .try_collect()?;
+                tracing::debug!("got {} products", list.len());
                 Ok::<Vec<String>, anyhow::Error>(list)
             }
         })

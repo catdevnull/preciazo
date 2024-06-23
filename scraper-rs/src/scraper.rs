@@ -1,25 +1,38 @@
-use std::sync::Arc;
+use std::env;
 
-use reqwest::Url;
+use futures::{future, stream, StreamExt};
+use reqwest::{StatusCode, Url};
 use simple_error::bail;
+use tokio::fs;
 
 use crate::{
-    anyhow_retry_if_wasnt_not_found, build_client, get_fetch_retry_policy, get_parse_retry_policy,
-    proxy_client::ProxyClient, sites, supermercado::Supermercado, PrecioPoint,
+    anyhow_retry_if_wasnt_not_found, build_client, db::Db, get_fetch_retry_policy,
+    get_parse_retry_policy, proxy_client::ProxyClient, sites, supermercado::Supermercado, Counters,
+    PrecioPoint,
 };
 
 #[derive(Debug, Clone)]
 pub struct Scraper {
     default_client: reqwest::Client,
-    proxy_client: Arc<ProxyClient>,
+    proxy_client: ProxyClient,
 }
 
 impl Scraper {
-    pub fn new() -> Self {
-        Self {
+    pub async fn from_env() -> anyhow::Result<Self> {
+        let proxy_list = match env::var("PROXY_LIST") {
+            Ok(list) => list,
+            Err(_) => match env::var("PROXY_LIST_PATH") {
+                Ok(path) => fs::read_to_string(path).await?,
+                Err(_) => "".to_owned(),
+            },
+        };
+        Self::build(&proxy_list)
+    }
+    pub fn build(proxy_list: &str) -> anyhow::Result<Self> {
+        Ok(Self {
             default_client: build_client(),
-            proxy_client: ProxyClient::default().into(),
-        }
+            proxy_client: ProxyClient::from_proxy_list(proxy_list)?,
+        })
     }
 
     pub async fn get_urls_for_supermercado(
@@ -36,7 +49,7 @@ impl Scraper {
     }
 
     #[tracing::instrument(skip(self))]
-    pub async fn fetch_and_parse(&self, url: String) -> Result<PrecioPoint, anyhow::Error> {
+    pub async fn fetch_and_scrap(&self, url: String) -> Result<PrecioPoint, anyhow::Error> {
         async fn fetch_and_scrap(
             scraper: &Scraper,
             url: String,
@@ -90,6 +103,52 @@ impl Scraper {
                 .error_for_status()?,
         };
         Ok(res.text().await?)
+    }
+
+    pub async fn fetch_and_save(&self, url: String, db: Db) -> Counters {
+        let res = self.fetch_and_scrap(url.clone()).await;
+        let mut counters = Counters::default();
+        match res {
+            Ok(res) => {
+                counters.success += 1;
+                db.insert_precio(res).await.unwrap();
+            }
+            Err(err) => {
+                match err.downcast_ref::<reqwest::Error>() {
+                    Some(e) => match e.status() {
+                        Some(StatusCode::NOT_FOUND) => counters.skipped += 1,
+                        _ => counters.errored += 1,
+                    },
+                    _ => counters.errored += 1,
+                }
+
+                tracing::error!(error=%err, url=url);
+            }
+        }
+        counters
+    }
+
+    pub async fn fetch_list(&self, db: &Db, links: Vec<String>) -> Counters {
+        let n_coroutines = env::var("N_COROUTINES")
+            .map_or(Ok(24), |s| s.parse::<usize>())
+            .expect("N_COROUTINES no es un número");
+
+        stream::iter(links)
+            .map(|url| {
+                let db = db.clone();
+                let scraper = self.clone();
+                tokio::spawn(async move { scraper.fetch_and_save(url, db).await })
+            })
+            .buffer_unordered(n_coroutines)
+            .fold(Counters::default(), move |x, y| {
+                let ret = y.unwrap();
+                future::ready(Counters {
+                    success: x.success + ret.success,
+                    errored: x.errored + ret.errored,
+                    skipped: x.skipped + ret.skipped,
+                })
+            })
+            .await
     }
 
     pub async fn scrap_url(&self, url: String, res_body: &str) -> anyhow::Result<PrecioPoint> {
