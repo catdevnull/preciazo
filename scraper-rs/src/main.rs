@@ -256,13 +256,7 @@ async fn auto_cli(args: AutoArgs) -> anyhow::Result<()> {
     future::try_join_all(handles).await?;
     auto.inform("[auto] Download supermercados finished").await;
 
-    let best_selling = auto
-        .inform_time(
-            "Downloaded best selling",
-            best_selling::get_all_best_selling(&auto.db),
-        )
-        .await?;
-    auto.db.save_best_selling(best_selling).await?;
+    auto.download_best_selling().await?;
 
     Ok(())
 }

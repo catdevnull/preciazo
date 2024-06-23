@@ -2,6 +2,7 @@ use super::now_sec;
 use super::supermercado::Supermercado;
 use super::AutoArgs;
 use super::AutoTelegram;
+use crate::best_selling;
 use crate::db::Db;
 use crate::scraper::Scraper;
 use futures::Future;
@@ -67,6 +68,27 @@ impl Auto {
             .await;
         }
 
+        Ok(())
+    }
+
+    pub async fn download_best_selling(&self) -> anyhow::Result<()> {
+        // let best_selling: Vec<best_selling::BestSellingRecord> =
+
+        match self
+            .inform_time(
+                "Downloaded best selling",
+                best_selling::get_all_best_selling(&self.db),
+            )
+            .await
+        {
+            Ok(best_selling) => {
+                self.db.save_best_selling(best_selling).await?;
+            }
+            Err(err) => {
+                self.inform(&format!("FAILED best selling: {:?}", err))
+                    .await
+            }
+        }
         Ok(())
     }
 
