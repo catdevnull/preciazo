@@ -120,18 +120,22 @@ pub async fn get_all_best_selling(db: &Db) -> anyhow::Result<Vec<BestSellingReco
                 .collect::<Vec<Vec<String>>>()
                 .map(|r| {
                     let ranked = rank_eans(r);
-                    BestSellingRecord {
+                    if ranked.is_empty() {
+                        return None;
+                    }
+                    Some(BestSellingRecord {
                         fetched_at: Utc::now(),
                         category: category.clone(),
                         eans: ranked,
-                    }
+                    })
                 })
         })
         .buffer_unordered(5)
         .boxed()
+        .filter_map(|f| async { f })
         .collect::<Vec<BestSellingRecord>>()
         .await;
-    if records.len() < 10 {
+    if records.len() < Category::value_variants().len() {
         Err(SimpleError::new("Too few BestSellingRecords").into())
     } else {
         Ok(records)
