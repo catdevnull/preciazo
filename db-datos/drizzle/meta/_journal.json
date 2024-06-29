@@ -85,6 +85,13 @@
       "when": 1706628184254,
       "tag": "0011_huge_next_avengers",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "5",
+      "when": 1719680946811,
+      "tag": "0012_hard_red_wolf",
+      "breakpoints": true
     }
   ]
 }

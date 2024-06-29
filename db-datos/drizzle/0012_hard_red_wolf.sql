@@ -1,0 +1,1 @@
+CREATE INDEX `precios_fetched_at_idx` ON `precios` (`fetched_at`);
