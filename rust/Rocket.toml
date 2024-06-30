@@ -1,3 +1,0 @@
-[default.databases.precios]
-url = "../sqlite.db"
-

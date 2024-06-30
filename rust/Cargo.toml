@@ -37,10 +37,6 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 axum = "0.7.5"
 
-#[dependencies.rocket_db_pools]
-#version = "0.2.0"
-#features = ["sqlx_sqlite"]
-
 [[bin]]
 name = "api"
 path = "src/api/main.rs"
