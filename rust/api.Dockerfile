@@ -3,10 +3,11 @@ WORKDIR /usr/src/app
 RUN apk add --no-cache libgcc
 
 FROM docker.io/rust:1 AS rs-build
-# RUN apt-get update && apt-get install -y openssl-dev libsqlite3-dev && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y openssl-dev libsqlite3-dev sqlite3 && rm -rf /var/lib/apt/lists/*
 WORKDIR /usr/src/app
 
 COPY . .
+RUN sqlite ../sqlite.db ''
 RUN --mount=type=cache,sharing=locked,target=/root/.cargo/git \
     --mount=type=cache,sharing=locked,target=/root/.cargo/registry \
     --mount=type=cache,sharing=locked,target=/usr/src/app/target \
