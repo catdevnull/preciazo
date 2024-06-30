@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install -y libsqlite3-dev sqlite3 && rm -rf /var/l
 WORKDIR /usr/src/app
 
 COPY . .
-RUN sqlite ../sqlite.db ''
+RUN sqlite3 ../sqlite.db ''
 RUN --mount=type=cache,sharing=locked,target=/root/.cargo/git \
     --mount=type=cache,sharing=locked,target=/root/.cargo/registry \
     --mount=type=cache,sharing=locked,target=/usr/src/app/target \
