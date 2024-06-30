@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT count(id) as count FROM db_best_selling\n                    WHERE fetched_at > ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "count",
+        "ordinal": 0,
+        "type_info": "Int"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "e683ce875cc7e84586de163cdfd8d0bca2a1e679aebce4644fe0b31d639a1be4"
+}

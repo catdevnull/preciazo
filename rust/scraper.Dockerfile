@@ -10,14 +10,14 @@ COPY . .
 RUN --mount=type=cache,sharing=locked,target=/root/.cargo/git \
     --mount=type=cache,sharing=locked,target=/root/.cargo/registry \
     --mount=type=cache,sharing=locked,target=/usr/src/app/target \
-	cargo install --locked --path .
+    cargo install --bin scraper --locked --path .
 
 FROM base
 RUN apk add --no-cache sqlite sqlite-libs
 
 # Scraper
-COPY --from=rs-build /usr/local/cargo/bin/scraper-rs /usr/local/bin/scraper-rs
+COPY --from=rs-build /usr/local/cargo/bin/scraper /usr/local/bin/scraper
 
 ENV DB_PATH=/db/db.db
 
-CMD ["scraper-rs", "cron"]
+CMD ["scraper", "cron"]

@@ -15,8 +15,7 @@ use std::{
 };
 use thiserror::Error;
 
-mod supermercado;
-use supermercado::Supermercado;
+use preciazo::supermercado::Supermercado;
 mod auto;
 use auto::Auto;
 mod proxy_client;
@@ -58,7 +57,7 @@ struct AutoArgs {
 }
 
 #[tokio::main]
-async fn main() -> () {
+async fn main() {
     tracing_subscriber::fmt::init();
 
     match Args::parse() {

@@ -7,9 +7,9 @@ use tokio::fs;
 
 use crate::{
     anyhow_retry_if_wasnt_not_found, build_client, db::Db, get_fetch_retry_policy,
-    get_parse_retry_policy, proxy_client::ProxyClient, sites, supermercado::Supermercado, Counters,
-    PrecioPoint,
+    get_parse_retry_policy, proxy_client::ProxyClient, sites, Counters, PrecioPoint,
 };
+use preciazo::supermercado::Supermercado;
 
 #[derive(Debug, Clone)]
 pub struct Scraper {

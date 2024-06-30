@@ -1,11 +1,11 @@
 use super::now_sec;
-use super::supermercado::Supermercado;
 use super::AutoArgs;
 use super::AutoTelegram;
 use crate::best_selling;
 use crate::db::Db;
 use crate::scraper::Scraper;
 use futures::Future;
+use preciazo::supermercado::Supermercado;
 use reqwest::Url;
 
 #[derive(Clone)]

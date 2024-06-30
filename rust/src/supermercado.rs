@@ -1,7 +1,7 @@
 use clap::ValueEnum;
 use reqwest::Url;
 
-const SUPERMERCADOS_HOSTS: [(Supermercado, &'static str); 5] = [
+const SUPERMERCADOS_HOSTS: [(Supermercado, &str); 5] = [
     (Supermercado::Dia, "diaonline.supermercadosdia.com.ar"),
     (Supermercado::Carrefour, "www.carrefour.com.ar"),
     (Supermercado::Coto, "www.cotodigital3.com.ar"),

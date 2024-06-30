@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 
-use crate::{build_client, db::Db, sites::vtex, supermercado::Supermercado};
+use crate::{build_client, db::Db, sites::vtex};
 use chrono::{DateTime, Utc};
 use clap::ValueEnum;
 use futures::{stream, FutureExt, StreamExt};
 use itertools::Itertools;
+use preciazo::supermercado::Supermercado;
 use simple_error::SimpleError;
 use tracing::warn;
 

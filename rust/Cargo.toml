@@ -1,5 +1,5 @@
 [package]
-name = "scraper-rs"
+name = "preciazo"
 version = "0.1.0"
 edition = "2021"
 
@@ -9,10 +9,10 @@ edition = "2021"
 again = "0.1.2"
 anyhow = "1.0.79"
 base64 = "0.21.7"
-chrono = "0.4.32"
+chrono = "0.4"
 clap = { version = "4.4.15", features = ["derive"] }
 cron = "0.12.0"
-sqlx = { version = "0.7", features = [ "runtime-tokio", "sqlite" ] }
+sqlx = { version = "0.7", features = [ "runtime-tokio", "sqlite", "chrono" ] }
 futures = "0.3.30"
 html-escape = "0.2.13"
 itertools = "0.12.0"
@@ -27,11 +27,24 @@ reqwest = { version = "0.12", default-features = false, features = [
     "json",
 ] }
 rusqlite = "0.30.0"
-serde = { version = "1.0.193", features = ["derive"] }
+serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.109"
 simple-error = "0.3.0"
 thiserror = "1.0.56"
-tl = { git = "https://github.com/evertedsphere/tl", branch = "patch-1" }
-tokio = { version = "1.35.1", features = ["full"] }
+tl = "0.7.8"
+tokio = { version = "1.35", features = ["full"] }
 tracing = "0.1"
-tracing-subscriber = "0.3"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+axum = "0.7.5"
+
+#[dependencies.rocket_db_pools]
+#version = "0.2.0"
+#features = ["sqlx_sqlite"]
+
+[[bin]]
+name = "api"
+path = "src/api/main.rs"
+
+[[bin]]
+name = "scraper"
+path = "src/scraper/main.rs"

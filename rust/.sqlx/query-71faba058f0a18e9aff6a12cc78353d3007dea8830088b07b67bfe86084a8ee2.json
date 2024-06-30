@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT count(id) as count FROM precios\n                    WHERE fetched_at > ?\n                        AND url LIKE ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "count",
+        "ordinal": 0,
+        "type_info": "Int"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "71faba058f0a18e9aff6a12cc78353d3007dea8830088b07b67bfe86084a8ee2"
+}

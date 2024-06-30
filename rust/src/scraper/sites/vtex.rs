@@ -229,7 +229,7 @@ pub async fn get_best_selling_by_category(
     let json = &serde_json::from_str::<serde_json::Value>(&body)?;
     if let Some(errors_array) = json.pointer("/errors") {
         if let Some(error_messages) = errors_array.as_array().map(|a| {
-            a.into_iter()
+            a.iter()
                 .map(|obj| obj.get("message").and_then(|v| v.as_str()))
                 .collect_vec()
         }) {
