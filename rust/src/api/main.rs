@@ -107,9 +107,11 @@ async fn main() {
             ))
             .unwrap()
             .journal_mode(sqlx::sqlite::SqliteJournalMode::Wal)
+            .pragma("journal_size_limit", "67108864")
+            .pragma("mmap_size", "134217728")
             .synchronous(sqlx::sqlite::SqliteSynchronous::Normal)
             .busy_timeout(Duration::from_secs(15))
-            .pragma("cache_size", "1000000000")
+            .pragma("cache_size", "2000")
             .optimize_on_close(true, None),
         )
         .await

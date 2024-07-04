@@ -22,10 +22,13 @@ impl Db {
             .max_connections(1)
             .connect_with(
                 SqliteConnectOptions::from_str(&format!("sqlite://{}", db_path))?
+                    // https://fractaledmind.github.io/2023/09/07/enhancing-rails-sqlite-fine-tuning/
                     .journal_mode(sqlx::sqlite::SqliteJournalMode::Wal)
+                    .pragma("journal_size_limit", "67108864")
+                    .pragma("mmap_size", "134217728")
                     .synchronous(sqlx::sqlite::SqliteSynchronous::Normal)
                     .busy_timeout(Duration::from_secs(15))
-                    .pragma("cache_size", "1000000000")
+                    .pragma("cache_size", "2000")
                     .pragma("temp_store", "memory")
                     .optimize_on_close(true, None),
             )
