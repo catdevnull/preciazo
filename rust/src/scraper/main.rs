@@ -163,7 +163,8 @@ pub fn get_parse_retry_policy() -> again::RetryPolicy {
 }
 
 pub fn retry_if_wasnt_not_found(err: &reqwest::Error) -> bool {
-    !err.status().is_some_and(|s| s == StatusCode::NOT_FOUND)
+    !err.status()
+        .is_some_and(|s| s == StatusCode::NOT_FOUND || s == StatusCode::FORBIDDEN)
 }
 pub fn anyhow_retry_if_wasnt_not_found(err: &anyhow::Error) -> bool {
     match err.downcast_ref::<reqwest::Error>() {
