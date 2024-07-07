@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT url FROM producto_urls WHERE url LIKE ?1;",
+  "query": "SELECT url FROM producto_urls WHERE url LIKE ?1 AND last_seen > ?2;",
   "describe": {
     "columns": [
       {
@@ -10,11 +10,11 @@
       }
     ],
     "parameters": {
-      "Right": 1
+      "Right": 2
     },
     "nullable": [
       false
     ]
   },
-  "hash": "aa5c2a04aec149d88f6e25a9bd7df4e257f3c9b0efa62c8342d077d69d826a69"
+  "hash": "8dac7e96d5dab0d6f48c5fa7d4844e9d4f9b3bf38e55cb56e3941bb8fbf0a9ff"
 }
