@@ -41,7 +41,10 @@ impl Auto {
             }
         }
         let links: Vec<String> = {
-            let mut links = self.db.get_urls_by_domain(supermercado.host()).await?;
+            let mut links = self
+                .db
+                .get_recent_urls_by_domain(supermercado.host())
+                .await?;
             if let Some(n) = self.args.n_products {
                 links.truncate(n);
             }

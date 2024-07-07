@@ -49,16 +49,21 @@ impl Db {
             .map(|r| r.ean))
     }
 
-    pub async fn get_urls_by_domain(&self, domain: &str) -> anyhow::Result<Vec<String>> {
+    pub async fn get_recent_urls_by_domain(&self, domain: &str) -> anyhow::Result<Vec<String>> {
         let query = format!("%{}%", domain);
-        Ok(
-            sqlx::query!("SELECT url FROM producto_urls WHERE url LIKE ?1;", query)
-                .fetch_all(&self.read_pool)
-                .await?
-                .into_iter()
-                .map(|r| r.url)
-                .collect(),
+        let last_60_days: i64 = (now() - Duration::from_secs(60 * 60 * 24 * 60))
+            .as_millis()
+            .try_into()?;
+        Ok(sqlx::query!(
+            "SELECT url FROM producto_urls WHERE url LIKE ?1 AND last_seen > ?2;",
+            query,
+            last_60_days
         )
+        .fetch_all(&self.read_pool)
+        .await?
+        .into_iter()
+        .map(|r| r.url)
+        .collect())
     }
 
     pub async fn save_producto_urls(&self, urls: Vec<String>) -> anyhow::Result<()> {
@@ -122,8 +127,11 @@ async fn connect_to_db(
 }
 
 fn now_ms() -> u128 {
+    now().as_millis()
+}
+
+fn now() -> Duration {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .expect("Time went backwards")
-        .as_millis()
 }
