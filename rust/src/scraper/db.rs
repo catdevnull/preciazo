@@ -11,29 +11,20 @@ use crate::{best_selling::BestSellingRecord, PrecioPoint};
 
 #[derive(Clone)]
 pub struct Db {
-    pool: SqlitePool,
+    read_pool: SqlitePool,
+    write_pool: SqlitePool,
 }
 
 impl Db {
     pub async fn connect() -> anyhow::Result<Self> {
         let db_path = env::var("DB_PATH").unwrap_or("../sqlite.db".to_string());
         info!("Opening DB at {}", db_path);
-        let pool = sqlx::pool::PoolOptions::new()
-            .max_connections(1)
-            .connect_with(
-                SqliteConnectOptions::from_str(&format!("sqlite://{}", db_path))?
-                    // https://fractaledmind.github.io/2023/09/07/enhancing-rails-sqlite-fine-tuning/
-                    .journal_mode(sqlx::sqlite::SqliteJournalMode::Wal)
-                    .pragma("journal_size_limit", "67108864")
-                    .pragma("mmap_size", "134217728")
-                    .synchronous(sqlx::sqlite::SqliteSynchronous::Normal)
-                    .busy_timeout(Duration::from_secs(15))
-                    .pragma("cache_size", "2000")
-                    .pragma("temp_store", "memory")
-                    .optimize_on_close(true, None),
-            )
-            .await?;
-        Ok(Self { pool })
+        let read_pool = connect_to_db(&db_path, 32).await?;
+        let write_pool = connect_to_db(&db_path, 1).await?;
+        Ok(Self {
+            read_pool,
+            write_pool,
+        })
     }
 
     pub async fn insert_precio(&self, point: PrecioPoint) -> anyhow::Result<()> {
@@ -47,13 +38,13 @@ impl Db {
             point.parser_version,
             point.name,
             point.image_url,
-        ).execute(&self.pool).await?;
+        ).execute(&self.write_pool).await?;
         Ok(())
     }
 
     pub async fn get_ean_by_url(&self, url: &str) -> anyhow::Result<Option<String>> {
         Ok(sqlx::query!("SELECT ean FROM precios WHERE url = ?1;", url)
-            .fetch_optional(&self.pool)
+            .fetch_optional(&self.read_pool)
             .await?
             .map(|r| r.ean))
     }
@@ -62,7 +53,7 @@ impl Db {
         let query = format!("%{}%", domain);
         Ok(
             sqlx::query!("SELECT url FROM producto_urls WHERE url LIKE ?1;", query)
-                .fetch_all(&self.pool)
+                .fetch_all(&self.read_pool)
                 .await?
                 .into_iter()
                 .map(|r| r.url)
@@ -72,7 +63,7 @@ impl Db {
 
     pub async fn save_producto_urls(&self, urls: Vec<String>) -> anyhow::Result<()> {
         let now: i64 = now_ms().try_into()?;
-        let mut tx = self.pool.begin().await?;
+        let mut tx = self.write_pool.begin().await?;
         for url in urls {
             sqlx::query!(
                 r#"INSERT INTO producto_urls(url, first_seen, last_seen)
@@ -89,7 +80,7 @@ impl Db {
     }
 
     pub async fn save_best_selling(&self, records: Vec<BestSellingRecord>) -> anyhow::Result<()> {
-        let mut tx = self.pool.begin().await?;
+        let mut tx = self.write_pool.begin().await?;
         for record in records {
             let fetched_at = record.fetched_at.timestamp_millis();
             let category = record.category.id();
@@ -107,6 +98,27 @@ impl Db {
         tx.commit().await?;
         Ok(())
     }
+}
+
+async fn connect_to_db(
+    db_path: &str,
+    max_connections: u32,
+) -> Result<sqlx::Pool<sqlx::Sqlite>, anyhow::Error> {
+    Ok(sqlx::pool::PoolOptions::new()
+        .max_connections(max_connections)
+        .connect_with(
+            SqliteConnectOptions::from_str(&format!("sqlite://{}", db_path))?
+                // https://fractaledmind.github.io/2023/09/07/enhancing-rails-sqlite-fine-tuning/
+                .journal_mode(sqlx::sqlite::SqliteJournalMode::Wal)
+                .pragma("journal_size_limit", "67108864")
+                .pragma("mmap_size", "134217728")
+                .synchronous(sqlx::sqlite::SqliteSynchronous::Normal)
+                .busy_timeout(Duration::from_secs(15))
+                .pragma("cache_size", "2000")
+                .pragma("temp_store", "memory")
+                .optimize_on_close(true, None),
+        )
+        .await?)
 }
 
 fn now_ms() -> u128 {
