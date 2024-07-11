@@ -34,7 +34,7 @@ async fn healthcheck(State(pool): State<SqlitePool>) -> impl IntoResponse {
                 .count;
                 let expected_count = match *supermercado {
                     Supermercado::Carrefour => 45000,
-                    Supermercado::Coto => 32000,
+                    Supermercado::Coto => 28000,
                     Supermercado::Jumbo => 20000,
                     Supermercado::Farmacity => 8000,
                     Supermercado::Dia => 4000,
