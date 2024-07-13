@@ -60,16 +60,18 @@ struct AutoArgs {
 async fn main() {
     tracing_subscriber::fmt::init();
 
-    match Args::parse() {
-        Args::FetchList(a) => fetch_list_cli(a.list_path).await,
-        Args::ParseFile(a) => parse_file_cli(a.file_path).await,
-        Args::GetUrlList(a) => get_url_list_cli(a.supermercado).await,
-        Args::ScrapUrl(a) => scrap_url_cli(a.url).await,
-        Args::ScrapBestSelling => scrap_best_selling_cli().await,
-        Args::Auto(a) => auto_cli(a).await,
-        Args::Cron(_) => cron_cli().await,
-    }
-    .unwrap()
+    preciazo::db::connect_db().await.unwrap();
+
+    // match Args::parse() {
+    //     Args::FetchList(a) => fetch_list_cli(a.list_path).await,
+    //     Args::ParseFile(a) => parse_file_cli(a.file_path).await,
+    //     Args::GetUrlList(a) => get_url_list_cli(a.supermercado).await,
+    //     Args::ScrapUrl(a) => scrap_url_cli(a.url).await,
+    //     Args::ScrapBestSelling => scrap_best_selling_cli().await,
+    //     Args::Auto(a) => auto_cli(a).await,
+    //     Args::Cron(_) => cron_cli().await,
+    // }
+    // .unwrap()
 }
 
 async fn scrap_url_cli(url: String) -> anyhow::Result<()> {
