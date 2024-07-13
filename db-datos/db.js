@@ -10,12 +10,9 @@ let db = null;
 export function getDb() {
   if (db) return db;
   const sqlite = new Database(DB_PATH);
-  sqlite.exec(`PRAGMA journal_mode = WAL;`);
-  sqlite.exec(`PRAGMA busy_timeout = 15000;`);
-  sqlite.exec(`PRAGMA synchronous = NORMAL;`);
-  sqlite.exec(`PRAGMA cache_size = 1000000000;`);
-  sqlite.exec(`PRAGMA foreign_keys = true;`);
-  sqlite.exec(`PRAGMA temp_store = memory;`);
+  sqlite.pragma(`journal_mode = WAL`);
+  sqlite.pragma(`busy_timeout = 15000`);
+  sqlite.pragma(`foreign_keys = true`);
   db = drizzle(sqlite, { schema, logger: true });
   migrateDb(db);
   return db;
