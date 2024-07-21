@@ -3,6 +3,7 @@ use clap::ValueEnum;
 use futures::future::join_all;
 use itertools::Itertools;
 use preciazo::supermercado::Supermercado;
+use serde::Serialize;
 use sqlx::{
     sqlite::{SqliteConnectOptions, SqlitePoolOptions},
     SqlitePool,
@@ -94,6 +95,37 @@ async fn healthcheck(State(pool): State<SqlitePool>) -> impl IntoResponse {
     }
 }
 
+#[derive(Serialize)]
+struct CategoryWithProducts {}
+
+async fn get_best_selling(State(pool): State<SqlitePool>) -> impl IntoResponse {
+    let categories = sqlx::query!(
+        "SELECT fetched_at, category, eans_json FROM db_best_selling
+        GROUP BY category
+        HAVING MAX(fetched_at)",
+    )
+    .fetch_all(&pool)
+    .await
+    .unwrap();
+
+    categories.iter().map(|category| {
+        let eans =
+            serde_json::de::from_str::<Vec<String>>(&category.eans_json.clone().unwrap()).unwrap();
+        let products = sqlx::query!(
+            "SELECT ean, name, image_url FROM precios
+        WHERE ean in (?)
+        GROUP BY ean
+        HAVING MAX(fetched_at)",
+            eans,
+        )
+        .fetch_all(&pool)
+        .await
+        .unwrap();
+    });
+
+    todo!()
+}
+
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt::init();
@@ -116,9 +148,10 @@ async fn main() {
     let app = Router::new()
         .route("/", get(index))
         .route("/api/healthcheck", get(healthcheck))
+        .route("/api/0/best-selling-products", get(get_best_selling))
         .with_state(pool);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8000").await.unwrap();
-    tracing::debug!("listening on {}", listener.local_addr().unwrap());
+    tracing::info!("listening on {}", listener.local_addr().unwrap());
     axum::serve(listener, app).await.unwrap();
 }
