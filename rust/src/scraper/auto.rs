@@ -6,6 +6,8 @@ use crate::db::Db;
 use crate::scraper::Scraper;
 use futures::Future;
 use preciazo::supermercado::Supermercado;
+use rand::seq::SliceRandom;
+use rand::thread_rng;
 use reqwest::Url;
 
 #[derive(Clone)]
@@ -48,6 +50,7 @@ impl Auto {
             if let Some(n) = self.args.n_products {
                 links.truncate(n);
             }
+            links.shuffle(&mut thread_rng());
             links
         };
         // {
