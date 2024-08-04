@@ -1,5 +1,9 @@
 <script lang="ts" context="module">
-  export type Product = { ean: string; name: string; imageUrl: string | null };
+  export type Product = {
+    ean: string;
+    name: string | null;
+    image_url: string | null;
+  };
 </script>
 
 <script lang="ts">
@@ -7,9 +11,9 @@
 </script>
 
 <a href={`/ean/${product.ean}`} class="flex gap-2">
-  {#if product.imageUrl}
+  {#if product.image_url}
     <img
-      src={product.imageUrl}
+      src={product.image_url}
       alt={product.name}
       class="max-h-48"
       loading="lazy"

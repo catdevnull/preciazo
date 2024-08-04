@@ -1,18 +1,18 @@
 <script lang="ts">
   import { Supermercado, hosts } from "db-datos/supermercado";
-  import * as schema from "db-datos/schema";
   import type { PageData } from "./$types";
   import Chart from "./Chart.svelte";
+  import type { Precio } from "./common";
 
   export let data: PageData;
 
-  let urls: Map<Supermercado, schema.Precio>;
+  let urls: Map<Supermercado, Precio>;
   $: urls = data.precios.reduce((prev, curr) => {
     const url = new URL(curr.url);
     const supermercado = hosts[url.hostname];
     prev.set(supermercado, curr);
     return prev;
-  }, new Map<Supermercado, schema.Precio>());
+  }, new Map<Supermercado, Precio>());
 
   const classBySupermercado: { [supermercado in Supermercado]: string } = {
     [Supermercado.Dia]: "bg-[#d52b1e] focus:ring-[#d52b1e]",
@@ -30,18 +30,18 @@
 
 {#if data.meta}
   <h1 class="text-3xl font-bold">{data.meta.name}</h1>
-  <img src={data.meta.imageUrl} alt={data.meta.name} class="max-h-48" />
+  <img src={data.meta.image_url} alt={data.meta.name} class="max-h-48" />
   <div class="flex gap-2">
-    {#each urls as [supermercado, { url, precioCentavos }]}
+    {#each urls as [supermercado, { url, precio_centavos }]}
       <a
         href={url}
         rel="noreferrer noopener"
         target="_blank"
         class={`focus:shadow-outline inline-flex flex-col items-center justify-center rounded-md ${classBySupermercado[supermercado]} px-4 py-2 font-medium tracking-wide text-white transition-colors duration-200 hover:bg-opacity-80 focus:outline-none focus:ring-2 focus:ring-offset-2`}
       >
-        {#if precioCentavos}
+        {#if precio_centavos}
           <span class="text-lg font-bold"
-            >{formatter.format(precioCentavos / 100)}</span
+            >{formatter.format(precio_centavos / 100)}</span
           >
         {/if}
         <span class="text-sm">{supermercado}</span>
