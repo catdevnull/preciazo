@@ -1,5 +1,9 @@
 <script lang="ts" context="module">
-  export type Product = { ean: string; name: string; image_url: string | null };
+  export type Product = {
+    ean: string;
+    name: string | null;
+    image_url: string | null;
+  };
 </script>
 
 <script lang="ts">
