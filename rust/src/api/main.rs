@@ -1,4 +1,4 @@
-use axum::{extract::State, http::StatusCode, response::IntoResponse, routing::get, Router};
+use axum::{extract::State, http::StatusCode, response::IntoResponse, routing::get, Json, Router};
 use clap::ValueEnum;
 use futures::future::join_all;
 use itertools::Itertools;
@@ -96,34 +96,76 @@ async fn healthcheck(State(pool): State<SqlitePool>) -> impl IntoResponse {
 }
 
 #[derive(Serialize)]
-struct CategoryWithProducts {}
+struct CategoryWithProducts {
+    category: String,
+    products: Vec<Product>,
+}
+
+#[derive(Serialize)]
+struct Product {
+    ean: String,
+    name: Option<String>,
+    image_url: Option<String>,
+}
 
 async fn get_best_selling(State(pool): State<SqlitePool>) -> impl IntoResponse {
-    let categories = sqlx::query!(
-        "SELECT fetched_at, category, eans_json FROM db_best_selling
-        GROUP BY category
-        HAVING MAX(fetched_at)",
+    #[derive(sqlx::FromRow, Debug)]
+    struct ProductWithCategory {
+        category: String,
+        ean: String,
+        name: Option<String>,
+        image_url: Option<String>,
+    }
+
+    let products_with_category = sqlx::query_as::<_, ProductWithCategory>(
+        "with latest_best_selling as (
+            select category, eans_json
+            from db_best_selling
+            group by category
+            having max(fetched_at)
+        ),
+        extracted_eans as (
+            select latest_best_selling.category, json.value as ean
+            from latest_best_selling, json_each(latest_best_selling.eans_json) json
+        )
+        select extracted_eans.category, extracted_eans.ean, precios.image_url, name
+        from extracted_eans
+        join precios
+        on extracted_eans.ean = precios.ean
+        where
+            precios.fetched_at = (
+                SELECT MAX(fetched_at)
+                FROM precios
+                WHERE ean = extracted_eans.ean
+            )",
     )
     .fetch_all(&pool)
     .await
     .unwrap();
 
-    categories.iter().map(|category| {
-        let eans =
-            serde_json::de::from_str::<Vec<String>>(&category.eans_json.clone().unwrap()).unwrap();
-        let products = sqlx::query!(
-            "SELECT ean, name, image_url FROM precios
-        WHERE ean in (?)
-        GROUP BY ean
-        HAVING MAX(fetched_at)",
-            eans,
-        )
-        .fetch_all(&pool)
-        .await
-        .unwrap();
-    });
+    let categories = products_with_category
+        .iter()
+        .map(|p| p.category.clone())
+        .unique()
+        .collect_vec();
 
-    todo!()
+    let categories_with_products = categories
+        .into_iter()
+        .map(|c| CategoryWithProducts {
+            category: c.clone(),
+            products: products_with_category
+                .iter()
+                .filter(|p| p.category == c)
+                .map(|p| Product {
+                    ean: p.ean.clone(),
+                    image_url: p.image_url.clone(),
+                    name: p.name.clone(),
+                })
+                .collect_vec(),
+        })
+        .collect_vec();
+
+    Json(categories_with_products)
 }
 
 #[tokio::main]
@@ -131,7 +173,7 @@ async fn main() {
     tracing_subscriber::fmt::init();
 
     let pool = SqlitePoolOptions::new()
-        .max_connections(1)
+        .max_connections(10)
         .connect_with(
             SqliteConnectOptions::from_str(&format!(
                 "sqlite://{}",
@@ -139,11 +181,25 @@ async fn main() {
             ))
             .unwrap()
             .journal_mode(sqlx::sqlite::SqliteJournalMode::Wal)
-            .busy_timeout(Duration::from_secs(15))
+            .synchronous(sqlx::sqlite::SqliteSynchronous::Normal)
+            .busy_timeout(Duration::from_secs(30))
             .optimize_on_close(true, None),
         )
         .await
         .expect("can't connect to database");
+
+    sqlx::query("pragma temp_store = memory;")
+        .execute(&pool)
+        .await
+        .unwrap();
+    sqlx::query("pragma mmap_size = 30000000000;")
+        .execute(&pool)
+        .await
+        .unwrap();
+    sqlx::query("pragma page_size = 4096;")
+        .execute(&pool)
+        .await
+        .unwrap();
 
     let app = Router::new()
         .route("/", get(index))
