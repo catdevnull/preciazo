@@ -39,9 +39,6 @@ importers:
       dayjs:
         specifier: ^1.11.10
         version: 1.11.10
-      drizzle-kit:
-        specifier: ^0.23.0
-        version: 0.23.0
       drizzle-orm:
         specifier: ^0.32.0
         version: 0.32.0(@types/better-sqlite3@7.6.9)(better-sqlite3@11.1.2)
