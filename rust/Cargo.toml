@@ -9,7 +9,7 @@ edition = "2021"
 again = "0.1.2"
 anyhow = "1.0.79"
 base64 = "0.21.7"
-chrono = "0.4"
+chrono = { version = "0.4", features = ["serde"] }
 clap = { version = "4.4.15", features = ["derive"] }
 cron = "0.12.0"
 sqlx = { version = "0.8", features = [ "runtime-tokio", "sqlite", "chrono", "json" ] }

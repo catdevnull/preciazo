@@ -1,4 +1,11 @@
-use axum::{extract::State, http::StatusCode, response::IntoResponse, routing::get, Json, Router};
+use axum::{
+    extract::{Path, State},
+    http::StatusCode,
+    response::IntoResponse,
+    routing::get,
+    Json, Router,
+};
+use chrono::{DateTime, Utc};
 use clap::ValueEnum;
 use futures::future::join_all;
 use itertools::Itertools;
@@ -168,6 +175,45 @@ async fn get_best_selling(State(pool): State<SqlitePool>) -> impl IntoResponse {
     Json(categories_with_products)
 }
 
+async fn get_product_history(
+    State(pool): State<SqlitePool>,
+    Path(ean): Path<String>,
+) -> impl IntoResponse {
+    #[derive(sqlx::FromRow, Debug, Serialize)]
+    struct Precio {
+        ean: String,
+        fetched_at: chrono::DateTime<Utc>,
+        precio_centavos: Option<i64>,
+        in_stock: Option<bool>,
+        url: String,
+        name: Option<String>,
+        image_url: Option<String>,
+    }
+
+    let precios = sqlx::query!(
+        "
+select ean,fetched_at,precio_centavos,in_stock,url,name,image_url from precios
+where ean = ?
+order by fetched_at
+",
+        ean
+    )
+    .map(|r| Precio {
+        ean: r.ean,
+        url: r.url,
+        fetched_at: DateTime::from_timestamp(r.fetched_at, 0).unwrap(),
+        image_url: r.image_url,
+        name: r.name,
+        in_stock: r.in_stock.map(|x| x == 1),
+        precio_centavos: r.precio_centavos,
+    })
+    .fetch_all(&pool)
+    .await
+    .unwrap();
+
+    Json(precios)
+}
+
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt::init();
@@ -205,6 +251,7 @@ async fn main() {
         .route("/", get(index))
         .route("/api/healthcheck", get(healthcheck))
         .route("/api/0/best-selling-products", get(get_best_selling))
+        .route("/api/0/ean/:ean/history", get(get_product_history))
         .with_state(pool);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8000").await.unwrap();

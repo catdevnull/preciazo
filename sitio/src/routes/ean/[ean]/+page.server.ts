@@ -1,20 +1,23 @@
 import { error } from "@sveltejs/kit";
-import { eq } from "drizzle-orm";
 import type { PageServerLoad } from "./$types";
-import { getDb, schema } from "$lib/server/db";
-const { precios } = schema;
+import { z } from "zod";
+import { zPrecio, type Precio } from "./common";
+import { API_HOST } from "$lib";
+
+async function getProductHistory(ean: string) {
+  const res = await fetch(`${API_HOST}/api/0/ean/${ean}/history`);
+  const json = await res.json();
+  return z.array(zPrecio).parse(json);
+}
 
 export const load: PageServerLoad = async ({ params }) => {
-  const db = await getDb();
-  const q = db
-    .select()
-    .from(precios)
-    .where(eq(precios.ean, params.ean))
-    .orderBy(precios.fetchedAt);
-  const res = await q;
+  const res = await getProductHistory(params.ean);
   if (res.length === 0) return error(404, "Not Found");
 
-  const meta = res.findLast((p) => p.name);
+  const meta = res.findLast(
+    (p): p is Precio & { name: string; image_url: string } =>
+      !!(p.name && p.image_url),
+  );
 
   return { precios: res, meta };
 };
