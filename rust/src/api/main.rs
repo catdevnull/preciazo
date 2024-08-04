@@ -214,6 +214,20 @@ order by fetched_at
     Json(precios)
 }
 
+async fn get_info(State(pool): State<SqlitePool>) -> impl IntoResponse {
+    #[derive(Serialize)]
+    struct Info {
+        count: i64,
+    }
+
+    let count = sqlx::query!("select count(distinct ean) as count from precios")
+        .fetch_one(&pool)
+        .await
+        .unwrap()
+        .count;
+    Json(Info { count })
+}
+
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt::init();
@@ -252,6 +266,7 @@ async fn main() {
         .route("/api/healthcheck", get(healthcheck))
         .route("/api/0/best-selling-products", get(get_best_selling))
         .route("/api/0/ean/:ean/history", get(get_product_history))
+        .route("/api/0/info", get(get_info))
         .with_state(pool);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8000").await.unwrap();
