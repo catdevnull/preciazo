@@ -213,6 +213,51 @@ order by fetched_at
 
     Json(precios)
 }
+async fn search(State(pool): State<SqlitePool>, Path(query): Path<String>) -> impl IntoResponse {
+    let sql_query = query
+        .clone()
+        .replace("\"", "\"\"")
+        .split(" ")
+        .map(|x| format!("\"{}\"", x))
+        .join(" ");
+
+    #[derive(Serialize)]
+    struct Result {
+        ean: String,
+        name: String,
+        image_url: String,
+    }
+
+    let results = sqlx::query!(
+        "with search_results as (
+            select f.ean from precios_fts f
+            where f.name match ? and f.ean != ''
+            group by f.ean
+			limit 100
+        )
+        select p.id, p.ean, p.name, p.image_url from search_results as s
+        join precios as p
+        on p.ean = s.ean
+        where p.fetched_at = (
+            SELECT MAX(fetched_at)
+            FROM precios as pf
+            WHERE pf.ean = s.ean and pf.name is not null
+        );",
+        sql_query
+    )
+    .fetch_all(&pool)
+    .await
+    .unwrap()
+    .into_iter()
+    .map(|r| Result {
+        ean: r.ean,
+        image_url: r.image_url.unwrap(),
+        name: r.name.unwrap(),
+    })
+    .collect_vec();
+
+    Json(results)
+}
 
 async fn get_info(State(pool): State<SqlitePool>) -> impl IntoResponse {
     #[derive(Serialize)]
@@ -267,6 +312,7 @@ async fn main() {
         .route("/api/0/best-selling-products", get(get_best_selling))
         .route("/api/0/ean/:ean/history", get(get_product_history))
         .route("/api/0/info", get(get_info))
+        .route("/api/0/search/:query", get(search))
         .with_state(pool);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8000").await.unwrap();
