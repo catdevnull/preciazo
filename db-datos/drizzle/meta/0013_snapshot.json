@@ -1,6 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
+  "id": "c95c6547-d540-45cf-aa9d-9d828efb468e",
+  "prevId": "16046188-ab24-4bd4-bfb4-8a81f24c6f28",
   "tables": {
     "db_best_selling": {
       "name": "db_best_selling",
@@ -120,6 +122,28 @@
             "ean"
           ],
           "isUnique": false
+        },
+        "precios_url_idx": {
+          "name": "precios_url_idx",
+          "columns": [
+            "url"
+          ],
+          "isUnique": false
+        },
+        "precios_fetched_at_idx": {
+          "name": "precios_fetched_at_idx",
+          "columns": [
+            "fetched_at"
+          ],
+          "isUnique": false
+        },
+        "precios_ean_fetched_at_idx": {
+          "name": "precios_ean_fetched_at_idx",
+          "columns": [
+            "ean",
+            "fetched_at"
+          ],
+          "isUnique": false
         }
       },
       "foreignKeys": {},
@@ -174,9 +198,11 @@
   },
   "enums": {},
   "_meta": {
+    "schemas": {},
     "tables": {},
     "columns": {}
   },
-  "id": "c8297337-4ed8-432e-8782-65d41be42e00",
-  "prevId": "2e398920-ffaf-4d55-ae13-d906cb9e0efa"
+  "internal": {
+    "indexes": {}
+  }
 }
