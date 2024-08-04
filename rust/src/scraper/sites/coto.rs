@@ -56,7 +56,11 @@ pub fn parse(url: String, dom: &tl::VDom) -> Result<PrecioPoint, anyhow::Error> 
         .find_map(|n| n.as_tag())
         .map(|t| t.inner_text(dom.parser()))
         // https://github.com/catdevnull/preciazo/issues/24
-        .map(|s| html_escape::decode_html_entities(s.trim()).to_string());
+        .map(|s| {
+            html_escape::decode_html_entities(s.trim())
+                .trim()
+                .to_string()
+        });
 
     let image_url = dom
         .query_selector(".zoomImage1")
