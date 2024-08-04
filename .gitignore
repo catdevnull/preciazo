@@ -3,7 +3,7 @@ node_modules/
 *.db-shm
 *.db-wal
 target/
-.env.*
+*.local
 
 
 .DS_Store

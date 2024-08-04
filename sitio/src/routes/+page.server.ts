@@ -2,7 +2,9 @@ import type { PageServerLoad } from "./$types";
 import z from "zod";
 
 async function getBestSelling() {
-  const res = await fetch("http://localhost:8000/api/0/best-selling-products");
+  const res = await fetch(
+    `${import.meta.env.VITE_API_HOST}/api/0/best-selling-products`,
+  );
   const json = await res.json();
   return z
     .array(
