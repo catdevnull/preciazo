@@ -282,7 +282,7 @@ async fn main() {
         .connect_with(
             SqliteConnectOptions::from_str(&format!(
                 "sqlite://{}",
-                env::var("DB_PATH").unwrap_or("../sqlite.db".to_string())
+                env::var("DB_PATH").unwrap_or("../db.db".to_string())
             ))
             .unwrap()
             .journal_mode(sqlx::sqlite::SqliteJournalMode::Wal)
