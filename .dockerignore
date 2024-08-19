@@ -2,6 +2,8 @@ data/warcs/
 data/carrefour/
 */*.db*
 sqlite.db
+db.db
+db.db-wal
 downloader/
 node_modules/
 */node_modules/

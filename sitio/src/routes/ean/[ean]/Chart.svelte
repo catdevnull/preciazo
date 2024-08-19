@@ -1,8 +1,8 @@
 <script lang="ts">
-  import type { Precio } from "db-datos/schema";
   // import dayjs from "dayjs";
   import ChartJs from "./ChartJs.svelte";
   import { hosts, colorBySupermercado } from "db-datos/supermercado";
+  import type { Precio } from "./common";
 
   export let precios: Precio[];
 
@@ -15,15 +15,15 @@
       const ps = precios
         .filter((p) => new URL(p.url!).hostname === host)
         .filter(
-          (p): p is Precio & { precioCentavos: number } =>
-            p.precioCentavos !== null,
+          (p): p is Precio & { precio_centavos: number } =>
+            p.precio_centavos !== null,
         );
       return {
         label: supermercado,
         data: [
           ...ps.map((p) => ({
-            x: p.fetchedAt,
-            y: p.precioCentavos / 100,
+            x: p.fetched_at,
+            y: p.precio_centavos / 100,
           })),
           // lie
           // ...ps.map((p) => ({

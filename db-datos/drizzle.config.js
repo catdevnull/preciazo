@@ -1,4 +1,4 @@
-export const DB_PATH = process.env.DB_PATH ?? "../sqlite.db";
+export const DB_PATH = process.env.DB_PATH ?? "../db.db";
 
 /** @type { import("drizzle-kit").Config } */
 export default {

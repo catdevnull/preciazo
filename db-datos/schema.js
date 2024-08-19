@@ -22,6 +22,10 @@ export const precios = sqliteTable(
       preciosFetchedAtIdx: index("precios_fetched_at_idx").on(
         precios.fetchedAt
       ),
+      preciosEanFetchedAtIdx: index("precios_ean_fetched_at_idx").on(
+        precios.ean,
+        precios.fetchedAt
+      ),
     };
   }
 );

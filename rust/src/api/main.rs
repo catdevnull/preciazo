@@ -1,8 +1,16 @@
-use axum::{extract::State, http::StatusCode, response::IntoResponse, routing::get, Router};
+use axum::{
+    extract::{Path, State},
+    http::StatusCode,
+    response::IntoResponse,
+    routing::get,
+    Json, Router,
+};
+use chrono::{DateTime, Utc};
 use clap::ValueEnum;
 use futures::future::join_all;
 use itertools::Itertools;
 use preciazo::supermercado::Supermercado;
+use serde::Serialize;
 use sqlx::{
     sqlite::{SqliteConnectOptions, SqlitePoolOptions},
     SqlitePool,
@@ -94,31 +102,220 @@ async fn healthcheck(State(pool): State<SqlitePool>) -> impl IntoResponse {
     }
 }
 
+#[derive(Serialize)]
+struct CategoryWithProducts {
+    category: String,
+    products: Vec<Product>,
+}
+
+#[derive(Serialize)]
+struct Product {
+    ean: String,
+    name: Option<String>,
+    image_url: Option<String>,
+}
+
+async fn get_best_selling(State(pool): State<SqlitePool>) -> impl IntoResponse {
+    #[derive(sqlx::FromRow, Debug)]
+    struct ProductWithCategory {
+        category: String,
+        ean: String,
+        name: Option<String>,
+        image_url: Option<String>,
+    }
+
+    let products_with_category = sqlx::query_as::<_, ProductWithCategory>(
+        "with latest_best_selling as (
+            select category, eans_json
+            from db_best_selling
+            group by category
+            having max(fetched_at)
+        ),
+        extracted_eans as (
+            select latest_best_selling.category, json.value as ean
+            from latest_best_selling, json_each(latest_best_selling.eans_json) json
+        )
+        select extracted_eans.category, extracted_eans.ean, precios.image_url, name
+        from extracted_eans
+        join precios
+        on extracted_eans.ean = precios.ean
+        where
+            precios.fetched_at = (
+                SELECT MAX(fetched_at)
+                FROM precios
+                WHERE ean = extracted_eans.ean
+            )",
+    )
+    .fetch_all(&pool)
+    .await
+    .unwrap();
+
+    let categories = products_with_category
+        .iter()
+        .map(|p| p.category.clone())
+        .unique()
+        .collect_vec();
+
+    let categories_with_products = categories
+        .into_iter()
+        .map(|c| CategoryWithProducts {
+            category: c.clone(),
+            products: products_with_category
+                .iter()
+                .filter(|p| p.category == c)
+                .map(|p| Product {
+                    ean: p.ean.clone(),
+                    image_url: p.image_url.clone(),
+                    name: p.name.clone(),
+                })
+                .collect_vec(),
+        })
+        .collect_vec();
+
+    Json(categories_with_products)
+}
+
+async fn get_product_history(
+    State(pool): State<SqlitePool>,
+    Path(ean): Path<String>,
+) -> impl IntoResponse {
+    #[derive(sqlx::FromRow, Debug, Serialize)]
+    struct Precio {
+        ean: String,
+        fetched_at: chrono::DateTime<Utc>,
+        precio_centavos: Option<i64>,
+        in_stock: Option<bool>,
+        url: String,
+        name: Option<String>,
+        image_url: Option<String>,
+    }
+
+    let precios = sqlx::query!(
+        "
+select ean,fetched_at,precio_centavos,in_stock,url,name,image_url from precios
+where ean = ?
+order by fetched_at
+",
+        ean
+    )
+    .map(|r| Precio {
+        ean: r.ean,
+        url: r.url,
+        fetched_at: DateTime::from_timestamp(r.fetched_at, 0).unwrap(),
+        image_url: r.image_url,
+        name: r.name,
+        in_stock: r.in_stock.map(|x| x == 1),
+        precio_centavos: r.precio_centavos,
+    })
+    .fetch_all(&pool)
+    .await
+    .unwrap();
+
+    Json(precios)
+}
+async fn search(State(pool): State<SqlitePool>, Path(query): Path<String>) -> impl IntoResponse {
+    let sql_query = query
+        .clone()
+        .replace("\"", "\"\"")
+        .split(" ")
+        .map(|x| format!("\"{}\"", x))
+        .join(" ");
+
+    #[derive(Serialize)]
+    struct Result {
+        ean: String,
+        name: String,
+        image_url: String,
+    }
+
+    let results = sqlx::query!(
+        "with search_results as (
+            select f.ean from precios_fts f
+            where f.name match ? and f.ean != ''
+            group by f.ean
+			limit 100
+        )
+        select p.id, p.ean, p.name, p.image_url from search_results as s
+        join precios as p
+        on p.ean = s.ean
+        where p.fetched_at = (
+            SELECT MAX(fetched_at)
+            FROM precios as pf
+            WHERE pf.ean = s.ean and pf.name is not null
+        );",
+        sql_query
+    )
+    .fetch_all(&pool)
+    .await
+    .unwrap()
+    .into_iter()
+    .map(|r| Result {
+        ean: r.ean,
+        image_url: r.image_url.unwrap(),
+        name: r.name.unwrap(),
+    })
+    .collect_vec();
+
+    Json(results)
+}
+
+async fn get_info(State(pool): State<SqlitePool>) -> impl IntoResponse {
+    #[derive(Serialize)]
+    struct Info {
+        count: i64,
+    }
+
+    let count = sqlx::query!("select count(distinct ean) as count from precios")
+        .fetch_one(&pool)
+        .await
+        .unwrap()
+        .count;
+    Json(Info { count })
+}
+
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt::init();
 
     let pool = SqlitePoolOptions::new()
-        .max_connections(1)
+        .max_connections(10)
         .connect_with(
             SqliteConnectOptions::from_str(&format!(
                 "sqlite://{}",
-                env::var("DB_PATH").unwrap_or("../sqlite.db".to_string())
+                env::var("DB_PATH").unwrap_or("../db.db".to_string())
             ))
             .unwrap()
             .journal_mode(sqlx::sqlite::SqliteJournalMode::Wal)
-            .busy_timeout(Duration::from_secs(15))
+            .synchronous(sqlx::sqlite::SqliteSynchronous::Normal)
+            .busy_timeout(Duration::from_secs(30))
             .optimize_on_close(true, None),
         )
         .await
         .expect("can't connect to database");
 
+    sqlx::query("pragma temp_store = memory;")
+        .execute(&pool)
+        .await
+        .unwrap();
+    sqlx::query("pragma mmap_size = 30000000000;")
+        .execute(&pool)
+        .await
+        .unwrap();
+    sqlx::query("pragma page_size = 4096;")
+        .execute(&pool)
+        .await
+        .unwrap();
+
     let app = Router::new()
         .route("/", get(index))
         .route("/api/healthcheck", get(healthcheck))
+        .route("/api/0/best-selling-products", get(get_best_selling))
+        .route("/api/0/ean/:ean/history", get(get_product_history))
+        .route("/api/0/info", get(get_info))
+        .route("/api/0/search/:query", get(search))
         .with_state(pool);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8000").await.unwrap();
-    tracing::debug!("listening on {}", listener.local_addr().unwrap());
+    tracing::info!("listening on {}", listener.local_addr().unwrap());
     axum::serve(listener, app).await.unwrap();
 }

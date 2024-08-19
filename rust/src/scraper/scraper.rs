@@ -128,11 +128,7 @@ impl Scraper {
         counters
     }
 
-    pub async fn fetch_list(&self, db: &Db, links: Vec<String>) -> Counters {
-        let n_coroutines = env::var("N_COROUTINES")
-            .map_or(Ok(24), |s| s.parse::<usize>())
-            .expect("N_COROUTINES no es un número");
-
+    pub async fn fetch_list(&self, db: &Db, links: Vec<String>, n_coroutines: usize) -> Counters {
         stream::iter(links)
             .map(|url| {
                 let db = db.clone();

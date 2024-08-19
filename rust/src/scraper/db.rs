@@ -17,7 +17,7 @@ pub struct Db {
 
 impl Db {
     pub async fn connect() -> anyhow::Result<Self> {
-        let db_path = env::var("DB_PATH").unwrap_or("../sqlite.db".to_string());
+        let db_path = env::var("DB_PATH").unwrap_or("../db.db".to_string());
         info!("Opening DB at {}", db_path);
         let read_pool = connect_to_db(&db_path, 32).await?;
         let write_pool = connect_to_db(&db_path, 1).await?;

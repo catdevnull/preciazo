@@ -1,8 +1,6 @@
 {
-  "version": "5",
+  "version": "6",
   "dialect": "sqlite",
-  "id": "16046188-ab24-4bd4-bfb4-8a81f24c6f28",
-  "prevId": "8b4921b5-6ecd-4d69-ba64-9b0bfb53db84",
   "tables": {
     "db_best_selling": {
       "name": "db_best_selling",
@@ -190,8 +188,9 @@
   },
   "enums": {},
   "_meta": {
-    "schemas": {},
     "tables": {},
     "columns": {}
-  }
+  },
+  "id": "16046188-ab24-4bd4-bfb4-8a81f24c6f28",
+  "prevId": "8b4921b5-6ecd-4d69-ba64-9b0bfb53db84"
 }
