@@ -5,7 +5,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "generate": "drizzle-kit generate",
+    "generate": "drizzle-kit generate:sqlite",
     "migrate": "node migrate-cli.js"
   },
   "keywords": [],

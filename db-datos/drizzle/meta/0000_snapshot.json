@@ -1,6 +1,8 @@
 {
-  "version": "6",
+  "version": "5",
   "dialect": "sqlite",
+  "id": "88aa0254-106e-424e-ab66-417ff44bbf0b",
+  "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "precios": {
       "name": "precios",
@@ -56,9 +58,8 @@
   },
   "enums": {},
   "_meta": {
+    "schemas": {},
     "tables": {},
     "columns": {}
-  },
-  "id": "88aa0254-106e-424e-ab66-417ff44bbf0b",
-  "prevId": "00000000-0000-0000-0000-000000000000"
+  }
 }

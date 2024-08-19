@@ -92,13 +92,6 @@
       "when": 1719680946811,
       "tag": "0012_hard_red_wolf",
       "breakpoints": true
-    },
-    {
-      "idx": 13,
-      "version": "6",
-      "when": 1722796469056,
-      "tag": "0013_harsh_starbolt",
-      "breakpoints": true
     }
   ]
 }

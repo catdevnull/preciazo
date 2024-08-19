@@ -1,5 +1,7 @@
 {
-  "version": "6",
+  "id": "bf90a1cd-ae6a-4dba-a1aa-79f14a11d958",
+  "prevId": "e1217fdb-6f54-44c5-a04b-c5aebf202102",
+  "version": "5",
   "dialect": "sqlite",
   "tables": {
     "precios": {
@@ -92,9 +94,8 @@
   },
   "enums": {},
   "_meta": {
-    "tables": {},
-    "columns": {}
-  },
-  "id": "bf90a1cd-ae6a-4dba-a1aa-79f14a11d958",
-  "prevId": "e1217fdb-6f54-44c5-a04b-c5aebf202102"
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
 }
