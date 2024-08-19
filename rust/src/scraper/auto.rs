@@ -1,3 +1,5 @@
+use std::env;
+
 use super::now_sec;
 use super::AutoArgs;
 use super::AutoTelegram;
@@ -61,7 +63,16 @@ impl Auto {
         // }
         {
             let t0 = now_sec();
-            let counters = self.scraper.fetch_list(&self.db, links).await;
+
+            let n_coroutines = if supermercado == Supermercado::Coto {
+                50
+            } else {
+                env::var("N_COROUTINES")
+                    .map_or(Ok(24), |s| s.parse::<usize>())
+                    .expect("N_COROUTINES no es un número")
+            };
+
+            let counters = self.scraper.fetch_list(&self.db, links, n_coroutines).await;
             self.inform(&format!(
                 "Downloaded {:?}: {:?} (took {})",
                 &supermercado,
