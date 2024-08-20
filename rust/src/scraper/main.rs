@@ -99,7 +99,7 @@ async fn fetch_list_cli(links_list_path: String) -> anyhow::Result<()> {
 
     let db = Db::connect().await?;
     let scraper = Scraper::from_env().await?;
-    let counters = scraper.fetch_list(&db, links).await;
+    let counters = scraper.fetch_list(&db, links, 100).await;
 
     println!("Finished: {:?}", counters);
     Ok(())
