@@ -207,14 +207,15 @@ pub async fn get_best_selling_by_category(
             .append_pair("extensions", &{
                 let variables_obj = json!({"hideUnavailableItems":true,"skusFilter":"FIRST_AVAILABLE","simulationBehavior":"default","installmentCriteria":"MAX_WITHOUT_INTEREST","productOriginVtex":false,"map":"c","query":query,"orderBy":"OrderByTopSaleDESC","from":0,"to":99,"selectedFacets":
                     query.split('/').map(|f| json!({"key":"c","value":f})).collect::<Vec<_>>()
-                ,"facetsBehavior":"Static","categoryTreeBehavior":"default","withFacets":false,"showSponsored":false});
+                ,"facetsBehavior":"Static","categoryTreeBehavior":"default",
+                "withFacets":false,"showSponsored":false,"advertisementOptions":{"showSponsored":false,"sponsoredCount":0,"advertisementPlacement":"top_search","repeatSponsoredProducts":true}});
                 let b64=base64::prelude::BASE64_STANDARD.encode(variables_obj.to_string());
 
                 format!(
                     r#"{{
                         "persistedQuery": {{
                             "version": 1,
-                            "sha256Hash": "fd92698fe375e8e4fa55d26fa62951d979b790fcf1032a6f02926081d199f550",
+                            "sha256Hash": "8e3fd5f65d7d83516bfea23051b11e7aa469d85f26906f27e18afbee52c56ce4",
                             "sender": "vtex.store-resources@0.x",
                             "provider": "vtex.search-graphql@0.x"
                         }},
