@@ -11,8 +11,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
+      - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
 
@@ -21,5 +20,5 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.ARCHIVE_GITHUB_TOKEN }}
         run: |
           cd sepa-precios-archiver
-          bun install
+          bun install --frozen-lockfile
           bun index.ts
