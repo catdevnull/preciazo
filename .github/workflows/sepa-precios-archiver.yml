@@ -1,4 +1,4 @@
-name: Archive Prices
+name: Sepa Precios Archiver
 
 on:
   schedule:
