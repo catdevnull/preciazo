@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "select count(distinct ean) as count from precios",
+  "describe": {
+    "columns": [
+      {
+        "name": "count",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "2e632fbda989abf0d8a88a1d3bc1de0a9aefb0d3f3cdc33d26158d09faed97b2"
+}

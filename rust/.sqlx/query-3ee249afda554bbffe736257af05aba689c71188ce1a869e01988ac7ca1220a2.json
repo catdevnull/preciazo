@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "with search_results as (\n            select f.ean from precios_fts f\n            where f.name match ? and f.ean != ''\n            group by f.ean\n\t\t\tlimit 100\n        )\n        select p.id, p.ean, p.name, p.image_url from search_results as s\n        join precios as p\n        on p.ean = s.ean\n        where p.fetched_at = (\n            SELECT MAX(fetched_at)\n            FROM precios as pf\n            WHERE pf.ean = s.ean and pf.name is not null\n        );",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "ean",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "name",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "image_url",
+        "ordinal": 3,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "3ee249afda554bbffe736257af05aba689c71188ce1a869e01988ac7ca1220a2"
+}

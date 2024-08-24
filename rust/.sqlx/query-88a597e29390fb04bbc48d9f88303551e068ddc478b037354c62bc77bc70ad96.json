@@ -1,0 +1,56 @@
+{
+  "db_name": "SQLite",
+  "query": "\nselect ean,fetched_at,precio_centavos,in_stock,url,name,image_url from precios\nwhere ean = ?\norder by fetched_at\n",
+  "describe": {
+    "columns": [
+      {
+        "name": "ean",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "fetched_at",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "precio_centavos",
+        "ordinal": 2,
+        "type_info": "Integer"
+      },
+      {
+        "name": "in_stock",
+        "ordinal": 3,
+        "type_info": "Integer"
+      },
+      {
+        "name": "url",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "name",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "image_url",
+        "ordinal": 6,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "88a597e29390fb04bbc48d9f88303551e068ddc478b037354c62bc77bc70ad96"
+}
