@@ -48,6 +48,7 @@ async function saveDatasetInfoIntoRepo(datasetInfo: any) {
       JSON.stringify(datasetInfo, null, 2),
     );
     await $`cd ${dir} && git add dataset-info.json`;
+    await $`cd ${dir} && git config user.email "git@nulo.in" && git config user.name "github actions"`;
     await $`cd ${dir} && git diff --staged --quiet || git commit -m "Update dataset info"`;
     await $`cd ${dir} && git push origin main`;
   } finally {
