@@ -1,0 +1,24 @@
+name: Archive Prices
+
+on:
+  schedule:
+    - cron: "0 */12 * * *" # Run every 6 hours
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  archive-prices:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Run archiver script
+        env:
+          GITHUB_TOKEN: ${{ secrets.ARCHIVE_GITHUB_TOKEN }}
+        run: |
+          cd sepa-precios-archiver
+          bun index.ts
