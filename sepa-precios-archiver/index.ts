@@ -122,14 +122,8 @@ for (const resource of datasetInfo.result.resources) {
     const dir = await mkdtemp("/tmp/sepa-precios-archiver-repackage-");
     console.info(dir);
     try {
-      const response = await fetch(resource.url);
-      if (!checkRes(response)) continue;
-      // const response = Bun.file(
-      //   `/Users/diablo/Downloads/dump precios justos/${basename(resource.url)}`,
-      // );
-
       const zip = join(dir, "zip");
-      await write(zip, response);
+      await $`curl -L -o ${zip} ${resource.url}`;
       await $`unzip ${zip} -d ${dir}`;
       await rm(zip);
 
