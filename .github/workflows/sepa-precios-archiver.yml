@@ -14,10 +14,9 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
-      - name: Setup upterm session
-        uses: lhotari/action-upterm@v1
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
         with:
-          ## limits ssh access and adds the ssh public key for the user which triggered the workflow
           limit-access-to-actor: true
 
       - name: Run archiver script
