@@ -10,7 +10,7 @@ export const zDatasetInfo = z.object({
       format: z.string(),
       created: z.coerce.date(),
       url: z.string(),
-      modified: z.coerce.date(),
+      modified: z.coerce.date().optional(),
       description: z.string(),
     }),
   ),
