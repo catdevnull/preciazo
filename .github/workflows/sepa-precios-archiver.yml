@@ -7,7 +7,7 @@ on:
 
 jobs:
   archive-prices:
-    runs-on: ubicloud-standard-8
+    runs-on: ubicloud-standard-4
 
     steps:
       - uses: actions/checkout@v4
