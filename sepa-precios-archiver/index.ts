@@ -32,7 +32,7 @@ const s3 = new S3Client({
 });
 
 async function getRawDatasetInfo() {
-  const response = await fetch(
+  const response = await fetchWithRetry(
     "https://datos.produccion.gob.ar/api/3/action/package_show?id=sepa-precios",
   );
   const json = await response.json();
@@ -96,6 +96,27 @@ await saveDatasetInfoIntoRepo(rawDatasetInfo);
 
 let errored = false;
 
+async function fetchWithRetry(url: string, maxRetries = 3): Promise<Response> {
+  let retries = 0;
+  while (retries < maxRetries) {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response;
+    } catch (error) {
+      console.error(`Attempt ${retries + 1} failed: ${error}`);
+      retries++;
+      if (retries >= maxRetries) {
+        throw error;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 1000 * retries));
+    }
+  }
+  throw new Error("Max retries reached");
+}
+
 function checkRes(
   res: Response,
 ): res is Response & { body: ReadableStream<Uint8Array> } {
@@ -151,7 +172,7 @@ for (const resource of datasetInfo.result.resources) {
     const fileName = `${resource.id}-${basename(resource.url)}`;
     if (await checkFileExistsInB2(fileName)) continue;
     console.log(`⬇️ Downloading and reuploading ${resource.url}`);
-    const response = await fetch(resource.url);
+    const response = await fetchWithRetry(resource.url);
     if (!checkRes(response)) continue;
 
     await uploadToB2Bucket(fileName, response.body);
