@@ -136,8 +136,13 @@ for (const resource of datasetInfo.result.resources) {
         await rm(path);
       }
 
+      await writeFile(
+        join(dir, "dataset-info.json"),
+        JSON.stringify(rawDatasetInfo, null, 2),
+      );
+
       const compressed =
-        await $`tar -c -C ${dir} ${dir} | zstd -15 --long -T0`.blob();
+        await $`tar -c -C ${dir} . | zstd -15 --long -T0`.blob();
       await uploadToB2Bucket(fileName, compressed);
     } finally {
       await $`rm -rf ${dir}`;
