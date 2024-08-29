@@ -96,11 +96,17 @@ await saveDatasetInfoIntoRepo(rawDatasetInfo);
 
 let errored = false;
 
-async function fetchWithRetry(url: string, maxRetries = 3): Promise<Response> {
+async function fetchWithRetry(
+  url: string,
+  maxRetries = 3,
+  waitTime = 15000,
+): Promise<Response> {
   let retries = 0;
   while (retries < maxRetries) {
     try {
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        signal: AbortSignal.timeout(waitTime),
+      });
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -172,7 +178,7 @@ for (const resource of datasetInfo.result.resources) {
     const fileName = `${resource.id}-${basename(resource.url)}`;
     if (await checkFileExistsInB2(fileName)) continue;
     console.log(`⬇️ Downloading and reuploading ${resource.url}`);
-    const response = await fetchWithRetry(resource.url);
+    const response = await fetchWithRetry(resource.url, 3, 60 * 1000);
     if (!checkRes(response)) continue;
 
     await uploadToB2Bucket(fileName, response.body);
