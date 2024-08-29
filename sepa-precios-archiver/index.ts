@@ -150,7 +150,7 @@ for (const resource of datasetInfo.result.resources) {
     console.info(dir);
     try {
       const zip = join(dir, "zip");
-      await $`curl --retry 8 --retry-delay 5 -L -o ${zip} ${resource.url}`;
+      await $`curl --retry 8 --retry-delay 5 --retry-all-errors -L -o ${zip} ${resource.url}`;
       await $`unzip ${zip} -d ${dir}`;
       await rm(zip);
 
