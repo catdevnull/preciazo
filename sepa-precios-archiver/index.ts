@@ -32,11 +32,15 @@ const s3 = new S3Client({
 });
 
 async function getRawDatasetInfo() {
-  const response = await fetchWithRetry(
-    "https://datos.produccion.gob.ar/api/3/action/package_show?id=sepa-precios",
-  );
-  const json = await response.json();
-  return json;
+  try {
+    const response = await fetchWithRetry(
+      "https://datos.produccion.gob.ar/api/3/action/package_show?id=sepa-precios",
+    );
+    return await response.json();
+  } catch (error) {
+    console.error(`❌ Error fetching dataset info`, error, `retrying in 5min...`);
+    await new Promise((resolve) => setTimeout(resolve, 5 * 60 * 1000));
+    return await getRawDatasetInfo();
 }
 
 async function saveDatasetInfoIntoRepo(datasetInfo: any) {
