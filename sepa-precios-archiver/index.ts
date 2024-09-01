@@ -38,9 +38,14 @@ async function getRawDatasetInfo() {
     );
     return await response.json();
   } catch (error) {
-    console.error(`❌ Error fetching dataset info`, error, `retrying in 5min...`);
+    console.error(
+      `❌ Error fetching dataset info`,
+      error,
+      `retrying in 5min...`,
+    );
     await new Promise((resolve) => setTimeout(resolve, 5 * 60 * 1000));
     return await getRawDatasetInfo();
+  }
 }
 
 async function saveDatasetInfoIntoRepo(datasetInfo: any) {
