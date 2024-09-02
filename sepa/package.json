@@ -1,0 +1,8 @@
+{
+  "name": "sepa",
+  "private": true,
+  "workspaces": [
+    "sepa-precios-archiver",
+    "sepa-precios-importer"
+  ]
+}
