@@ -122,7 +122,7 @@ await uploadToB2Bucket(
 const datasetInfo = z.object({ result: zDatasetInfo }).parse(rawDatasetInfo);
 for (const resource of datasetInfo.result.resources) {
   if (extname(resource.url) === ".zip") {
-    const fileName = `${resource.id}-${basename(resource.url)}-repackaged.tar.zst`;
+    const fileName = `${resource.id}-revID-${resource.revision_id}-${basename(resource.url)}-repackaged.tar.zst`;
     if (await checkFileExistsInB2(fileName)) continue;
     console.log(`⬇️ Downloading, repackaging and uploading ${resource.url}`);
     const dir = await mkdtemp("/tmp/sepa-precios-archiver-repackage-");
