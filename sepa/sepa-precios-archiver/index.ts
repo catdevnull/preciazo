@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { zDatasetInfo } from "./schemas";
+import { zDatasetInfo } from "ckan/schemas";
 import { mkdtemp, writeFile, readdir, mkdir, rm } from "fs/promises";
 import { basename, extname, join } from "path";
 import { $, write } from "bun";

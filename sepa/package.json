@@ -3,6 +3,7 @@
   "private": true,
   "workspaces": [
     "sepa-precios-archiver",
-    "sepa-precios-importer"
+    "sepa-precios-importer",
+    "ckan"
   ]
 }
