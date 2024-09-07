@@ -66,7 +66,8 @@ await sql`
       productos_leyenda_promo1 TEXT,
       productos_precio_unitario_promo2 NUMERIC(10, 2),
       productos_leyenda_promo2 TEXT,
-      FOREIGN KEY (id_dataset, id_comercio, id_bandera, id_sucursal) REFERENCES sucursales(id_dataset, id_comercio, id_bandera, id_sucursal)
+      FOREIGN KEY (id_dataset, id_comercio, id_bandera, id_sucursal) REFERENCES sucursales(id_dataset, id_comercio, id_bandera, id_sucursal),
+      PRIMARY KEY (id_dataset, id_comercio, id_bandera, id_sucursal, id_producto)
   );
 `;
 
@@ -186,16 +187,21 @@ async function importDataset(dir: string) {
                 return;
               }
               const keys = Object.keys(objs[0]);
-              const lines = Readable.from(
-                objs.map(
-                  (data) => keys.map((key) => data[key]).join("\t") + "\n",
-                ),
-              );
               console.timeEnd("map");
               console.time("copy");
               const writable =
                 await sql`copy precios (${sql.unsafe(keys.join(", "))}) from stdin with CSV DELIMITER E'\t' QUOTE E'\b'`.writable();
-              await pipeline(lines, writable);
+
+              await pipeline(
+                Readable.from(
+                  (async function* () {
+                    for (const data of objs) {
+                      yield keys.map((key) => data[key]).join("\t") + "\n";
+                    }
+                  })()
+                ),
+                writable
+              );
               console.timeEnd("copy");
               console.info(`saved ${objs.length} rows`);
             } catch (e) {
