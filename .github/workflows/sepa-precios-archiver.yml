@@ -2,7 +2,7 @@ name: Sepa Precios Archiver
 
 on:
   schedule:
-    - cron: "0 */12 * * *" # Run every 6 hours
+    - cron: "0 */3 * * *" # Run every 3 hours
   workflow_dispatch: # Allow manual trigger
 
 jobs:
