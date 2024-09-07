@@ -10,6 +10,7 @@ scrapeo "masivo" de precios y datos en supermercados argentinos
 
 - [ratoneando](https://ratoneando.ar/)
 - [Mirá](https://twitter.com/MiraPrecios) (solo app nativa, creo que usan un navegador embebido para generar el carrito en los sitios de los supermercados!)
+- [SEPAME](https://sepame.net/): muestra todos los precios de todas las sucursales según el [dataset SEPA](https://datos.produccion.gob.ar/dataset/sepa-precios)
 - [Coto_bot](https://twitter.com/BotCoto) (repo: [Vosinepi/webScrapping_ETL_canasta_basica](https://github.com/Vosinepi/webScrapping_ETL_canasta_basica))
 - [@canastita_bot](https://twitter.com/canastita_bot) y [@asadito_bot](https://twitter.com/asadito_bot) de [Charly Maslaton](https://twitter.com/charlymasla)
 
