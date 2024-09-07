@@ -74,13 +74,13 @@ await sql`
 async function importSucursales(
   sql: postgres.Sql,
   datasetId: number,
-  dir: string,
+  dir: string
 ) {
   const sucursales: Papa.ParseResult<any> = Papa.parse(
     await readFile(join(dir, "sucursales.csv"), "utf-8"),
     {
       header: true,
-    },
+    }
   );
 
   const objs = sucursales.data
@@ -99,7 +99,7 @@ async function importSucursales(
     });
   const keys = Object.keys(objs[0]);
   const lines = Readable.from(
-    objs.map((data) => keys.map((key) => (data as any)[key]).join("\t") + "\n"),
+    objs.map((data) => keys.map((key) => (data as any)[key]).join("\t") + "\n")
   );
   const writable =
     await sql`copy sucursales (${sql.unsafe(keys.join(", "))}) from stdin with CSV DELIMITER E'\t' QUOTE E'\b'`.writable();
@@ -126,7 +126,7 @@ async function importDataset(dir: string) {
 
       const comercios: Papa.ParseResult<{ comercio_cuit: string }> = Papa.parse(
         await readFile(join(dir, "comercio.csv"), "utf-8"),
-        { header: true },
+        { header: true }
       );
       const comercioCuit = comercios.data[0].comercio_cuit;
       console.log(`dataset ${datasetId}, comercio ${comercioCuit}`);
@@ -149,7 +149,7 @@ async function importDataset(dir: string) {
         // productos_precio_lista seria precio_unitario_bulto_por_unidad_venta_con_iva.
         // pero no quiero mentir, asi que por ahora no lo importo
         console.error(
-          `No voy a importar el dataset ${dir} porque el formato está mal. Pero se podría importar. Pero por ahora no lo voy a hacer. Véase https://gist.github.com/catdevnull/587d5c63c4bab11b9798861c917db93b`,
+          `No voy a importar el dataset ${dir} porque el formato está mal. Pero se podría importar. Pero por ahora no lo voy a hacer. Véase https://gist.github.com/catdevnull/587d5c63c4bab11b9798861c917db93b`
         );
         return;
       }
@@ -178,7 +178,7 @@ async function importDataset(dir: string) {
                   ...data,
                   productos_descripcion: data.productos_descripcion.replaceAll(
                     "\t",
-                    " ",
+                    " "
                   ),
                 };
               });
