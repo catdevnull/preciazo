@@ -1,4 +1,5 @@
-import { readFile } from "fs/promises";
+import * as fs from "fs/promises";
+import { createWriteStream } from "fs";
 import Papa from "papaparse";
 import { basename, join, dirname } from "path";
 import postgres from "postgres";
@@ -65,10 +66,16 @@ await sql`
       productos_precio_unitario_promo1 NUMERIC(10, 2),
       productos_leyenda_promo1 TEXT,
       productos_precio_unitario_promo2 NUMERIC(10, 2),
-      productos_leyenda_promo2 TEXT,
-      FOREIGN KEY (id_dataset, id_comercio, id_bandera, id_sucursal) REFERENCES sucursales(id_dataset, id_comercio, id_bandera, id_sucursal),
-      PRIMARY KEY (id_dataset, id_comercio, id_bandera, id_sucursal, id_producto)
+      productos_leyenda_promo2 TEXT
   );
+`;
+
+await sql`
+  CREATE INDEX IF NOT EXISTS idx_precios_composite ON precios (id_dataset, id_comercio, id_bandera, id_sucursal, id_producto);
+`;
+
+await sql`
+  CREATE INDEX IF NOT EXISTS idx_sucursales_composite ON sucursales (id_dataset, id_comercio, id_bandera, id_sucursal);
 `;
 
 async function importSucursales(
@@ -77,7 +84,7 @@ async function importSucursales(
   dir: string
 ) {
   const sucursales: Papa.ParseResult<any> = Papa.parse(
-    await readFile(join(dir, "sucursales.csv"), "utf-8"),
+    await fs.readFile(join(dir, "sucursales.csv"), "utf-8"),
     {
       header: true,
     }
@@ -122,10 +129,9 @@ async function importDataset(dir: string) {
       const res =
         await sql`insert into datasets (name, date) values (${basename(dir)}, ${date}) returning id`;
       datasetId = res[0].id;
-      const datas: any[] = [];
 
       const comercios: Papa.ParseResult<{ comercio_cuit: string }> = Papa.parse(
-        await readFile(join(dir, "comercio.csv"), "utf-8"),
+        await fs.readFile(join(dir, "comercio.csv"), "utf-8"),
         { header: true }
       );
       const comercioCuit = comercios.data[0].comercio_cuit;
@@ -133,7 +139,7 @@ async function importDataset(dir: string) {
 
       await importSucursales(sql, datasetId, dir);
 
-      let file = await readFile(join(dir, "productos.csv"), "utf-8");
+      let file = await fs.readFile(join(dir, "productos.csv"), "utf-8");
       // WALL OF SHAME: estos proveedores no saben producir CSVs correctos
       if (comercioCuit == "30612929455") {
         // Libertad S.A.
@@ -153,68 +159,71 @@ async function importDataset(dir: string) {
         );
         return;
       }
-      console.time("parse");
-      return await new Promise((resolve, reject) => {
-        Papa.parse(file, {
-          header: true,
-          step: function (result: any) {
-            const { data } = result;
-            if (
-              data.id_comercio &&
-              data.id_bandera &&
-              data.id_sucursal &&
-              data.id_producto
-            )
-              datas.push(data);
-          },
-          complete: async function () {
-            try {
-              console.timeEnd("parse");
-              console.time("map");
-              const objs = datas.map((data) => {
-                delete data.id_dun_14;
-                return {
-                  id_dataset: datasetId,
-                  ...data,
-                  productos_descripcion: data.productos_descripcion.replaceAll(
-                    "\t",
-                    " "
-                  ),
-                };
-              });
-              if (!objs.length) {
-                console.error(`No hay datos para el dataset ${dir}`);
-                return;
-              }
-              const keys = Object.keys(objs[0]);
-              console.timeEnd("map");
-              console.time("copy");
-              const writable =
-                await sql`copy precios (${sql.unsafe(keys.join(", "))}) from stdin with CSV DELIMITER E'\t' QUOTE E'\b'`.writable();
 
-              await pipeline(
-                Readable.from(
-                  (async function* () {
-                    for (const data of objs) {
-                      yield keys.map((key) => data[key]).join("\t") + "\n";
-                    }
-                  })()
-                ),
-                writable
-              );
-              console.timeEnd("copy");
-              console.info(`saved ${objs.length} rows`);
-            } catch (e) {
-              reject(e);
-              return;
-            } finally {
-              Bun.gc(true);
-              resolve(void 0);
-            }
-          },
+      console.time("parse");
+
+      const writable =
+        await sql`copy precios (id_dataset, id_comercio, id_bandera, id_sucursal, id_producto, productos_ean, productos_descripcion, productos_cantidad_presentacion, productos_unidad_medida_presentacion, productos_marca, productos_precio_lista, productos_precio_referencia, productos_cantidad_referencia, productos_unidad_medida_referencia, productos_precio_unitario_promo1, productos_leyenda_promo1, productos_precio_unitario_promo2, productos_leyenda_promo2) from stdin with CSV DELIMITER E'\t' QUOTE E'\b'`.writable();
+
+      let rowCount = 0;
+
+      async function* processRows() {
+        const parsedData = Papa.parse(file, {
+          header: true,
           skipEmptyLines: true,
         });
-      });
+
+        for (const data of parsedData.data as any[]) {
+          if (
+            data.id_comercio &&
+            data.id_bandera &&
+            data.id_sucursal &&
+            data.id_producto
+          ) {
+            delete data.id_dun_14;
+            const row = {
+              id_dataset: datasetId,
+              ...data,
+              productos_descripcion: data.productos_descripcion
+                .replaceAll("\t", " ")
+                .trim(),
+              productos_marca: data.productos_marca.trim(),
+            };
+            const values =
+              [
+                row.id_dataset,
+                row.id_comercio,
+                row.id_bandera,
+                row.id_sucursal,
+                row.id_producto,
+                row.productos_ean,
+                row.productos_descripcion,
+                row.productos_cantidad_presentacion,
+                row.productos_unidad_medida_presentacion,
+                row.productos_marca,
+                row.productos_precio_lista,
+                row.productos_precio_referencia,
+                row.productos_cantidad_referencia,
+                row.productos_unidad_medida_referencia,
+                row.productos_precio_unitario_promo1,
+                row.productos_leyenda_promo1,
+                row.productos_precio_unitario_promo2,
+                row.productos_leyenda_promo2,
+              ].join("\t") + "\n";
+
+            rowCount++;
+            yield values;
+          }
+        }
+      }
+
+      const generator = processRows();
+      await pipeline(Readable.from(generator), writable);
+
+      console.timeEnd("parse");
+      console.info(`saved ${rowCount} rows`);
+
+      Bun.gc(true);
     });
   } catch (e) {
     if ((e as any).code == "23505") {
