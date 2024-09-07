@@ -1,17 +1,19 @@
 {
-  "name": "sepa-precios-archiver",
+  "name": "sepa-index-gen",
   "module": "index.ts",
   "type": "module",
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "prettier": "^3.3.3"
   },
   "peerDependencies": {
-    "typescript": "^5.5.4"
+    "typescript": "^5.0.0"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.637.0",
     "@aws-sdk/lib-storage": "^3.637.0",
-    "zod": "^3.23.8",
-    "sepa-index-gen": "workspace:*"
+    "ckan": "workspace:*",
+    "date-fns": "^3.6.0",
+    "zod": "^3.23.8"
   }
 }

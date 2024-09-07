@@ -4,6 +4,7 @@
   "workspaces": [
     "sepa-precios-archiver",
     "sepa-precios-importer",
+    "sepa-index-gen",
     "ckan"
   ]
 }

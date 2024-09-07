@@ -5,6 +5,7 @@ import { basename, extname, join } from "path";
 import { $, write } from "bun";
 import { S3Client, HeadObjectCommand } from "@aws-sdk/client-s3";
 import { Upload } from "@aws-sdk/lib-storage";
+import { generateMarkdown } from "sepa-index-gen";
 
 function checkEnvVariable(variableName: string) {
   const value = process.env[variableName];
@@ -38,29 +39,24 @@ async function getRawDatasetInfo() {
     console.error(
       `❌ Error fetching dataset info`,
       error,
-      `retrying in 5min...`,
+      `retrying in 5min...`
     );
     await new Promise((resolve) => setTimeout(resolve, 5 * 60 * 1000));
     return await getRawDatasetInfo();
   }
 }
-
-async function saveDatasetInfoIntoRepo(datasetInfo: any) {
+async function saveFileIntoRepo(fileName: string, fileContent: string) {
   const dir = await mkdtemp("/tmp/sepa-precios-archiver-metadata-repo-");
   try {
     await $`git clone https://catdevnull:${GITHUB_TOKEN}@github.com/catdevnull/sepa-precios-metadata.git ${dir}`;
-    await writeFile(
-      dir + "/dataset-info.json",
-      JSON.stringify(datasetInfo, null, 2),
-    );
-    await $`cd ${dir} && git add dataset-info.json`;
-    await $`cd ${dir} && git config user.email "git@nulo.in" && git config user.name "github actions"`;
-    await $`cd ${dir} && git diff --staged --quiet || git commit -m "Update dataset info"`;
+    await writeFile(join(dir, fileName), fileContent);
+    await $`cd ${dir} && git add ${fileName}`;
+    await $`cd ${dir} && git diff --staged --quiet || git commit -m "Update ${fileName}"`;
     await $`cd ${dir} && git push origin main`;
   } finally {
     await $`rm -rf ${dir}`;
   }
-  console.log(`✅ Saved dataset info into repo`);
+  console.log(`✅ Saved ${fileName} into repo`);
 }
 
 async function checkFileExistsInB2(fileName: string): Promise<boolean> {
@@ -69,7 +65,7 @@ async function checkFileExistsInB2(fileName: string): Promise<boolean> {
       new HeadObjectCommand({
         Bucket: B2_BUCKET_NAME,
         Key: fileName,
-      }),
+      })
     );
     return true;
   } catch (error) {
@@ -82,7 +78,7 @@ async function checkFileExistsInB2(fileName: string): Promise<boolean> {
 
 async function uploadToB2Bucket(
   fileName: string,
-  fileContent: ReadableStream | Blob | string,
+  fileContent: ReadableStream | Blob | string
 ) {
   const upload = new Upload({
     client: s3,
@@ -98,12 +94,15 @@ async function uploadToB2Bucket(
 
 const rawDatasetInfo = await getRawDatasetInfo();
 
-await saveDatasetInfoIntoRepo(rawDatasetInfo);
+await saveFileIntoRepo(
+  "dataset-info.json",
+  JSON.stringify(rawDatasetInfo, null, 2)
+);
 
 let errored = false;
 
 function checkRes(
-  res: Response,
+  res: Response
 ): res is Response & { body: ReadableStream<Uint8Array> } {
   if (!res.ok) {
     console.error(`❌ Error downloading ${res.url}`);
@@ -116,7 +115,7 @@ function checkRes(
 
 await uploadToB2Bucket(
   `timestamped-metadata/${new Date().toISOString()}.json`,
-  JSON.stringify(rawDatasetInfo, null, 2),
+  JSON.stringify(rawDatasetInfo, null, 2)
 );
 
 const datasetInfo = z.object({ result: zDatasetInfo }).parse(rawDatasetInfo);
@@ -144,7 +143,7 @@ for (const resource of datasetInfo.result.resources) {
 
       await writeFile(
         join(dir, "dataset-info.json"),
-        JSON.stringify(rawDatasetInfo, null, 2),
+        JSON.stringify(rawDatasetInfo, null, 2)
       );
 
       const compressed =
@@ -162,6 +161,8 @@ for (const resource of datasetInfo.result.resources) {
     await uploadToB2Bucket(fileName, response);
   }
 }
+
+await saveFileIntoRepo("index.md", await generateMarkdown());
 
 if (errored) {
   process.exit(1);
