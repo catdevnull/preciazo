@@ -1,11 +1,13 @@
 import * as fs from "fs/promises";
-import { createWriteStream } from "fs";
 import Papa from "papaparse";
 import { basename, join, dirname } from "path";
 import postgres from "postgres";
 import { Readable } from "stream";
 import { pipeline } from "node:stream/promises";
 import { Glob } from "bun";
+import PQueue from "p-queue";
+
+// TODO: verificar que pasa cuando hay varios datasets del mismo día (como los suele haber cuando actualizan el dataset con nuevos comercios)
 
 const sql = postgres({
   database: "sepa-precios",
@@ -244,13 +246,16 @@ async function importDataset(dir: string) {
   }
 }
 
+const pQueue = new PQueue({ concurrency: 4 });
+
 try {
   const glob = new Glob("**/productos.csv");
   for await (const file of glob.scan(process.argv[2])) {
     const dir = join(process.argv[2], dirname(file));
     console.log(dir);
-    await importDataset(dir);
+    pQueue.add(() => importDataset(dir));
   }
 } finally {
+  await pQueue.onIdle();
   await sql.end();
 }
