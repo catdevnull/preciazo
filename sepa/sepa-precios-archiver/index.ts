@@ -50,6 +50,7 @@ async function saveFileIntoRepo(fileName: string, fileContent: string) {
   try {
     await $`git clone https://catdevnull:${GITHUB_TOKEN}@github.com/catdevnull/sepa-precios-metadata.git ${dir}`;
     await writeFile(join(dir, fileName), fileContent);
+    await $`cd ${dir} && git config user.email "git@nulo.in" && git config user.name "github actions"`;
     await $`cd ${dir} && git add ${fileName}`;
     await $`cd ${dir} && git diff --staged --quiet || git commit -m "Update ${fileName}"`;
     await $`cd ${dir} && git push origin main`;
