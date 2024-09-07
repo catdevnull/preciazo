@@ -126,6 +126,7 @@ async function importSucursales(
 }
 
 async function importDataset(dir: string) {
+  console.log(dir);
   const date = basename(dir).match(/(\d{4}-\d{2}-\d{2})/)![1];
   // TODO: parsear "Ultima actualizacion" al final del CSV y insertarlo en la tabla datasets
 
@@ -246,13 +247,12 @@ async function importDataset(dir: string) {
   }
 }
 
-const pQueue = new PQueue({ concurrency: 4 });
+const pQueue = new PQueue({ concurrency: 2 });
 
 try {
   const glob = new Glob("**/productos.csv");
   for await (const file of glob.scan(process.argv[2])) {
     const dir = join(process.argv[2], dirname(file));
-    console.log(dir);
     pQueue.add(() => importDataset(dir));
   }
 } finally {
