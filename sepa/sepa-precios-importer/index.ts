@@ -78,13 +78,23 @@ await sql`
   CREATE INDEX IF NOT EXISTS idx_sucursales_composite ON sucursales (id_dataset, id_comercio, id_bandera, id_sucursal);
 `;
 
+async function readFile(path: string) {
+  // XXX: DORINKA SRL a veces envía archivos con UTF-16.
+  const buffer = await fs.readFile(path, { encoding: null });
+  if (buffer[0] === 0xff && buffer[1] === 0xfe) {
+    return buffer.toString("utf16le");
+  } else {
+    return buffer.toString("utf8");
+  }
+}
+
 async function importSucursales(
   sql: postgres.Sql,
   datasetId: number,
   dir: string
 ) {
   const sucursales: Papa.ParseResult<any> = Papa.parse(
-    await fs.readFile(join(dir, "sucursales.csv"), "utf-8"),
+    await readFile(join(dir, "sucursales.csv")),
     {
       header: true,
     }
@@ -131,7 +141,7 @@ async function importDataset(dir: string) {
       datasetId = res[0].id;
 
       const comercios: Papa.ParseResult<{ comercio_cuit: string }> = Papa.parse(
-        await fs.readFile(join(dir, "comercio.csv"), "utf-8"),
+        await readFile(join(dir, "comercio.csv")),
         { header: true }
       );
       const comercioCuit = comercios.data[0].comercio_cuit;
@@ -139,7 +149,7 @@ async function importDataset(dir: string) {
 
       await importSucursales(sql, datasetId, dir);
 
-      let file = await fs.readFile(join(dir, "productos.csv"), "utf-8");
+      let file = await readFile(join(dir, "productos.csv"));
       // WALL OF SHAME: estos proveedores no saben producir CSVs correctos
       if (comercioCuit == "30612929455") {
         // Libertad S.A.

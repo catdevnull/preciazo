@@ -10,9 +10,9 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
+    "ckan": "workspace:*",
     "p-queue": "^8.0.1",
     "papaparse": "^5.4.1",
-    "postgres": "^3.4.4",
-    "ckan": "workspace:*"
+    "postgres": "^3.4.4"
   }
 }
