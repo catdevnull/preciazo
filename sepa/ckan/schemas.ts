@@ -9,6 +9,7 @@ export const zResource = z.object({
   url: z.string(),
   modified: z.coerce.date().optional(),
   description: z.string(),
+  name: z.string(),
 });
 export type Resource = z.infer<typeof zResource>;
 export const zDatasetInfo = z.object({
