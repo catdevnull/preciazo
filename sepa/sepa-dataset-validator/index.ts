@@ -41,6 +41,10 @@ async function readFiles(dir: string) {
     console.error(`❌ No son UTF-8: ${notUtf8.join(", ")}`);
   }
 
+  if (texts["productos.csv"].includes("\t")) {
+    console.error(`❌ El archivo productos.csv contiene tabs`);
+  }
+
   const csvs = {
     "productos.csv": Papa.parse(texts["productos.csv"], {
       header: true,
@@ -71,12 +75,6 @@ type Files = Awaited<ReturnType<typeof readFiles>>;
 
 // si retorna truthy es un error
 const checkers: Record<string, (files: Files) => boolean | string> = {
-  ["[productos.csv] Hay tabs en productos_descripcion"](files) {
-    return files["productos.csv"].data.every((row) => {
-      if (!("productos_descripcion" in (row as any))) return true;
-      return (row as any).productos_descripcion.includes("\t");
-    });
-  },
   ["[productos.csv] Nombres de columnas correctas"](files) {
     const firstRow = files["productos.csv"].data[0];
     if (!firstRow) return true;
