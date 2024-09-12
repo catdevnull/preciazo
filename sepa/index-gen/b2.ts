@@ -15,19 +15,32 @@ function checkEnvVariable(variableName: string) {
     process.exit(1);
   }
 }
-export const B2_BUCKET_NAME = checkEnvVariable("B2_BUCKET_NAME");
-const B2_BUCKET_KEY_ID = checkEnvVariable("B2_BUCKET_KEY_ID");
-const B2_BUCKET_KEY = checkEnvVariable("B2_BUCKET_KEY");
-export const s3 = new S3Client({
-  endpoint: "https://s3.us-west-004.backblazeb2.com",
-  region: "us-west-004",
-  credentials: {
-    accessKeyId: B2_BUCKET_KEY_ID,
-    secretAccessKey: B2_BUCKET_KEY,
-  },
-});
+function getVariables() {
+  const B2_BUCKET_NAME = checkEnvVariable("B2_BUCKET_NAME");
+  const B2_BUCKET_KEY_ID = checkEnvVariable("B2_BUCKET_KEY_ID");
+  const B2_BUCKET_KEY = checkEnvVariable("B2_BUCKET_KEY");
+
+  return {
+    B2_BUCKET_NAME,
+    B2_BUCKET_KEY_ID,
+    B2_BUCKET_KEY,
+  };
+}
+function getS3Client() {
+  const { B2_BUCKET_NAME, B2_BUCKET_KEY_ID, B2_BUCKET_KEY } = getVariables();
+  return new S3Client({
+    endpoint: "https://s3.us-west-004.backblazeb2.com",
+    region: "us-west-004",
+    credentials: {
+      accessKeyId: B2_BUCKET_KEY_ID,
+      secretAccessKey: B2_BUCKET_KEY,
+    },
+  });
+}
 
 export async function listDirectory(directoryName: string) {
+  const { B2_BUCKET_NAME } = getVariables();
+  const s3 = getS3Client();
   const command = new ListObjectsV2Command({
     Bucket: B2_BUCKET_NAME,
     Prefix: directoryName ? `${directoryName}/` : "",
@@ -39,6 +52,8 @@ export async function listDirectory(directoryName: string) {
 }
 
 export async function getFileContent(fileName: string) {
+  const { B2_BUCKET_NAME } = getVariables();
+  const s3 = getS3Client();
   const fileContent = await s3.send(
     new GetObjectCommand({
       Bucket: B2_BUCKET_NAME,
@@ -49,6 +64,8 @@ export async function getFileContent(fileName: string) {
 }
 
 export async function checkFileExists(fileName: string): Promise<boolean> {
+  const { B2_BUCKET_NAME } = getVariables();
+  const s3 = getS3Client();
   try {
     await s3.send(
       new HeadObjectCommand({
