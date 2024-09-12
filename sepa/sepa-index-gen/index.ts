@@ -17,13 +17,14 @@ export async function generateMarkdown() {
     }))
     .sort((a, b) => +b.date - +a.date);
 
-  let latestResources = new Map<string, Resource>();
+  let latestResources = new Map<string, Resource & { firstSeenAt: Date }>();
 
   for (const { date, resources } of datasetsArray) {
     for (const resource of resources) {
       const id = `${resource.id}-revID-${resource.revision_id}`;
-      if (latestResources.has(id)) continue;
-      latestResources.set(id, resource);
+      const existing = latestResources.get(id);
+      if (existing && existing.firstSeenAt < date) continue;
+      latestResources.set(id, { ...resource, firstSeenAt: date });
     }
   }
 
@@ -133,7 +134,7 @@ esto esta automáticamente generado por sepa-index-gen dentro de preciazo.`;
         warnings +=
           "⁉️⚠️ dia de semana incorrecto, puede haberse subido incorrectamente ";
       }
-      markdown += `\n  * ${id} ${warnings} ${fileExists ? `[✅ descargar](${link})` : "❌"} (${dateTimeFormatter.format(resource.modified)})`;
+      markdown += `\n  * ${id} ${warnings} ${fileExists ? `[✅ descargar](${link})` : "❌"} (primera vez visto: ${dateTimeFormatter.format(resource.firstSeenAt)})`;
     }
   }
 
