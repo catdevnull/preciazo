@@ -3,6 +3,7 @@ import { join } from "path";
 import jschardet from "jschardet";
 import Papa from "papaparse";
 import { Comerico, ProductoSegúnSpec } from "./schemas";
+import { ISO_PROVINCIAS } from "./consts";
 
 const dir = process.argv[2];
 
@@ -112,6 +113,15 @@ const checkers: Record<string, (files: Files) => boolean | string> = {
       );
     const eansUnicos = new Set(productosEnSucursales);
     if (productosEnSucursales.length !== eansUnicos.size) return true;
+    return false;
+  },
+  ["[sucursales.csv] sucursales_provincia no cumple con ISO 3166-2"](files) {
+    const sucursales = files["sucursales.csv"].data;
+    for (const sucursal of sucursales) {
+      if (!(sucursal as any).sucursales_provincia) continue;
+      if (!ISO_PROVINCIAS.includes((sucursal as any).sucursales_provincia))
+        return true;
+    }
     return false;
   },
 };
