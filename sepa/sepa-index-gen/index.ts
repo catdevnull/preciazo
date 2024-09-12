@@ -4,7 +4,16 @@ import { listDirectory } from "./b2";
 import { isSameDay } from "date-fns";
 import { indexResources } from "./index-resources";
 
-export async function generateMarkdown() {
+const IndexEntry = z.object({
+  id: z.string(),
+  warnings: z.string(),
+  name: z.string().optional(),
+  link: z.string().optional(),
+  firstSeenAt: z.string(),
+});
+type IndexEntry = z.infer<typeof IndexEntry>;
+
+export async function generateIndexes() {
   const resourcesIndex = await indexResources();
 
   const datasets = z
@@ -111,6 +120,9 @@ esto esta automáticamente generado por sepa-index-gen dentro de preciazo.`;
     hour: "2-digit",
     minute: "2-digit",
   });
+
+  let jsonIndex: Record<string, IndexEntry[]> = {};
+
   for (const dateStr of dates) {
     const date = new Date(dateStr);
     markdown += `\n* ${formatter.format(date)}:`;
@@ -120,6 +132,7 @@ esto esta automáticamente generado por sepa-index-gen dentro de preciazo.`;
     if (!resourcesInDate.length) {
       markdown += " ❌ no tengo recursos para esta fecha";
     }
+    jsonIndex[dateStr] = [];
     for (const resource of resourcesInDate) {
       const id = `${resource.id}-revID-${resource.revision_id}`;
       const fileExists = fileList.find((file) => file.startsWith(id));
@@ -135,8 +148,16 @@ esto esta automáticamente generado por sepa-index-gen dentro de preciazo.`;
           "⁉️⚠️ dia de semana incorrecto, puede haberse subido incorrectamente ";
       }
       markdown += `\n  * ${id} ${warnings} ${fileExists ? `[✅ descargar](${link})` : "❌"} (primera vez visto: ${dateTimeFormatter.format(resource.firstSeenAt)})`;
+
+      jsonIndex[dateStr].push({
+        id,
+        warnings: warnings.trim(),
+        name: fileExists,
+        link,
+        firstSeenAt: resource.firstSeenAt.toISOString(),
+      });
     }
   }
 
-  return markdown;
+  return { markdown, jsonIndex };
 }

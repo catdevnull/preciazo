@@ -2,10 +2,10 @@ import { z } from "zod";
 import { zDatasetInfo } from "ckan/schemas";
 import { mkdtemp, writeFile, readdir, mkdir, rm } from "fs/promises";
 import { basename, extname, join } from "path";
-import { $, write } from "bun";
+import { $ } from "bun";
 import { S3Client, HeadObjectCommand } from "@aws-sdk/client-s3";
 import { Upload } from "@aws-sdk/lib-storage";
-import { generateMarkdown } from "sepa-index-gen";
+import { generateIndexes } from "sepa-index-gen";
 
 function checkEnvVariable(variableName: string) {
   const value = process.env[variableName];
@@ -162,8 +162,9 @@ for (const resource of datasetInfo.result.resources) {
     await uploadToB2Bucket(fileName, response);
   }
 }
-
-await saveFileIntoRepo("index.md", await generateMarkdown());
+const { markdown, jsonIndex } = await generateIndexes();
+await saveFileIntoRepo("index.md", markdown);
+await saveFileIntoRepo("index.json", JSON.stringify(jsonIndex, null, 2));
 
 if (errored) {
   process.exit(1);
