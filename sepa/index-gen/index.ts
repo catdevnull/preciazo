@@ -1,4 +1,4 @@
-import { zResource, type Resource } from "ckan/schemas";
+import { zResource, type Resource } from "../ckan/schemas";
 import { z } from "zod";
 import { listDirectory } from "./b2";
 import { isSameDay } from "date-fns";

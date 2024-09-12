@@ -1,4 +1,4 @@
-import { zDatasetInfo, type DatasetInfo, type Resource } from "ckan/schemas";
+import { zDatasetInfo, type DatasetInfo, type Resource } from "../ckan/schemas";
 import { getFileContent, listDirectory } from "./b2";
 
 import { basename } from "path";

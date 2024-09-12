@@ -5,7 +5,7 @@ import { basename, extname, join } from "path";
 import { $ } from "bun";
 import { S3Client, HeadObjectCommand } from "@aws-sdk/client-s3";
 import { Upload } from "@aws-sdk/lib-storage";
-import { generateIndexes } from "sepa-index-gen";
+import { generateIndexes } from "./index-gen";
 
 function checkEnvVariable(variableName: string) {
   const value = process.env[variableName];

@@ -4,7 +4,6 @@ import {
   ListObjectsV2Command,
   GetObjectCommand,
 } from "@aws-sdk/client-s3";
-import { Upload } from "@aws-sdk/lib-storage";
 
 function checkEnvVariable(variableName: string) {
   const value = process.env[variableName];

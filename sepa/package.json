@@ -1,11 +1,22 @@
 {
   "name": "sepa",
   "private": true,
-  "workspaces": [
-    "sepa-precios-archiver",
-    "sepa-precios-importer",
-    "sepa-index-gen",
-    "sepa-dataset-validator",
-    "ckan"
-  ]
+  "type": "module",
+  "devDependencies": {
+    "@types/bun": "^1.1.7",
+    "@types/papaparse": "^5.3.14"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.651.0",
+    "@aws-sdk/lib-storage": "^3.651.0",
+    "date-fns": "^3.6.0",
+    "jschardet": "^3.1.3",
+    "p-queue": "^8.0.1",
+    "papaparse": "^5.4.1",
+    "postgres": "^3.4.4",
+    "zod": "^3.23.8"
+  }
 }

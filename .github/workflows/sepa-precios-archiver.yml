@@ -27,6 +27,6 @@ jobs:
           B2_BUCKET_KEY_ID: ${{ secrets.B2_BUCKET_KEY_ID }}
           B2_BUCKET_KEY: ${{ secrets.B2_BUCKET_KEY }}
         run: |
-          cd sepa/sepa-precios-archiver
+          cd sepa
           bun install --frozen-lockfile
-          bun index.ts
+          bun archiver.ts
