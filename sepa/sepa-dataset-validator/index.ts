@@ -100,6 +100,27 @@ const checkers: Record<string, (files: Files) => boolean | string> = {
     }
     return false;
   },
+  ["[productos.csv] hay id_productos no numéricos"](files) {
+    const productos = files["productos.csv"].data;
+    for (const producto of productos) {
+      if (!(producto as any).id_producto) continue;
+      try {
+        const n = Number((producto as any).id_producto);
+        if (isNaN(n)) {
+          console.error(
+            `    El id_producto ${(producto as any).id_producto} parsea a NaN`
+          );
+          return true;
+        }
+      } catch {
+        console.error(
+          `    El id_producto ${(producto as any).id_producto} no es un número`
+        );
+        return true;
+      }
+    }
+    return false;
+  },
   ["Sucursales mencionadas en productos.csv existen en sucursales.csv"](files) {
     const productos = new Set(
       files["productos.csv"].data.map((row) => (row as any).id_sucursal)
