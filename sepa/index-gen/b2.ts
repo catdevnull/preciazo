@@ -8,7 +8,6 @@ import {
 function checkEnvVariable(variableName: string) {
   const value = process.env[variableName];
   if (value) {
-    console.log(`✅ ${variableName} is set`);
     return value;
   } else {
     console.log(`❌ ${variableName} is not set`);
