@@ -4,14 +4,17 @@ import { listDirectory } from "./b2";
 import { isSameDay } from "date-fns";
 import { indexResources } from "./index-resources";
 
-const IndexEntry = z.object({
+export const IndexEntry = z.object({
   id: z.string(),
   warnings: z.string(),
   name: z.string().optional(),
   link: z.string().optional(),
-  firstSeenAt: z.string(),
+  firstSeenAt: z.coerce.date(),
 });
-type IndexEntry = z.infer<typeof IndexEntry>;
+export type IndexEntry = z.infer<typeof IndexEntry>;
+
+export const IndexJson = z.record(z.string(), z.array(IndexEntry));
+export type IndexJson = z.infer<typeof IndexJson>;
 
 export async function generateIndexes() {
   const resourcesIndex = await indexResources();
@@ -121,7 +124,7 @@ esto esta automáticamente generado por sepa-index-gen dentro de preciazo.`;
     minute: "2-digit",
   });
 
-  let jsonIndex: Record<string, IndexEntry[]> = {};
+  let jsonIndex: IndexJson = {};
 
   for (const dateStr of dates) {
     const date = new Date(dateStr);
@@ -154,7 +157,7 @@ esto esta automáticamente generado por sepa-index-gen dentro de preciazo.`;
         warnings: warnings.trim(),
         name: fileExists,
         link,
-        firstSeenAt: resource.firstSeenAt.toISOString(),
+        firstSeenAt: resource.firstSeenAt,
       });
     }
   }
