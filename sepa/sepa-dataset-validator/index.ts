@@ -75,7 +75,7 @@ type Files = Awaited<ReturnType<typeof readFiles>>;
 
 // si retorna truthy es un error
 const checkers: Record<string, (files: Files) => boolean | string> = {
-  ["[productos.csv] Nombres de columnas correctas"](files) {
+  ["[productos.csv] Nombres de columnas incorrectas"](files) {
     const firstRow = files["productos.csv"].data[0];
     if (!firstRow) return true;
     const res = ProductoSegúnSpec.safeParse(firstRow);
@@ -103,6 +103,16 @@ const checkers: Record<string, (files: Files) => boolean | string> = {
       );
     }
     return missing.length > 0;
+  },
+  ["Hay productos duplicados con el mismo EAN"](files) {
+    const productosEnSucursales = files["productos.csv"].data
+      .filter((row: any) => row.productos_ean == 1)
+      .map(
+        (row: any) => `${row.id_bandera}-${row.id_sucursal}-${row.id_producto}`
+      );
+    const eansUnicos = new Set(productosEnSucursales);
+    if (productosEnSucursales.length !== eansUnicos.size) return true;
+    return false;
   },
 };
 
