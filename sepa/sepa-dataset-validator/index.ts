@@ -46,6 +46,20 @@ async function readFiles(dir: string) {
     console.error(`❌ El archivo productos.csv contiene tabs`);
   }
 
+  // XXX: cada uno tiene su interpretación de que tildes tiene cada palabra...
+  // vi varias combinaciones de tildes y sin tildes en los archivos de los datasets
+  // estaría bueno chequearlo para verificar que está según spec
+  const regex =
+    /(?:\r?\n *)?\r?\n(?:[ÚU]ltima actualizaci[oó]n): (.+)(?:\r?\n)*$/iu;
+  for (const [name, text] of Object.entries(texts)) {
+    const matches = text.match(regex);
+    if (!matches) {
+      console.error(`❌ [${name}] No pude encontrar la fecha de actualización`);
+    } else {
+      texts[name as keyof typeof buffers] = text.replace(regex, "");
+    }
+  }
+
   const csvs = {
     "productos.csv": Papa.parse(texts["productos.csv"], {
       header: true,
@@ -62,13 +76,9 @@ async function readFiles(dir: string) {
   console.log(
     `  -> CUIT ${comercio.comercio_cuit}: ${comercio.comercio_razon_social}`
   );
-  // if (Object.values(csvs).some((csv) => csv.errors.length > 0)) {
-  //   console.error(`❌ Errors parsing CSV:`);
-  //   for (const error of Object.values(csvs).flatMap((csv) => csv.errors)) {
-  //     console.error(error);
-  //   }
-  //   process.exit(1);
-  // }
+  if (Object.values(csvs).some((csv) => csv.errors.length > 0)) {
+    console.error(`❌ Hubo errores parseando el CSV`);
+  }
   return csvs;
 }
 
