@@ -161,16 +161,13 @@ async function importDataset(dir: string) {
         // Alberdi S.A.
         file = file.replaceAll(";", "|");
       }
-      if (
-        ["33504047089", "30707429468", "30589621499"].includes(comercioCuit)
-      ) {
+      if (["30707429468", "30589621499"].includes(comercioCuit)) {
         // TODO: si tienen los valores, pero con otros nombres, por ejemplo
         // productos_precio_lista seria precio_unitario_bulto_por_unidad_venta_con_iva.
         // pero no quiero mentir, asi que por ahora no lo importo
-        console.error(
+        throw new Error(
           `No voy a importar el dataset ${dir} porque el formato está mal. Pero se podría importar. Pero por ahora no lo voy a hacer. Véase https://gist.github.com/catdevnull/587d5c63c4bab11b9798861c917db93b`
         );
-        return;
       }
 
       console.time("parse");
