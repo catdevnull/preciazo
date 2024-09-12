@@ -128,9 +128,12 @@ const checkers: Record<string, (files: Files) => boolean | string> = {
   ["[sucursales.csv] sucursales_provincia no cumple con ISO 3166-2"](files) {
     const sucursales = files["sucursales.csv"].data;
     for (const sucursal of sucursales) {
-      if (!(sucursal as any).sucursales_provincia) continue;
-      if (!ISO_PROVINCIAS.includes((sucursal as any).sucursales_provincia))
+      const prov = (sucursal as any).sucursales_provincia;
+      if (!prov) continue;
+      if (!ISO_PROVINCIAS.includes(prov)) {
+        console.error(`    La provincia ${prov} no es válida`);
         return true;
+      }
     }
     return false;
   },
