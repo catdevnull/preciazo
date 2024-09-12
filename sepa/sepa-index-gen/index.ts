@@ -124,7 +124,7 @@ esto esta automáticamente generado por sepa-index-gen dentro de preciazo.`;
       const id = `${resource.id}-revID-${resource.revision_id}`;
       const fileExists = fileList.find((file) => file.startsWith(id));
       const link =
-        fileExists ??
+        fileExists &&
         `https://f004.backblazeb2.com/file/precios-justos-datasets/${fileExists}`;
       let warnings = "";
       if (
