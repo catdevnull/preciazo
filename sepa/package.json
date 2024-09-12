@@ -5,6 +5,7 @@
     "sepa-precios-archiver",
     "sepa-precios-importer",
     "sepa-index-gen",
+    "sepa-dataset-validator",
     "ckan"
   ]
 }
