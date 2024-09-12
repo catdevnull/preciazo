@@ -89,6 +89,21 @@ const checkers: Record<string, (files: Files) => boolean | string> = {
     }
     return false;
   },
+  ["Sucursales mencionadas en productos.csv existen en sucursales.csv"](files) {
+    const productos = new Set(
+      files["productos.csv"].data.map((row) => (row as any).id_sucursal)
+    );
+    const sucursales = new Set(
+      files["sucursales.csv"].data.map((row) => (row as any).id_sucursal)
+    );
+    const missing = [...productos].filter((id) => !sucursales.has(id));
+    if (missing.length > 0) {
+      console.error(
+        `    Las sucursales ${missing.join(", ")} no existen en sucursales.csv`
+      );
+    }
+    return missing.length > 0;
+  },
 };
 
 const content = await fs.promises.readdir(dir);
