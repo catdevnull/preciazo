@@ -1,0 +1,1 @@
+ALTER TABLE "productos_descripcion_index" ADD CONSTRAINT "productos_descripcion_index_productos_descripcion_unique" UNIQUE("productos_descripcion");
