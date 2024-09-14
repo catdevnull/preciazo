@@ -13,5 +13,5 @@
 
 <form class="flex gap-2" on:submit|preventDefault={handleSubmit}>
 	<Input placeholder="Buscar productos" bind:value={search} />
-	<Button>Buscar</Button>
+	<Button type="submit">Buscar</Button>
 </form>
