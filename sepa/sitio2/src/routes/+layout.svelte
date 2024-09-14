@@ -30,7 +30,7 @@
 	<meta property="og:url" content={`https://preciazo.nulo.in${data.pathname}`} />
 	<meta property="og:type" content="website" />
 
-	<meta name="twitter:card" content="summary_large_image" />
+	<meta name="twitter:card" content="summary" />
 	<meta name="twitter:site" content="@esoesnulo" />
 	<meta name="twitter:creator" content="@esoesnulo" />
 	<meta name="twitter:title" content="Preciazo" />
