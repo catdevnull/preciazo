@@ -1,19 +1,33 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import { ArrowLeft } from 'lucide-svelte';
 	import Map from '$lib/components/Map.svelte';
+	import Badge from '$lib/components/ui/badge/badge.svelte';
+	import {} from '$app/navigation';
 
 	export let data: PageData;
+
+	const pesosFormatter = new Intl.NumberFormat('es-AR', {
+		style: 'currency',
+		currency: 'ARS'
+	});
 </script>
 
-<h1>Producto {data.precios[0].productos_descripcion}</h1>
+<div class="flex min-h-screen flex-col">
+	<div class="flex items-stretch gap-3 px-2">
+		<button on:click={() => window.history.back()}>
+			<ArrowLeft class="size-8" />
+		</button>
+		<h1 class="flex items-center gap-2 py-1 text-2xl font-bold">
+			{data.precios[0].productos_descripcion}
+			<Badge>mostrando {data.precios.length} precios</Badge>
+			<Badge variant="outline">EAN {data.id_producto}</Badge>
+		</h1>
+	</div>
 
-<h2>cantidad de precios: {data.precios.length}</h2>
-
-<div class="h-[80vh]">
 	<Map
 		mapMap={(map, L) => {
 			// var markers = L.MarkerClusterGroup();
-
 			const myRenderer = L.canvas({ padding: 0.5 });
 			const prices = data.precios.map((p) => p.productos_precio_lista);
 			const sortedPrices = prices.sort((a, b) => a - b);
@@ -31,31 +45,42 @@
 			// For each row, columns `Latitude`, `Longitude`, and `Title` are required
 			for (const precio of data.precios) {
 				const normalizedPrice = (precio.productos_precio_lista - min) / (max - min);
-				// const l = 0.8 - normalizedPrice * 0.8; // Lightness decreases as price increases
-				// const a = -0.2 + normalizedPrice * 0.4; // Green to red
-				// const b = 0.2 - normalizedPrice * 0.4; // Yellow to blue
-				const color = `color-mix(in lab, yellow, red ${normalizedPrice * 100}%)`;
-				// const color = `oklch(${l} ${Math.sqrt(a * a + b * b)} ${Math.atan2(b, a)})`;
-				// console.log(row)
+				// Safari doesn't support color-mix, so we'll use a fallback
+				const color = getSafeColor(normalizedPrice);
+
+				const createElement = () => {
+					const div = document.createElement('div');
+
+					[
+						`precio: ${pesosFormatter.format(precio.productos_precio_lista)}`,
+						`sucursal: ${precio.sucursales_nombre}`,
+						`descripcion del producto segun el comercio: ${precio.productos_descripcion}`
+					].forEach((text) => {
+						div.append(text);
+						div.append(document.createElement('br'));
+					});
+					return div;
+				};
+
 				var marker = L.circleMarker([precio.sucursales_latitud, precio.sucursales_longitud], {
 					opacity: 1,
 					renderer: myRenderer,
 					color,
 					radius: 5
-					// riseOnHover: false,
-					// riseOffset: 0
 				})
-					.bindPopup(
-						`precio: ${precio.productos_precio_lista}<br>sucursal: ${precio.sucursales_nombre}<br>descripcion: ${precio.productos_descripcion}`
-					)
+					.bindPopup(createElement)
 					.addTo(map);
-				marker.on('click', function(this: L.CircleMarker) {
+				marker.on('click', function (this: L.CircleMarker) {
 					this.openPopup();
 				});
-
-				// markers.addLayer(marker);
 			}
-			// map.addLayer(markers);
+
+			// Helper function to get a color that works in Safari
+			function getSafeColor(normalizedPrice: number) {
+				const r = Math.round(255 * normalizedPrice);
+				const g = Math.round(255 * (1 - normalizedPrice));
+				return `rgb(${r}, ${g}, 0)`;
+			}
 		}}
 	/>
 </div>

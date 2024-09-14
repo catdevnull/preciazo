@@ -9,13 +9,12 @@
 
 	onMount(async () => {
 		const L = await import('leaflet');
-		const L1 = await import('leaflet.markercluster');
 		// Set up initial map center and zoom level
 		map = L.map(mapEl, {
 			center: [-34.599722222222, -58.381944444444], // EDIT latitude, longitude to re-center map
 			zoom: 9, // EDIT from 1 to 18 -- decrease to zoom out, increase to zoom in
-			scrollWheelZoom: true, // Changed to true to enable zoom with scrollwheel
-			tap: false
+			scrollWheelZoom: true // Changed to true to enable zoom with scrollwheel
+			// tap: false
 		});
 
 		/* Control panel to display map layers */
@@ -38,12 +37,19 @@
 	});
 </script>
 
-<div class="map" bind:this={mapEl}></div>
+<div class="wrapper flex-auto">
+	<div class="map" bind:this={mapEl}></div>
+</div>
 
 <style>
 	.map {
 		width: 100%;
 		height: 100%;
-		min-height: 500px;
+		position: absolute !important;
+	}
+	.wrapper {
+		position: relative;
+		width: 100%;
+		height: 100%;
 	}
 </style>

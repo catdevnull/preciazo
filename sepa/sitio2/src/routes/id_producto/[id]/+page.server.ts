@@ -3,6 +3,7 @@ import type { PageServerLoad } from './$types';
 import { precios, sucursales } from '$lib/server/db/schema';
 import { and, eq, sql } from 'drizzle-orm';
 export const load: PageServerLoad = async ({ params }) => {
+	const id = BigInt(params.id);
 	const preciosRes = await db
 		.select({
 			id_comercio: precios.id_comercio,
@@ -13,7 +14,7 @@ export const load: PageServerLoad = async ({ params }) => {
 			productos_descripcion: precios.productos_descripcion,
 			sucursales_latitud: sucursales.sucursales_latitud,
 			sucursales_longitud: sucursales.sucursales_longitud,
-			sucursales_nombre: sucursales.sucursales_nombre,
+			sucursales_nombre: sucursales.sucursales_nombre
 		})
 		.from(precios)
 		.where(
@@ -33,7 +34,14 @@ ORDER BY d1.id_comercio)
 				`
 			)
 		)
-		.leftJoin(sucursales, and(eq(sucursales.id_dataset, precios.id_dataset), eq(sucursales.id_sucursal, precios.id_sucursal), eq(sucursales.id_comercio, precios.id_comercio)));
+		.leftJoin(
+			sucursales,
+			and(
+				eq(sucursales.id_dataset, precios.id_dataset),
+				eq(sucursales.id_sucursal, precios.id_sucursal),
+				eq(sucursales.id_comercio, precios.id_comercio)
+			)
+		);
 
 	// 	const precios = await sql<
 	// 		{
@@ -84,11 +92,12 @@ ORDER BY d1.id_comercio)
 	//   `;
 
 	return {
-		precios:preciosRes.map(p => ({
+		precios: preciosRes.map((p) => ({
 			...p,
 			productos_precio_lista: parseFloat(p.productos_precio_lista ?? '0'),
 			sucursales_latitud: parseFloat(p.sucursales_latitud ?? '0'),
-			sucursales_longitud: parseFloat(p.sucursales_longitud ?? '0'),
-		}))
+			sucursales_longitud: parseFloat(p.sucursales_longitud ?? '0')
+		})),
+		id_producto: id
 	};
 };
