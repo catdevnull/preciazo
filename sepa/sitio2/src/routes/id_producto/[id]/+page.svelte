@@ -54,9 +54,20 @@
 					[
 						`precio: ${pesosFormatter.format(precio.productos_precio_lista)}`,
 						`sucursal: ${precio.sucursales_nombre}`,
+						`dirección: ${precio.sucursales_calle} ${precio.sucursales_numero}`,
+						() => {
+							const a = document.createElement('a');
+							const params = new URLSearchParams({
+								query: `${precio.sucursales_calle} ${precio.sucursales_numero}`
+							});
+							a.href = `https://www.google.com/maps/search/?api=1&${params.toString()}`;
+							a.target = '_blank';
+							a.append('ver en Google Maps');
+							return a;
+						},
 						`descripcion del producto segun el comercio: ${precio.productos_descripcion}`
-					].forEach((text) => {
-						div.append(text);
+					].forEach((el) => {
+						div.append(typeof el === 'function' ? el() : el);
 						div.append(document.createElement('br'));
 					});
 					return div;

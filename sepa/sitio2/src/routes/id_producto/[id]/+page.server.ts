@@ -14,7 +14,9 @@ export const load: PageServerLoad = async ({ params }) => {
 			productos_descripcion: precios.productos_descripcion,
 			sucursales_latitud: sucursales.sucursales_latitud,
 			sucursales_longitud: sucursales.sucursales_longitud,
-			sucursales_nombre: sucursales.sucursales_nombre
+			sucursales_nombre: sucursales.sucursales_nombre,
+			sucursales_calle: sucursales.sucursales_calle,
+			sucursales_numero: sucursales.sucursales_numero
 		})
 		.from(precios)
 		.where(
