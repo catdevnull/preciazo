@@ -20,27 +20,27 @@ WORKDIR /usr/src/app
 # RUN cd /temp/prod/sitio2 && bun install --frozen-lockfile --production
 
 # copy node_modules from temp directory
-# # then copy all (non-ignored) project files into the image
-# FROM base AS prerelease
-# # COPY --from=install /temp/dev/node_modules node_modules
-# COPY . .
-# COPY db/schema.ts sitio2/src/lib/server/db/schema.ts
-# RUN cd sitio2 && bun install --frozen-lockfile
+# then copy all (non-ignored) project files into the image
+FROM base AS prerelease
+# COPY --from=install /temp/dev/node_modules node_modules
+COPY . .
+COPY db/schema.ts sitio2/src/lib/server/db/schema.ts
+RUN cd sitio2 && bun install --frozen-lockfile
 
-# ARG DATABASE_URL
+ARG DATABASE_URL
 
-# # [optional] tests & build
-# ENV NODE_ENV=production
-# ENV DATABASE_URL=$DATABASE_URL
+# [optional] tests & build
+ENV NODE_ENV=production
+ENV DATABASE_URL=$DATABASE_URL
 
-# # RUN bun test
-# RUN cd sitio2 && bun --bun run build
+# RUN bun test
+RUN cd sitio2 && env DATABASE_URL="postgres://user:password@host:5432/db-name" bun run build
 
 # copy production dependencies and source code into final image
 FROM base AS release
 # COPY --from=prerelease /usr/src/app/node_modules node_modules
-# COPY --from=prerelease /usr/src/app/sitio2/build .
-COPY sitio2/build .
+COPY --from=prerelease /usr/src/app/sitio2/build .
+# COPY sitio2/build .
 RUN bun install --frozen-lockfile
 
 ARG DATABASE_URL
