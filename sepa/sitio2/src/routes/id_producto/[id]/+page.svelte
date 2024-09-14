@@ -18,15 +18,17 @@
 </svelte:head>
 
 <div class="flex min-h-screen flex-col">
-	<div class="flex items-stretch gap-3 px-2">
+	<div class="max-w-screen flex items-stretch gap-3 overflow-hidden px-2">
 		<button on:click={() => window.history.back()}>
-			<ArrowLeft class="size-8" />
+			<ArrowLeft class="size-8 flex-shrink-0" />
 		</button>
-		<h1 class="flex items-center gap-2 py-1 text-2xl font-bold">
-			{data.precios[0].productos_descripcion}
-			<Badge>mostrando {data.precios.length} precios</Badge>
+		<div class="flex flex-wrap items-center gap-x-2 overflow-hidden p-1">
+			<h1 class="overflow-hidden text-ellipsis whitespace-nowrap pb-1 text-2xl font-bold">
+				{data.precios[0].productos_descripcion}
+			</h1>
+			<Badge>{data.precios.length} precios</Badge>
 			<Badge variant="outline">EAN {data.id_producto}</Badge>
-		</h1>
+		</div>
 	</div>
 
 	<Map
