@@ -41,6 +41,7 @@
 	},
 	"type": "module",
 	"dependencies": {
+		"@maplibre/maplibre-gl-leaflet": "^0.0.22",
 		"@sentry/sveltekit": "^8.30.0",
 		"@types/node": "^22.5.0",
 		"bits-ui": "^0.21.13",
@@ -49,6 +50,7 @@
 		"leaflet": "^1.9.4",
 		"leaflet.markercluster": "^1.5.3",
 		"lucide-svelte": "^0.441.0",
+		"maplibre-gl": "^4.7.0",
 		"postgres": "^3.4.4",
 		"tailwind-merge": "^2.5.2",
 		"tailwind-variants": "^0.2.1"

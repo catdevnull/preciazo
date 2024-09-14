@@ -1,33 +1,41 @@
 <!doctype html>
 <html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" href="%sveltekit.assets%/favicon.png" />
+		<meta
+			name="viewport"
+			content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+		/>
 
-<head>
-	<meta charset="utf-8" />
-	<link rel="icon" href="%sveltekit.assets%/favicon.png" />
-	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+		<title>Preciazo</title>
+		<meta
+			name="description"
+			content="Busca precios de productos en distintas cadenas de supermercados en Argentina."
+		/>
+		<meta content="index, follow" name="robots" />
+		<meta property="og:title" content="Preciazo" />
+		<meta
+			property="og:description"
+			content="Busca precios de productos en distintas cadenas de supermercados en Argentina."
+		/>
+		<meta property="og:image" content="https://preciazo.nulo.in/favicon.png" />
+		<meta property="og:url" content="https://preciazo.nulo.in" />
+		<meta property="og:type" content="website" />
 
-	<title>Preciazo</title>
-	<meta name="description" content="Busca precios de productos en distintas cadenas de supermercados en Argentina." />
-	<meta content="index, follow" name="robots" />
-	<meta property="og:title" content="Preciazo" />
-	<meta property="og:description"
-		content="Busca precios de productos en distintas cadenas de supermercados en Argentina." />
-	<meta property="og:image" content="https://preciazo.nulo.in/favicon.png" />
-	<meta property="og:url" content={`https://preciazo.nulo.in${data.pathname}`} />
-	<meta property="og:type" content="website" />
+		<meta name="twitter:card" content="summary" />
+		<meta name="twitter:site" content="@esoesnulo" />
+		<meta name="twitter:title" content="Preciazo" />
+		<meta
+			name="twitter:description"
+			content="Busca precios de productos en distintas cadenas de supermercados en Argentina."
+		/>
+		<meta name="twitter:image" content="https://preciazo.nulo.in/favicon.png" />
 
-	<meta name="twitter:card" content="summary" />
-	<meta name="twitter:site" content="@esoesnulo" />
-	<meta name="twitter:title" content="Preciazo" />
-	<meta name="twitter:description"
-		content="Busca precios de productos en distintas cadenas de supermercados en Argentina." />
-	<meta name="twitter:image" content="https://preciazo.nulo.in/favicon.png" />
+		%sveltekit.head%
+	</head>
 
-	%sveltekit.head%
-</head>
-
-<body data-sveltekit-preload-data="hover">
-	<div style="display: contents">%sveltekit.body%</div>
-</body>
-
+	<body data-sveltekit-preload-data="hover">
+		<div style="display: contents">%sveltekit.body%</div>
+	</body>
 </html>
