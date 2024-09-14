@@ -26,8 +26,19 @@
 		property="og:description"
 		content="Busca precios de productos en distintas cadenas de supermercados en Argentina."
 	/>
-	<meta property="og:url" content={`https://sitio2preciazoexperimento.nulo.in${data.pathname}`} />
+	<meta property="og:image" content="https://preciazo.nulo.in/favicon.png" />
+	<meta property="og:url" content={`https://preciazo.nulo.in${data.pathname}`} />
 	<meta property="og:type" content="website" />
+
+	<meta name="twitter:card" content="summary_large_image" />
+	<meta name="twitter:site" content="@esoesnulo" />
+	<meta name="twitter:creator" content="@esoesnulo" />
+	<meta name="twitter:title" content="Preciazo" />
+	<meta
+		name="twitter:description"
+		content="Busca precios de productos en distintas cadenas de supermercados en Argentina."
+	/>
+	<meta name="twitter:image" content="https://preciazo.nulo.in/favicon.png" />
 </svelte:head>
 
 <!-- {#key data.pathname}
