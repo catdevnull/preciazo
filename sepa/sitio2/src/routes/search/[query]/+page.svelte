@@ -10,6 +10,10 @@
 	export let data: PageData;
 </script>
 
+<svelte:head>
+	<title>Resultados para "{data.query}" - Preciazo</title>
+</svelte:head>
+
 <div class="mx-auto max-w-screen-sm p-4">
 	<Button on:click={() => goto('/')} class="mb-2 gap-1" variant="outline">
 		<ArrowLeft />

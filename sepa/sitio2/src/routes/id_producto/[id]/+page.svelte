@@ -13,6 +13,10 @@
 	});
 </script>
 
+<svelte:head>
+	<title>{data.precios[0].productos_descripcion} - Preciazo</title>
+</svelte:head>
+
 <div class="flex min-h-screen flex-col">
 	<div class="flex items-stretch gap-3 px-2">
 		<button on:click={() => window.history.back()}>

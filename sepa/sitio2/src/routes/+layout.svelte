@@ -14,6 +14,20 @@
 			data-website-id="3d9215d1-f15c-4797-abff-d621da254930"
 		></script>
 	{/if}
+
+	<title>Preciazo</title>
+	<meta
+		name="description"
+		content="Busca precios de productos en distintas cadenas de supermercados en Argentina."
+	/>
+	<meta content="index, follow" name="robots" />
+	<meta property="og:title" content="Preciazo" />
+	<meta
+		property="og:description"
+		content="Busca precios de productos en distintas cadenas de supermercados en Argentina."
+	/>
+	<meta property="og:url" content={`https://sitio2preciazoexperimento.nulo.in${data.pathname}`} />
+	<meta property="og:type" content="website" />
 </svelte:head>
 
 <!-- {#key data.pathname}
