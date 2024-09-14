@@ -2,7 +2,7 @@ import { db } from '$lib/server/db';
 import type { PageServerLoad } from './$types';
 import { datasets, precios, sucursales } from '$lib/server/db/schema';
 import { and, eq, sql } from 'drizzle-orm';
-export const load: PageServerLoad = async ({ params }) => {
+export const load: PageServerLoad = async ({ params, setHeaders }) => {
 	const id = BigInt(params.id);
 	const preciosRes = await db
 		.select({
@@ -46,6 +46,10 @@ ORDER BY d1.id_comercio)
 			)
 		)
 		.leftJoin(datasets, eq(datasets.id, precios.id_dataset));
+
+	setHeaders({
+		'Cache-Control': 'public, max-age=600'
+	});
 
 	// 	const precios = await sql<
 	// 		{

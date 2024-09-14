@@ -2,7 +2,7 @@ import { db } from '$lib/server/db';
 import { sql } from 'drizzle-orm';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ params }) => {
+export const load: PageServerLoad = async ({ params, setHeaders }) => {
 	// const latestDatasetsSq =  db.$with('latest_datasets').as(
 	// 	db.select({
 	// 		id: datasets.id,
@@ -74,6 +74,10 @@ WHERE p.id_producto = index.id_producto) as in_datasets_count
 			in_datasets_count: number;
 		}>
 	);
+
+	setHeaders({
+		'Cache-Control': 'public, max-age=600'
+	});
 
 	// 		'latest_datasets',
 	// 		sql`
