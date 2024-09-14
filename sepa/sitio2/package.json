@@ -41,9 +41,12 @@
 	"type": "module",
 	"dependencies": {
 		"@types/node": "^22.5.0",
+		"clsx": "^2.1.1",
 		"drizzle-orm": "^0.33.0",
 		"leaflet": "^1.9.4",
 		"leaflet.markercluster": "^1.5.3",
-		"postgres": "^3.4.4"
+		"postgres": "^3.4.4",
+		"tailwind-merge": "^2.5.2",
+		"tailwind-variants": "^0.2.1"
 	}
 }
