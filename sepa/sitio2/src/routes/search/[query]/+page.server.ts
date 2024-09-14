@@ -16,11 +16,17 @@ export const load: PageServerLoad = async ({ params }) => {
 	// 		// 'datasets.id_comercio = latest_datasets.id_comercio AND datasets.date = latest_datasets.max_date'
 	// 	))
 
-	const query = params.query;
+	const query = params.query
+		.replaceAll(/á/giu, 'a')
+		.replaceAll(/é/giu, 'e')
+		.replaceAll(/í/giu, 'i')
+		.replaceAll(/ó/giu, 'o')
+		.replaceAll(/ú/giu, 'u')
+		.replaceAll(/ñ/giu, 'n');
 	const productos = await db.execute<{
 		id_producto: string;
 		productos_descripcion: string;
-		productos_marca: string;
+		productos_marca: string | null;
 		in_datasets_count: number;
 	}>(sql`
 		SELECT id_producto, productos_descripcion, productos_marca,
@@ -46,7 +52,7 @@ WHERE p.id_producto = index.id_producto) as in_datasets_count
 			const existingProduct = acc.find((p) => p.id_producto === producto.id_producto);
 			if (existingProduct) {
 				existingProduct.descriptions.push(producto.productos_descripcion);
-				existingProduct.marcas.add(producto.productos_marca);
+				if (producto.productos_marca) existingProduct.marcas.add(producto.productos_marca);
 				existingProduct.in_datasets_count = Math.max(
 					existingProduct.in_datasets_count,
 					producto.in_datasets_count
@@ -55,7 +61,7 @@ WHERE p.id_producto = index.id_producto) as in_datasets_count
 				acc.push({
 					id_producto: producto.id_producto,
 					descriptions: [producto.productos_descripcion],
-					marcas: new Set([producto.productos_marca]),
+					marcas: new Set(producto.productos_marca ? [producto.productos_marca] : []),
 					in_datasets_count: producto.in_datasets_count
 				});
 			}
