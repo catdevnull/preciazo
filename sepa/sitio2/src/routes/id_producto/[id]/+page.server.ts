@@ -2,6 +2,7 @@ import { db } from '$lib/server/db';
 import type { PageServerLoad } from './$types';
 import { datasets, precios, sucursales } from '$lib/server/db/schema';
 import { and, eq, sql } from 'drizzle-orm';
+import { error } from '@sveltejs/kit';
 export const load: PageServerLoad = async ({ params, setHeaders }) => {
 	const id = BigInt(params.id);
 	const preciosRes = await db
@@ -50,6 +51,10 @@ ORDER BY d1.id_comercio)
 	setHeaders({
 		'Cache-Control': 'public, max-age=600'
 	});
+
+	if (preciosRes.length == 0) {
+		return error(404, `Producto ${params.id} no encontrado`);
+	}
 
 	// 	const precios = await sql<
 	// 		{
