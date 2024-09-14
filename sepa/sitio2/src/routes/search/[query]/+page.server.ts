@@ -3,7 +3,6 @@ import { sql } from 'drizzle-orm';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params }) => {
-
 	// const latestDatasetsSq =  db.$with('latest_datasets').as(
 	// 	db.select({
 	// 		id: datasets.id,
@@ -18,11 +17,13 @@ export const load: PageServerLoad = async ({ params }) => {
 	// 	))
 
 	const query = params.query;
-	const productos = await db.execute(sql`
-		SELECT id_producto, productos_descripcion, productos_marca
-		FROM productos_descripcion_index index
-		WHERE productos_descripcion ILIKE ${`%${query}%`}
-		ORDER BY 
+	const productos = await db.execute<{
+		id_producto: string;
+		productos_descripcion: string;
+		productos_marca: string;
+		in_datasets_count: number;
+	}>(sql`
+		SELECT id_producto, productos_descripcion, productos_marca,
 (WITH latest_datasets AS (
   SELECT d1.id
   FROM datasets d1
@@ -34,41 +35,73 @@ export const load: PageServerLoad = async ({ params }) => {
 )SELECT COUNT(DISTINCT p.id_dataset) as dataset_count
 FROM precios p
 JOIN latest_datasets ld ON p.id_dataset = ld.id
-WHERE p.id_producto = index.id_producto) desc
-	`)
-// 		'latest_datasets',
-// 		sql`
-// WITH latest_datasets AS (
-//   SELECT d1.id
-//   FROM datasets d1
-//   JOIN (
-//     SELECT id_comercio, MAX(date) as max_date
-//     FROM datasets
-//     GROUP BY id_comercio
-//   ) d2 ON d1.id_comercio = d2.id_comercio AND d1.date = d2.max_date
-// )`
-// 		.select({
-// 			id_producto: productos_descripcion_index.id_producto,
-// 			productos_descripcion: productos_descripcion_index.productos_descripcion,
-// 			productos_marca: productos_descripcion_index.productos_marca,
-// 		})
-// 		.from(productos_descripcion_index)
-// 		.where(ilike(productos_descripcion_index.productos_descripcion, `%${query}%`))
-// 		.orderBy(sql`
-// WITH latest_datasets AS (
-//   SELECT d1.id
-//   FROM datasets d1
-//   JOIN (
-//     SELECT id_comercio, MAX(date) as max_date
-//     FROM datasets
-//     GROUP BY id_comercio
-//   ) d2 ON d1.id_comercio = d2.id_comercio AND d1.date = d2.max_date
-// )
-// SELECT COUNT(DISTINCT p.id_dataset) as dataset_count
-// FROM precios p
-// JOIN latest_datasets ld ON p.id_dataset = ld.id
-// WHERE p.id_producto = ${productos_descripcion_index.id_producto}`);
-	return { productos };
+WHERE p.id_producto = index.id_producto) as in_datasets_count
+		FROM productos_descripcion_index index
+		WHERE productos_descripcion ILIKE ${`%${query}%`}
+		ORDER BY in_datasets_count desc
+		LIMIT 100
+	`);
+	const collapsedProductos = productos.reduce(
+		(acc, producto) => {
+			const existingProduct = acc.find((p) => p.id_producto === producto.id_producto);
+			if (existingProduct) {
+				existingProduct.descriptions.push(producto.productos_descripcion);
+				existingProduct.marcas.add(producto.productos_marca);
+				existingProduct.in_datasets_count = Math.max(
+					existingProduct.in_datasets_count,
+					producto.in_datasets_count
+				);
+			} else {
+				acc.push({
+					id_producto: producto.id_producto,
+					descriptions: [producto.productos_descripcion],
+					marcas: new Set([producto.productos_marca]),
+					in_datasets_count: producto.in_datasets_count
+				});
+			}
+			return acc;
+		},
+		[] as Array<{
+			id_producto: string;
+			descriptions: string[];
+			marcas: Set<string>;
+			in_datasets_count: number;
+		}>
+	);
+
+	// 		'latest_datasets',
+	// 		sql`
+	// WITH latest_datasets AS (
+	//   SELECT d1.id
+	//   FROM datasets d1
+	//   JOIN (
+	//     SELECT id_comercio, MAX(date) as max_date
+	//     FROM datasets
+	//     GROUP BY id_comercio
+	//   ) d2 ON d1.id_comercio = d2.id_comercio AND d1.date = d2.max_date
+	// )`
+	// 		.select({
+	// 			id_producto: productos_descripcion_index.id_producto,
+	// 			productos_descripcion: productos_descripcion_index.productos_descripcion,
+	// 			productos_marca: productos_descripcion_index.productos_marca,
+	// 		})
+	// 		.from(productos_descripcion_index)
+	// 		.where(ilike(productos_descripcion_index.productos_descripcion, `%${query}%`))
+	// 		.orderBy(sql`
+	// WITH latest_datasets AS (
+	//   SELECT d1.id
+	//   FROM datasets d1
+	//   JOIN (
+	//     SELECT id_comercio, MAX(date) as max_date
+	//     FROM datasets
+	//     GROUP BY id_comercio
+	//   ) d2 ON d1.id_comercio = d2.id_comercio AND d1.date = d2.max_date
+	// )
+	// SELECT COUNT(DISTINCT p.id_dataset) as dataset_count
+	// FROM precios p
+	// JOIN latest_datasets ld ON p.id_dataset = ld.id
+	// WHERE p.id_producto = ${productos_descripcion_index.id_producto}`);
+	return { productos, collapsedProductos, query };
 	// 	const precios = await sql<
 	// 		{
 	// 			id_producto: string;
