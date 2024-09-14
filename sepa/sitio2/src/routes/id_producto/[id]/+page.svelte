@@ -52,6 +52,7 @@
 					const div = document.createElement('div');
 
 					[
+						`fecha del precio: ${precio.dataset_date}`,
 						`precio: ${pesosFormatter.format(precio.productos_precio_lista)}`,
 						`sucursal: ${precio.sucursales_nombre}`,
 						`dirección: ${precio.sucursales_calle} ${precio.sucursales_numero}`,

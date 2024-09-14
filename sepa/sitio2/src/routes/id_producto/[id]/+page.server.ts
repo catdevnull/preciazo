@@ -1,6 +1,6 @@
 import { db } from '$lib/server/db';
 import type { PageServerLoad } from './$types';
-import { precios, sucursales } from '$lib/server/db/schema';
+import { datasets, precios, sucursales } from '$lib/server/db/schema';
 import { and, eq, sql } from 'drizzle-orm';
 export const load: PageServerLoad = async ({ params }) => {
 	const id = BigInt(params.id);
@@ -16,7 +16,8 @@ export const load: PageServerLoad = async ({ params }) => {
 			sucursales_longitud: sucursales.sucursales_longitud,
 			sucursales_nombre: sucursales.sucursales_nombre,
 			sucursales_calle: sucursales.sucursales_calle,
-			sucursales_numero: sucursales.sucursales_numero
+			sucursales_numero: sucursales.sucursales_numero,
+			dataset_date: datasets.date
 		})
 		.from(precios)
 		.where(
@@ -43,7 +44,8 @@ ORDER BY d1.id_comercio)
 				eq(sucursales.id_sucursal, precios.id_sucursal),
 				eq(sucursales.id_comercio, precios.id_comercio)
 			)
-		);
+		)
+		.leftJoin(datasets, eq(datasets.id, precios.id_dataset));
 
 	// 	const precios = await sql<
 	// 		{
