@@ -61,6 +61,7 @@ async function importSucursales(
 async function importDataset(dir: string) {
   console.log(dir);
   const date = basename(dir).match(/(\d{4}-\d{2}-\d{2})/)![1];
+  const id_comercio = basename(dir).match(/comercio-sepa-(\d+)/)![1];
   // TODO: parsear "Ultima actualizacion" al final del CSV y insertarlo en la tabla datasets
 
   // {
@@ -73,7 +74,7 @@ async function importDataset(dir: string) {
     await sql.begin(async (sql) => {
       let datasetId: number;
       const res =
-        await sql`insert into datasets (name, date) values (${basename(dir)}, ${date}) returning id`;
+        await sql`insert into datasets (name, date, id_comercio) values (${basename(dir)}, ${date}, ${id_comercio}) returning id`;
       datasetId = res[0].id;
 
       const comercios: Papa.ParseResult<{ comercio_cuit: string }> = Papa.parse(
