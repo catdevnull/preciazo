@@ -44,7 +44,10 @@
 				<Card.Root class="transition-colors duration-200 hover:bg-gray-100">
 					<Card.Header class="block px-3 py-2 pb-0">
 						<Badge>{parseMarcas(Array.from(producto.marcas)).join('/')}</Badge>
-						<Badge variant="outline">en {producto.in_datasets_count} cadenas</Badge>
+						<Badge variant="outline"
+							>en
+							{producto.in_datasets_count} cadena{#if producto.in_datasets_count > 1}s{/if}
+						</Badge>
 						<Badge variant="outline">EAN {producto.id_producto}</Badge>
 					</Card.Header>
 					<Card.Content class="px-3 py-2">
