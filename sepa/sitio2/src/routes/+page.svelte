@@ -24,7 +24,10 @@
 			rel="noopener noreferrer">Nulo</a
 		>. usa la base de datos abierta
 		<a href="https://datos.produccion.gob.ar/dataset/sepa-precios">Precios Claros - Base SEPA</a>
-		del Ministerio de Economía. podes contactarme en
+		del Ministerio de Economía. el código fuente está
+		<a href="https://github.com/catdevnull/preciazo" target="_blank" rel="noopener noreferrer"
+			>disponible en github</a
+		>. podes contactarme en
 		<a href="mailto:hola@nulo.in">hola@nulo.in</a>. twitter:
 		<a href="https://x.com/esoesnulo" target="_blank" rel="noopener noreferrer">@esoesnulo</a>.
 	</footer>
