@@ -23,6 +23,7 @@ jobs:
       - name: Run archiver script
         env:
           GITHUB_TOKEN: ${{ secrets.ARCHIVE_GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PRECIAZO_TOKEN }}
           B2_BUCKET_NAME: ${{ secrets.B2_BUCKET_NAME }}
           B2_BUCKET_KEY_ID: ${{ secrets.B2_BUCKET_KEY_ID }}
           B2_BUCKET_KEY: ${{ secrets.B2_BUCKET_KEY }}

@@ -32,17 +32,25 @@ const s3 = new S3Client({
   },
 });
 
-async function getRawDatasetInfo() {
+async function getRawDatasetInfo(attempts = 0) {
   try {
     return await $`curl -L https://datos.produccion.gob.ar/api/3/action/package_show?id=sepa-precios`.json();
   } catch (error) {
+    if (attempts >= 4) {
+      console.error(`❌ Error fetching dataset info`, error);
+      if (process.env.GITHUB_RUN_ID) {
+        console.info(`🔄 Retrying action`);
+        await $`gh run rerun ${process.env.GITHUB_RUN_ID} --workflow sepa-precios-archiver`;
+      }
+      process.exit(1);
+    }
     console.error(
       `❌ Error fetching dataset info`,
       error,
-      `retrying in 5min...`
+      `retrying in 30s...`
     );
-    await new Promise((resolve) => setTimeout(resolve, 5 * 60 * 1000));
-    return await getRawDatasetInfo();
+    await new Promise((resolve) => setTimeout(resolve, 30 * 1000));
+    return await getRawDatasetInfo(attempts + 1);
   }
 }
 async function saveFileIntoRepo(fileName: string, fileContent: string) {
