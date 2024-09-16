@@ -1,6 +1,7 @@
 import { db } from '$lib/server/db';
 import { sql } from 'drizzle-orm';
 import type { PageServerLoad } from './$types';
+import * as Sentry from '@sentry/sveltekit';
 
 export const load: PageServerLoad = async ({ params, setHeaders }) => {
 	// const latestDatasetsSq =  db.$with('latest_datasets').as(
@@ -23,12 +24,7 @@ export const load: PageServerLoad = async ({ params, setHeaders }) => {
 		.replaceAll(/ó/giu, 'o')
 		.replaceAll(/ú/giu, 'u')
 		.replaceAll(/ñ/giu, 'n');
-	const productos = await db.execute<{
-		id_producto: string;
-		productos_descripcion: string;
-		productos_marca: string | null;
-		in_datasets_count: number;
-	}>(sql`
+	const productosQuery = sql`
 		SELECT id_producto, productos_descripcion, productos_marca,
 (WITH latest_datasets AS (
   SELECT d1.id
@@ -46,7 +42,22 @@ WHERE p.id_producto = index.id_producto) as in_datasets_count
 		WHERE productos_descripcion ILIKE ${`%${query}%`}
 		ORDER BY in_datasets_count desc
 		LIMIT 100
-	`);
+	`;
+	const productos = await Sentry.startSpan(
+		{
+			op: 'db.query',
+			name: productosQuery,
+			data: { 'db.system': 'postgresql' }
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		} as any,
+		() =>
+			db.execute<{
+				id_producto: string;
+				productos_descripcion: string;
+				productos_marca: string | null;
+				in_datasets_count: number;
+			}>(productosQuery)
+	);
 	const collapsedProductos = productos.reduce(
 		(acc, producto) => {
 			const existingProduct = acc.find((p) => p.id_producto === producto.id_producto);

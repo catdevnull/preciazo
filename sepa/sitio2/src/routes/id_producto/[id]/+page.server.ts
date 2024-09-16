@@ -3,9 +3,10 @@ import type { PageServerLoad } from './$types';
 import { datasets, precios, sucursales } from '$lib/server/db/schema';
 import { and, eq, sql } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
+import * as Sentry from '@sentry/sveltekit';
 export const load: PageServerLoad = async ({ params, setHeaders }) => {
 	const id = BigInt(params.id);
-	const preciosRes = await db
+	const preciosQuery = db
 		.select({
 			id_comercio: precios.id_comercio,
 			id_bandera: precios.id_bandera,
@@ -47,6 +48,15 @@ ORDER BY d1.id_comercio)
 			)
 		)
 		.leftJoin(datasets, eq(datasets.id, precios.id_dataset));
+	const preciosRes = await Sentry.startSpan(
+		{
+			op: 'db.query',
+			name: preciosQuery.toSQL().sql,
+			data: { 'db.system': 'postgresql' }
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		} as any,
+		() => preciosQuery
+	);
 
 	setHeaders({
 		'Cache-Control': 'public, max-age=600'
