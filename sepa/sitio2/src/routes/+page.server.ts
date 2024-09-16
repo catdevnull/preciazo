@@ -10,17 +10,19 @@ export const load: PageServerLoad = async ({ setHeaders }) => {
   WHERE relname = 'precios';
   `;
 	// https://github.com/getsentry/sentry-javascript/discussions/8117#discussioncomment-7623605
-	const describe = await q.describe();
+
 	const count = await Sentry.startSpan(
 		{
 			op: 'db.query',
-			name: describe.string,
+			name: `  SELECT reltuples::bigint
+  FROM pg_catalog.pg_class
+  WHERE relname = 'precios';`,
 			data: { 'db.system': 'postgresql' }
 			// these properties are important if you want to utilize Queries Performance
 			// read more: https://docs.sentry.io/product/performance/queries/#span-eligibility
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		} as any,
-		() => q
+		async () => await q
 	);
 
 	setHeaders({
