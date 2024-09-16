@@ -28,10 +28,12 @@ COPY db/schema.ts sitio2/src/lib/server/db/schema.ts
 RUN cd sitio2 && bun install --frozen-lockfile
 
 ARG DATABASE_URL
+ARG SENTRY_AUTH_TOKEN
 
 # [optional] tests & build
 ENV NODE_ENV=production
 ENV DATABASE_URL=$DATABASE_URL
+ENV SENTRY_AUTH_TOKEN=$SENTRY_AUTH_TOKEN
 
 # RUN bun test
 RUN cd sitio2 && env DATABASE_URL="postgres://user:password@host:5432/db-name" bun run build
