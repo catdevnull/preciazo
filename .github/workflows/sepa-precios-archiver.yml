@@ -30,7 +30,7 @@ jobs:
         run: |
           # usar un servidor especifico porque parece que a veces
           # bloquean el acceso desde afuera del país
-          echo "190.2.53.185 datos.produccion.gob.ar" >> /etc/hosts
+          sudo echo "190.2.53.185 datos.produccion.gob.ar" | sudo tee -a /etc/hosts
           cd sepa
           bun install --frozen-lockfile
           bun archiver.ts
