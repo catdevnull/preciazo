@@ -27,10 +27,8 @@ jobs:
           B2_BUCKET_NAME: ${{ secrets.B2_BUCKET_NAME }}
           B2_BUCKET_KEY_ID: ${{ secrets.B2_BUCKET_KEY_ID }}
           B2_BUCKET_KEY: ${{ secrets.B2_BUCKET_KEY }}
+          DATOS_PRODUCCION_GOB_AR: https://proxy-datos-produccion-gob-ar.nulo.in
         run: |
-          # usar un servidor especifico porque parece que a veces
-          # bloquean el acceso desde afuera del país
-          sudo echo "190.2.53.185 datos.produccion.gob.ar" | sudo tee -a /etc/hosts
           cd sepa
           bun install --frozen-lockfile
           bun archiver.ts

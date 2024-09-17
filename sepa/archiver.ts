@@ -23,6 +23,11 @@ const B2_BUCKET_NAME = checkEnvVariable("B2_BUCKET_NAME");
 const B2_BUCKET_KEY_ID = checkEnvVariable("B2_BUCKET_KEY_ID");
 const B2_BUCKET_KEY = checkEnvVariable("B2_BUCKET_KEY");
 
+const DATOS_PRODUCCION_GOB_AR =
+  process.env.DATOS_PRODUCCION_GOB_AR || "https://datos.produccion.gob.ar";
+const processUrl = (url: string) =>
+  url.replace(/^https:\/\/datos\.produccion\.gob\.ar/, DATOS_PRODUCCION_GOB_AR);
+
 const s3 = new S3Client({
   endpoint: "https://s3.us-west-004.backblazeb2.com",
   region: "us-west-004",
@@ -34,7 +39,10 @@ const s3 = new S3Client({
 
 async function getRawDatasetInfo(attempts = 0) {
   try {
-    return await $`curl -L https://datos.produccion.gob.ar/api/3/action/package_show?id=sepa-precios`.json();
+    const url = processUrl(
+      "https://datos.produccion.gob.ar/api/3/action/package_show?id=sepa-precios"
+    );
+    return await $`curl -L ${url}`.json();
   } catch (error) {
     if (attempts >= 4) {
       console.error(`❌ Error fetching dataset info`, error);
@@ -137,7 +145,8 @@ for (const resource of datasetInfo.result.resources) {
     console.info(dir);
     try {
       const zip = join(dir, "zip");
-      await $`curl --retry 8 --retry-delay 5 --retry-all-errors -L -o ${zip} ${resource.url}`;
+      const url = processUrl(resource.url);
+      await $`curl --retry 8 --retry-delay 5 --retry-all-errors -L -o ${zip} ${url}`;
       await $`unzip ${zip} -d ${dir}`;
       await rm(zip);
 
