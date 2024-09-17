@@ -1,6 +1,6 @@
 import { db } from '$lib/server/db';
 import * as schema from '$lib/server/db/schema';
-import { sql } from 'drizzle-orm';
+import { ilike, or, sql } from 'drizzle-orm';
 import type { PageServerLoad } from './$types';
 import * as Sentry from '@sentry/sveltekit';
 
@@ -32,7 +32,12 @@ JOIN latest_datasets ld ON p.id_dataset = ld.id
 WHERE p.id_producto = productos_descripcion_index.id_producto)`.as('in_datasets_count')
 		})
 		.from(schema.productos_descripcion_index)
-		.where(sql`productos_descripcion ILIKE ${`%${query}%`}`)
+		.where(
+			or(
+				sql`to_tsvector('spanish', ${schema.productos_descripcion_index.productos_descripcion}) @@ to_tsquery('spanish', ${query})`,
+				ilike(schema.productos_descripcion_index.productos_marca, `%${query}%`)
+			)
+		)
 		.orderBy(sql`in_datasets_count desc`)
 		.limit(100);
 	const productos = await Sentry.startSpan(

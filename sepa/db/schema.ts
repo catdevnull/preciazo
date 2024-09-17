@@ -1,4 +1,4 @@
-import { max, relations } from "drizzle-orm";
+import { max, relations, sql } from "drizzle-orm";
 import {
   pgTable,
   integer,
@@ -179,5 +179,11 @@ export const productos_descripcion_index = pgTable(
     id_producto: bigint("id_producto", { mode: "bigint" }),
     productos_descripcion: text("productos_descripcion").unique(),
     productos_marca: text("productos_marca"),
-  }
+  },
+  (table) => ({
+    // https://orm.drizzle.team/learn/guides/postgresql-full-text-search
+    tableSearchIndex: index(
+      "productos_descripcion_index_search_descripcion"
+    ).using("gin", sql`to_tsvector('spanish', ${table.productos_descripcion})`),
+  })
 );

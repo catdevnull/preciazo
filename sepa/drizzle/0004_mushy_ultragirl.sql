@@ -1,0 +1,1 @@
+CREATE INDEX IF NOT EXISTS "productos_descripcion_index_search_descripcion" ON "productos_descripcion_index" USING gin (to_tsvector('spanish', "productos_descripcion"));
