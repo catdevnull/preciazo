@@ -34,9 +34,8 @@
 	<h1 class="my-2 text-2xl font-bold">Resultados para "{data.query}"</h1>
 	{#if data.collapsedProductos.length === 0}
 		<p class="my-2 text-gray-600">
-			No se encontraron resultados para "{data.query}". Tené en cuenta que actualmente, el algoritmo
-			de búsqueda es muy básico. Probá buscando palabras clave como "alfajor", "ketchup" o
-			"lenteja".
+			No se encontraron resultados para "{data.query}". Probá buscando palabras clave como
+			"alfajor", "ketchup" o "lenteja".
 		</p>
 	{:else}
 		{#each data.collapsedProductos as producto}
