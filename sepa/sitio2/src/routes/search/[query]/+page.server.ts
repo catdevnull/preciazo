@@ -34,7 +34,7 @@ WHERE p.id_producto = productos_descripcion_index.id_producto)`.as('in_datasets_
 		.from(schema.productos_descripcion_index)
 		.where(
 			or(
-				sql`to_tsvector('spanish', ${schema.productos_descripcion_index.productos_descripcion}) @@ to_tsquery('spanish', ${query})`,
+				sql`to_tsvector('spanish', ${schema.productos_descripcion_index.productos_descripcion}) @@ plainto_tsquery('spanish', ${query})`,
 				ilike(schema.productos_descripcion_index.productos_marca, `%${query}%`)
 			)
 		)
