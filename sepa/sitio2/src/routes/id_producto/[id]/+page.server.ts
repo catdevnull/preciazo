@@ -4,8 +4,10 @@ import { datasets, precios, sucursales } from '$lib/server/db/schema';
 import { and, eq, sql } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
 import * as Sentry from '@sentry/sveltekit';
+import { formatISO, subDays } from 'date-fns';
 export const load: PageServerLoad = async ({ params, setHeaders }) => {
 	const id = BigInt(params.id);
+	const aWeekAgo = subDays(new Date(), 5);
 	const preciosQuery = db
 		.select({
 			id_comercio: precios.id_comercio,
@@ -33,6 +35,7 @@ FROM datasets d1
 JOIN (
     SELECT id_comercio, MAX(date) as max_date
     FROM datasets
+	WHERE date > ${formatISO(aWeekAgo, { representation: 'date' })}
     GROUP BY id_comercio
 ) d2 ON d1.id_comercio = d2.id_comercio AND d1.date = d2.max_date
 ORDER BY d1.id_comercio)
