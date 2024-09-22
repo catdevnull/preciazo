@@ -11,6 +11,7 @@
 		in_datasets_count: number;
 		descriptions: string[];
 	};
+	export let query: string | undefined;
 
 	let loading = false;
 	beforeNavigate((x) => {
@@ -20,7 +21,10 @@
 	});
 </script>
 
-<a href={`/id_producto/${producto.id_producto}`} class="my-2 block">
+<a
+	href={`/id_producto/${producto.id_producto}?query=${encodeURIComponent(query ?? producto.descriptions[0])}`}
+	class="my-2 block"
+>
 	<Card.Root class="relative transition-colors duration-200 hover:bg-gray-100">
 		<Loading {loading}>
 			<Card.Header class="block px-3 py-2 pb-0">

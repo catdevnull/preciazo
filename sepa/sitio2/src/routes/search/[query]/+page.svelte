@@ -27,7 +27,7 @@
 		</p>
 	{:else}
 		{#each data.collapsedProductos as producto}
-			<ProductCard {producto} />
+			<ProductCard {producto} query={data.query} />
 		{/each}
 	{/if}
 </div>

@@ -8,6 +8,8 @@
 	import { MapPin } from 'lucide-svelte';
 	import Button from '$lib/components/ui/button/button.svelte';
 	import { es } from 'date-fns/locale';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
 
 	export let data: PageData;
 
@@ -23,7 +25,15 @@
 
 <div>
 	<div class="max-w-screen flex items-stretch gap-3 overflow-hidden px-2">
-		<button on:click={() => window.history.back()}>
+		<button
+			on:click={() => {
+				if (history.length > 1) {
+					history.back();
+				} else {
+					goto(`/id_producto/${$page.params.id}`);
+				}
+			}}
+		>
 			<ArrowLeft class="size-8 flex-shrink-0" />
 		</button>
 		<div class="flex flex-wrap items-center gap-x-2 overflow-hidden p-1">

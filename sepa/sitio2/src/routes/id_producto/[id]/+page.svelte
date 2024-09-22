@@ -3,10 +3,13 @@
 	import { ArrowLeft } from 'lucide-svelte';
 	import Map from '$lib/components/Map.svelte';
 	import Badge from '$lib/components/ui/badge/badge.svelte';
-	import {} from '$app/navigation';
+	import { goto } from '$app/navigation';
 	import { generateGoogleMapsLink, pesosFormatter, processBanderaNombre } from '$lib/sepa-utils';
+	import { page } from '$app/stores';
 
 	export let data: PageData;
+
+	const query = $page.url.searchParams.get('query');
 </script>
 
 <svelte:head>
@@ -15,7 +18,12 @@
 
 <div class="flex min-h-screen flex-col">
 	<div class="max-w-screen flex items-stretch gap-3 overflow-hidden px-2">
-		<button on:click={() => window.history.back()}>
+		<button
+			on:click={() =>
+				goto(
+					`/search/${encodeURIComponent(query ?? data.precios[0].productos_descripcion ?? $page.params.id)}`
+				)}
+		>
 			<ArrowLeft class="size-8 flex-shrink-0" />
 		</button>
 		<div class="flex flex-wrap items-center gap-x-2 overflow-hidden p-1">
