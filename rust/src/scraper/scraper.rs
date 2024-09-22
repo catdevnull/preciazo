@@ -125,6 +125,9 @@ impl Scraper {
                 tracing::error!(error=%err, url=url);
             }
         }
+        if url.contains("cotodigital") {
+            tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+        }
         counters
     }
 

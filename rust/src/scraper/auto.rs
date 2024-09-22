@@ -68,7 +68,7 @@ impl Auto {
             let t0 = now_sec();
 
             let n_coroutines = if supermercado == Supermercado::Coto {
-                50
+                10
             } else {
                 env::var("N_COROUTINES")
                     .map_or(Ok(24), |s| s.parse::<usize>())
