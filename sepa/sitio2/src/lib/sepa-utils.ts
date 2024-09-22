@@ -28,3 +28,14 @@ export const pesosFormatter = new Intl.NumberFormat('es-AR', {
 	style: 'currency',
 	currency: 'ARS'
 });
+
+export function parseMarcas(marcas: readonly string[]) {
+	const x = marcas
+		.map((m) => m.trim().replaceAll(/['`´]/g, ''))
+		.filter((m) => !['sin marca', 'VARIOS'].includes(m))
+		.filter((m) => m.length > 0);
+	if (x.length === 0) {
+		return ['n/a'];
+	}
+	return Array.from(new Set(x));
+}
