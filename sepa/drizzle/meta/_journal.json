@@ -50,6 +50,20 @@
       "when": 1727016580605,
       "tag": "0006_short_ravenous",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1727018495637,
+      "tag": "0007_wandering_marvel_boy",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1727019109117,
+      "tag": "0008_mixed_sentinels",
+      "breakpoints": true
     }
   ]
 }

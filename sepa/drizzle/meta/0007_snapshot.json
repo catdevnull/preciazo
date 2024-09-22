@@ -1,0 +1,559 @@
+{
+  "id": "c63ebee0-9e80-431e-9caf-195ee5b4d222",
+  "prevId": "069e6444-9867-4037-adfa-9ae798c70b7c",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.banderas": {
+      "name": "banderas",
+      "schema": "",
+      "columns": {
+        "id_dataset": {
+          "name": "id_dataset",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "id_comercio": {
+          "name": "id_comercio",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id_bandera": {
+          "name": "id_bandera",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "comercio_cuit": {
+          "name": "comercio_cuit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "comercio_razon_social": {
+          "name": "comercio_razon_social",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "comercio_bandera_nombre": {
+          "name": "comercio_bandera_nombre",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "comercio_bandera_url": {
+          "name": "comercio_bandera_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "comercio_ultima_actualizacion": {
+          "name": "comercio_ultima_actualizacion",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "comercio_version_sepa": {
+          "name": "comercio_version_sepa",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "banderas_id_dataset_datasets_id_fk": {
+          "name": "banderas_id_dataset_datasets_id_fk",
+          "tableFrom": "banderas",
+          "tableTo": "datasets",
+          "columnsFrom": [
+            "id_dataset"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "banderas_id_dataset": {
+          "name": "banderas_id_dataset",
+          "nullsNotDistinct": false,
+          "columns": [
+            "id_dataset"
+          ]
+        }
+      }
+    },
+    "public.datasets": {
+      "name": "datasets",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "date": {
+          "name": "date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "id_comercio": {
+          "name": "id_comercio",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "datasets_name_key": {
+          "name": "datasets_name_key",
+          "nullsNotDistinct": false,
+          "columns": [
+            "name"
+          ]
+        }
+      }
+    },
+    "public.precios": {
+      "name": "precios",
+      "schema": "",
+      "columns": {
+        "id_dataset": {
+          "name": "id_dataset",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "id_comercio": {
+          "name": "id_comercio",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "id_bandera": {
+          "name": "id_bandera",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "id_sucursal": {
+          "name": "id_sucursal",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "id_producto": {
+          "name": "id_producto",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "productos_ean": {
+          "name": "productos_ean",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "productos_descripcion": {
+          "name": "productos_descripcion",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "productos_cantidad_presentacion": {
+          "name": "productos_cantidad_presentacion",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "productos_unidad_medida_presentacion": {
+          "name": "productos_unidad_medida_presentacion",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "productos_marca": {
+          "name": "productos_marca",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "productos_precio_lista": {
+          "name": "productos_precio_lista",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "productos_precio_referencia": {
+          "name": "productos_precio_referencia",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "productos_cantidad_referencia": {
+          "name": "productos_cantidad_referencia",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "productos_unidad_medida_referencia": {
+          "name": "productos_unidad_medida_referencia",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "productos_precio_unitario_promo1": {
+          "name": "productos_precio_unitario_promo1",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "productos_leyenda_promo1": {
+          "name": "productos_leyenda_promo1",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "productos_precio_unitario_promo2": {
+          "name": "productos_precio_unitario_promo2",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "productos_leyenda_promo2": {
+          "name": "productos_leyenda_promo2",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "idx_precios_id_producto": {
+          "name": "idx_precios_id_producto",
+          "columns": [
+            {
+              "expression": "id_producto",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_precios_id_producto_id_dataset": {
+          "name": "idx_precios_id_producto_id_dataset",
+          "columns": [
+            {
+              "expression": "id_producto",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "id_dataset",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_precios_id_dataset_id_comercio_id_sucursal": {
+          "name": "idx_precios_id_dataset_id_comercio_id_sucursal",
+          "columns": [
+            {
+              "expression": "id_dataset",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "id_comercio",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "id_sucursal",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "precios_id_dataset_datasets_id_fk": {
+          "name": "precios_id_dataset_datasets_id_fk",
+          "tableFrom": "precios",
+          "tableTo": "datasets",
+          "columnsFrom": [
+            "id_dataset"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "public.productos_descripcion_index": {
+      "name": "productos_descripcion_index",
+      "schema": "",
+      "columns": {
+        "id_producto": {
+          "name": "id_producto",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "productos_descripcion": {
+          "name": "productos_descripcion",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "productos_marca": {
+          "name": "productos_marca",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "productos_descripcion_index_search_descripcion": {
+          "name": "productos_descripcion_index_search_descripcion",
+          "columns": [
+            {
+              "expression": "to_tsvector('spanish', \"productos_descripcion\")",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gin",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "productos_descripcion_index_productos_descripcion_unique": {
+          "name": "productos_descripcion_index_productos_descripcion_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "productos_descripcion"
+          ]
+        }
+      }
+    },
+    "public.sucursales": {
+      "name": "sucursales",
+      "schema": "",
+      "columns": {
+        "id_dataset": {
+          "name": "id_dataset",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "id_comercio": {
+          "name": "id_comercio",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "id_bandera": {
+          "name": "id_bandera",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "id_sucursal": {
+          "name": "id_sucursal",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sucursales_nombre": {
+          "name": "sucursales_nombre",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sucursales_tipo": {
+          "name": "sucursales_tipo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sucursales_calle": {
+          "name": "sucursales_calle",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sucursales_numero": {
+          "name": "sucursales_numero",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sucursales_latitud": {
+          "name": "sucursales_latitud",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sucursales_longitud": {
+          "name": "sucursales_longitud",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sucursales_observaciones": {
+          "name": "sucursales_observaciones",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sucursales_barrio": {
+          "name": "sucursales_barrio",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sucursales_codigo_postal": {
+          "name": "sucursales_codigo_postal",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sucursales_localidad": {
+          "name": "sucursales_localidad",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sucursales_provincia": {
+          "name": "sucursales_provincia",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sucursales_lunes_horario_atencion": {
+          "name": "sucursales_lunes_horario_atencion",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sucursales_martes_horario_atencion": {
+          "name": "sucursales_martes_horario_atencion",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sucursales_miercoles_horario_atencion": {
+          "name": "sucursales_miercoles_horario_atencion",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sucursales_jueves_horario_atencion": {
+          "name": "sucursales_jueves_horario_atencion",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sucursales_viernes_horario_atencion": {
+          "name": "sucursales_viernes_horario_atencion",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sucursales_sabado_horario_atencion": {
+          "name": "sucursales_sabado_horario_atencion",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sucursales_domingo_horario_atencion": {
+          "name": "sucursales_domingo_horario_atencion",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "sucursales_id_dataset_datasets_id_fk": {
+          "name": "sucursales_id_dataset_datasets_id_fk",
+          "tableFrom": "sucursales",
+          "tableTo": "datasets",
+          "columnsFrom": [
+            "id_dataset"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "sucursales_id_dataset_id_comercio_id_bandera_id_sucursal_key": {
+          "name": "sucursales_id_dataset_id_comercio_id_bandera_id_sucursal_key",
+          "nullsNotDistinct": false,
+          "columns": [
+            "id_dataset",
+            "id_comercio",
+            "id_bandera",
+            "id_sucursal"
+          ]
+        }
+      }
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

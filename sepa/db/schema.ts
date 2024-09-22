@@ -91,6 +91,9 @@ export const precios = pgTable(
       idx_precios_id_producto_id_dataset: index(
         "idx_precios_id_producto_id_dataset"
       ).using("btree", table.id_producto, table.id_dataset),
+      idx_precios_id_producto_id_comercio_id_sucursal: index(
+        "idx_precios_id_producto_id_comercio_id_sucursal"
+      ).on(table.id_producto, table.id_comercio, table.id_sucursal),
     };
   }
 );
@@ -185,6 +188,10 @@ export const sucursalesRelations = relations(sucursales, ({ one }) => ({
   dataset: one(datasets, {
     fields: [sucursales.id_dataset],
     references: [datasets.id],
+  }),
+  bandera: one(banderas, {
+    fields: [sucursales.id_comercio, sucursales.id_bandera],
+    references: [banderas.id_comercio, banderas.id_bandera],
   }),
 }));
 

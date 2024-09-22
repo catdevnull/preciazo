@@ -4,13 +4,9 @@
 	import Map from '$lib/components/Map.svelte';
 	import Badge from '$lib/components/ui/badge/badge.svelte';
 	import {} from '$app/navigation';
+	import { generateGoogleMapsLink, pesosFormatter, processBanderaNombre } from '$lib/sepa-utils';
 
 	export let data: PageData;
-
-	const pesosFormatter = new Intl.NumberFormat('es-AR', {
-		style: 'currency',
-		currency: 'ARS'
-	});
 </script>
 
 <svelte:head>
@@ -57,28 +53,31 @@
 				const createElement = () => {
 					const div = document.createElement('div');
 
-					let banderaNombre = precio.comercio_bandera_nombre;
-					if (precio.comercio_cuit === '30687310434' && !banderaNombre?.includes('Carrefour')) {
-						banderaNombre = `Carrefour ${banderaNombre}`;
-					}
-
 					[
 						`fecha del precio: ${precio.dataset_date}`,
 						`precio: ${pesosFormatter.format(precio.productos_precio_lista)}`,
-						`comercio: ${banderaNombre} (${precio.comercio_razon_social} CUIT ${precio.comercio_cuit})`,
+						`comercio: ${processBanderaNombre(precio)} (${precio.comercio_razon_social} CUIT ${precio.comercio_cuit})`,
 						`sucursal: ${precio.sucursales_nombre}`,
 						`dirección: ${precio.sucursales_calle} ${precio.sucursales_numero}`,
 						() => {
 							const a = document.createElement('a');
-							const params = new URLSearchParams({
-								query: `${precio.sucursales_calle} ${precio.sucursales_numero}`
-							});
-							a.href = `https://www.google.com/maps/search/?api=1&${params.toString()}`;
+							if (precio.sucursales_calle) {
+								a.href = generateGoogleMapsLink({
+									sucursales_calle: precio.sucursales_calle,
+									sucursales_numero: precio.sucursales_numero
+								});
+							}
 							a.target = '_blank';
 							a.append('ver en Google Maps');
 							return a;
 						},
-						`descripcion del producto segun el comercio: ${precio.productos_descripcion}`
+						`descripcion del producto segun el comercio: ${precio.productos_descripcion}`,
+						() => {
+							const a = document.createElement('a');
+							a.href = `/id_producto/${data.id_producto}/sucursal/${precio.id_comercio}/${precio.id_sucursal}`;
+							a.append('ver precios historicos');
+							return a;
+						}
 					].forEach((el) => {
 						div.append(typeof el === 'function' ? el() : el);
 						div.append(document.createElement('br'));
