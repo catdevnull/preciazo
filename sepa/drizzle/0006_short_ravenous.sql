@@ -1,0 +1,1 @@
+ALTER TABLE "banderas" ADD CONSTRAINT "banderas_id_dataset" UNIQUE("id_dataset");

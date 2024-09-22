@@ -1,6 +1,6 @@
 import { db } from '$lib/server/db';
 import type { PageServerLoad } from './$types';
-import { datasets, precios, sucursales } from '$lib/server/db/schema';
+import { banderas, datasets, precios, sucursales } from '$lib/server/db/schema';
 import { and, eq, sql } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
 import * as Sentry from '@sentry/sveltekit';
@@ -21,7 +21,11 @@ export const load: PageServerLoad = async ({ params, setHeaders }) => {
 			sucursales_nombre: sucursales.sucursales_nombre,
 			sucursales_calle: sucursales.sucursales_calle,
 			sucursales_numero: sucursales.sucursales_numero,
-			dataset_date: datasets.date
+			dataset_date: datasets.date,
+			comercio_cuit: banderas.comercio_cuit,
+			comercio_razon_social: banderas.comercio_razon_social,
+			comercio_bandera_nombre: banderas.comercio_bandera_nombre,
+			comercio_bandera_url: banderas.comercio_bandera_url
 		})
 		.from(precios)
 		.where(
@@ -50,7 +54,14 @@ ORDER BY d1.id_comercio)
 				eq(sucursales.id_comercio, precios.id_comercio)
 			)
 		)
-		.leftJoin(datasets, eq(datasets.id, precios.id_dataset));
+		.leftJoin(datasets, eq(datasets.id, precios.id_dataset))
+		.leftJoin(
+			banderas,
+			and(
+				eq(banderas.id_comercio, precios.id_comercio),
+				eq(banderas.id_bandera, precios.id_bandera)
+			)
+		);
 	const preciosRes = await Sentry.startSpan(
 		{
 			op: 'db.query',

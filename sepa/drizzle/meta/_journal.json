@@ -43,6 +43,13 @@
       "when": 1727015727177,
       "tag": "0005_loud_warbound",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1727016580605,
+      "tag": "0006_short_ravenous",
+      "breakpoints": true
     }
   ]
 }

@@ -57,9 +57,15 @@
 				const createElement = () => {
 					const div = document.createElement('div');
 
+					let banderaNombre = precio.comercio_bandera_nombre;
+					if (precio.comercio_cuit === '30687310434' && !banderaNombre?.includes('Carrefour')) {
+						banderaNombre = `Carrefour ${banderaNombre}`;
+					}
+
 					[
 						`fecha del precio: ${precio.dataset_date}`,
 						`precio: ${pesosFormatter.format(precio.productos_precio_lista)}`,
+						`comercio: ${banderaNombre} (${precio.comercio_razon_social} CUIT ${precio.comercio_cuit})`,
 						`sucursal: ${precio.sucursales_nombre}`,
 						`dirección: ${precio.sucursales_calle} ${precio.sucursales_numero}`,
 						() => {
