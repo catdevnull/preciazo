@@ -80,54 +80,6 @@ ORDER BY d1.id_comercio)
 		return error(404, `Producto ${params.id} no encontrado`);
 	}
 
-	// 	const precios = await sql<
-	// 		{
-	// 			productos_precio_lista: number;
-	// 			productos_descripcion: string;
-	// 			id_dataset: string;
-	// 			sucursales_latitud: number;
-	// 			sucursales_longitud: number;
-	// 			sucursales_nombre: string;
-	// 		}[]
-	// 	>`
-	// 	WITH latest_prices AS (
-	//       SELECT
-	//           p.id_comercio,
-	//           p.id_bandera,
-	//           p.id_sucursal,
-	//           p.id_dataset,
-	//           p.productos_precio_lista,
-	//           p.productos_descripcion
-	//       FROM precios p
-	//       INNER JOIN (
-	//           SELECT
-	//               id_comercio,
-	//               id_bandera,
-	//               id_sucursal,
-	//               MAX(id_dataset) AS max_dataset
-	//           FROM precios
-	//           WHERE id_producto = ${id}
-	//           GROUP BY id_comercio, id_bandera, id_sucursal
-	//       ) latest ON p.id_comercio = latest.id_comercio
-	//                AND p.id_bandera = latest.id_bandera
-	//                AND p.id_sucursal = latest.id_sucursal
-	//                AND p.id_dataset = latest.max_dataset
-	//       WHERE p.id_producto = ${id}
-	//   )
-	//   SELECT
-	//       lp.productos_precio_lista,
-	//       lp.productos_descripcion,
-	//       lp.id_dataset,
-	//       s.sucursales_latitud,
-	//       s.sucursales_longitud,
-	//       s.sucursales_nombre
-	//   FROM latest_prices lp
-	//   LEFT JOIN sucursales s ON lp.id_dataset = s.id_dataset
-	//                         AND lp.id_sucursal = s.id_sucursal
-	//                         AND lp.id_comercio = s.id_comercio
-
-	//   `;
-
 	return {
 		precios: preciosRes.map((p) => ({
 			...p,
