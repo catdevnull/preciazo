@@ -7,7 +7,7 @@
 
 	export let producto: {
 		id_producto: string;
-		marcas: string[];
+		marcas: Set<string>;
 		in_datasets_count: number;
 		descriptions: string[];
 	};
