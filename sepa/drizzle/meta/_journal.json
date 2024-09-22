@@ -36,6 +36,13 @@
       "when": 1726534597731,
       "tag": "0004_mushy_ultragirl",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1727015727177,
+      "tag": "0005_loud_warbound",
+      "breakpoints": true
     }
   ]
 }

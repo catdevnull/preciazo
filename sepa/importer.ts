@@ -58,17 +58,56 @@ async function importSucursales(
   await pipeline(lines, writable);
 }
 
+async function importBanderas(
+  sql: postgres.Sql,
+  datasetId: number,
+  dir: string
+) {
+  const banderas: Papa.ParseResult<any> = Papa.parse(
+    await readFile(join(dir, "comercio.csv")),
+    { header: true }
+  );
+  const objs = banderas.data.map((data) => ({
+    id_dataset: datasetId,
+    ...data,
+  }));
+  const keys = [
+    "id_dataset",
+    "id_comercio",
+    "id_bandera",
+    "comercio_cuit",
+    "comercio_razon_social",
+    "comercio_bandera_nombre",
+    "comercio_bandera_url",
+    "comercio_ultima_actualizacion",
+    "comercio_version_sepa",
+  ];
+  const lines = Readable.from(
+    objs
+      .filter((data) => data.id_comercio && data.id_bandera)
+      .map(
+        (data) =>
+          keys
+            .map((key) => {
+              const value = (data as any)[key];
+              if (typeof value !== "string") {
+                return value;
+              }
+              return value.replaceAll("\t", " ").trim();
+            })
+            .join("\t") + "\n"
+      )
+  );
+  const writable =
+    await sql`copy banderas (${sql.unsafe(keys.join(", "))}) from stdin with CSV DELIMITER E'\t' QUOTE E'\b'`.writable();
+  await pipeline(lines, writable);
+}
+
 async function importDataset(dir: string) {
   console.log(dir);
   const date = basename(dir).match(/(\d{4}-\d{2}-\d{2})/)![1];
   const id_comercio = basename(dir).match(/comercio-sepa-(\d+)/)![1];
   // TODO: parsear "Ultima actualizacion" al final del CSV y insertarlo en la tabla datasets
-
-  // {
-  //   const res =
-  //     await sql`select id from datasets where name = ${basename(dir)}`;
-  //   await importSucursales(sql, res[0].id, dir);
-  // }
 
   try {
     await sql.begin(async (sql) => {
@@ -84,6 +123,7 @@ async function importDataset(dir: string) {
       const comercioCuit = comercios.data[0].comercio_cuit;
       console.log(`dataset ${datasetId}, comercio ${comercioCuit}`);
 
+      await importBanderas(sql, datasetId, dir);
       await importSucursales(sql, datasetId, dir);
 
       let file = await readFile(join(dir, "productos.csv"));

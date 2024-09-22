@@ -149,6 +149,18 @@ export const sucursales = pgTable(
   }
 );
 
+export const banderas = pgTable("banderas", {
+  id_dataset: integer("id_dataset").references(() => datasets.id),
+  id_comercio: integer("id_comercio").notNull(),
+  id_bandera: integer("id_bandera").notNull(),
+  comercio_cuit: text("comercio_cuit").notNull(),
+  comercio_razon_social: text("comercio_razon_social"),
+  comercio_bandera_nombre: text("comercio_bandera_nombre"),
+  comercio_bandera_url: text("comercio_bandera_url"),
+  comercio_ultima_actualizacion: date("comercio_ultima_actualizacion"),
+  comercio_version_sepa: text("comercio_version_sepa"),
+});
+
 export const preciosRelations = relations(precios, ({ one }) => ({
   dataset: one(datasets, {
     fields: [precios.id_dataset],
