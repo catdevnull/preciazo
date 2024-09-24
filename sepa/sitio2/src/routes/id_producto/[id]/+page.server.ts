@@ -5,8 +5,13 @@ import { and, eq, sql } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
 import * as Sentry from '@sentry/sveltekit';
 import { formatISO, subDays } from 'date-fns';
+import { z } from 'zod';
 export const load: PageServerLoad = async ({ params, setHeaders }) => {
-	const id = BigInt(params.id);
+	const { success, data } = z.object({ id: z.coerce.bigint() }).safeParse(params);
+	if (!success) {
+		return error(400, `Esta URL es inválida`);
+	}
+	const id = data.id;
 	const aWeekAgo = subDays(new Date(), 5);
 	const preciosQuery = db
 		.select({
