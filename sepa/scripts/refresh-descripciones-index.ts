@@ -4,7 +4,7 @@ import * as schema from "../db/schema";
 import { formatISO, subDays } from "date-fns";
 import { sql } from "drizzle-orm";
 
-const db = drizzle(postgres(process.env.DATABASE_URL!), {
+const db = drizzle(postgres(), {
   schema,
   logger: true,
 });
