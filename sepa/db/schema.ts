@@ -196,10 +196,7 @@ export const sucursalesRelations = relations(sucursales, ({ one }) => ({
 }));
 
 // para actualizar la tabla:
-//  insert into productos_descripcion_index
-//  select distinct id_producto, productos_descripcion, productos_marca from precios
-//  on conflict do nothing;
-// probablemente se pueda poner un where en el select para solo seleccionar precios recientes (tipo id_dataset > X)
+//  bun run scripts/refresh-descripciones-index.ts
 export const productos_descripcion_index = pgTable(
   "productos_descripcion_index",
   {
