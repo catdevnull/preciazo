@@ -11,7 +11,7 @@ const db = drizzle(postgres(process.env.DATABASE_URL!), {
 
 const aWeekAgo = subDays(new Date(), 5);
 
-db.execute(sql`
+await db.execute(sql`
 insert into productos_descripcion_index
 select distinct id_producto, productos_descripcion, productos_marca from precios
 where id_dataset in (
