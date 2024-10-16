@@ -1,6 +1,6 @@
 use axum::{
     extract::{Path, State},
-    http::StatusCode,
+    http::{Response, StatusCode},
     response::IntoResponse,
     routing::get,
     Json, Router,
@@ -17,8 +17,15 @@ use sqlx::{
 };
 use std::{env, str::FromStr, time::Duration};
 
-async fn index() -> &'static str {
-    "Hello, world! <a href=https://github.com/catdevnull/preciazo>catdevnull/preciazo</a>"
+async fn index() -> impl IntoResponse {
+    Response::builder()
+    .header("Content-Type", "text/html")
+    .body("<style>html,body{font-family:sans-serif;}</style>
+<h1>old preciazo API</h1>
+Hello, world! <a href=https://github.com/catdevnull/preciazo>catdevnull/preciazo</a><br>
+<a href=mailto:hola@nulo.in>hola@nulo.in</a>
+".to_string())
+    .unwrap()
 }
 async fn healthcheck(State(pool): State<SqlitePool>) -> impl IntoResponse {
     let one_day_ago = chrono::Utc::now() - chrono::Duration::hours(25);
@@ -308,6 +315,7 @@ async fn main() {
 
     let app = Router::new()
         .route("/", get(index))
+        .route("/api/", get(index))
         .route("/api/healthcheck", get(healthcheck))
         .route("/api/0/best-selling-products", get(get_best_selling))
         .route("/api/0/ean/:ean/history", get(get_product_history))
