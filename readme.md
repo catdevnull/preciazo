@@ -13,6 +13,7 @@ scrapeo "masivo" de precios y datos en supermercados argentinos
 - [SEPAME](https://sepame.net/): muestra todos los precios de todas las sucursales según el [dataset SEPA](https://datos.produccion.gob.ar/dataset/sepa-precios)
 - [Coto_bot](https://twitter.com/BotCoto) (repo: [Vosinepi/webScrapping_ETL_canasta_basica](https://github.com/Vosinepi/webScrapping_ETL_canasta_basica))
 - [@canastita_bot](https://twitter.com/canastita_bot) y [@asadito_bot](https://twitter.com/asadito_bot) de [Charly Maslaton](https://twitter.com/charlymasla)
+- [Yoper](https://www.yoper.com.ar/) ([@YoperLATAM](https://x.com/YoperLATAM))
 
 ## componentes
 
