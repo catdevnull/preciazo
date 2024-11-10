@@ -9,9 +9,7 @@ import PQueue from "p-queue";
 
 // TODO: verificar que pasa cuando hay varios datasets del mismo día (como los suele haber cuando actualizan el dataset con nuevos comercios)
 
-const sql = postgres({
-  database: "sepa-precios",
-});
+const sql = postgres({});
 
 async function readFile(path: string) {
   // XXX: DORINKA SRL a veces envía archivos con UTF-16.
