@@ -266,6 +266,44 @@ async fn search(State(pool): State<SqlitePool>, Path(query): Path<String>) -> im
     Json(results)
 }
 
+#[derive(sqlx::FromRow, Debug, Serialize)]
+struct Metadata {
+    ean: String,
+    fetched_at: chrono::DateTime<Utc>,
+    precio_centavos: Option<i64>,
+    in_stock: Option<bool>,
+    url: String,
+    name: Option<String>,
+    image_url: Option<String>,
+}
+
+async fn dump_latest_metadata(State(pool): State<SqlitePool>) -> impl IntoResponse {
+    let precios = sqlx::query!("
+    SELECT p.id, p.ean, p.name, p.image_url, p.url, p.precio_centavos, p.in_stock, p.fetched_at
+    FROM precios p
+    INNER JOIN (
+        SELECT ean, MAX(fetched_at) as max_fetched_at
+        FROM precios
+        GROUP BY ean
+    ) latest ON p.ean = latest.ean AND p.fetched_at = latest.max_fetched_at
+    WHERE p.name IS NOT NULL")
+    .fetch_all(&pool)
+    .await
+    .unwrap()
+    .into_iter()
+    .map(|r| Metadata {
+        ean: r.ean,
+        fetched_at: DateTime::from_timestamp(r.fetched_at, 0).unwrap(),
+        image_url: r.image_url,
+        name: r.name,
+        in_stock: r.in_stock.map(|x| x == 1),
+        precio_centavos: r.precio_centavos,
+        url: r.url,
+    })
+    .collect_vec();
+    Json(precios)
+}
+
 async fn get_info(State(pool): State<SqlitePool>) -> impl IntoResponse {
     #[derive(Serialize)]
     struct Info {
@@ -321,6 +359,7 @@ async fn main() {
         .route("/api/0/ean/:ean/history", get(get_product_history))
         .route("/api/0/info", get(get_info))
         .route("/api/0/search/:query", get(search))
+        .route("/api/0/internal/latest-metadata", get(dump_latest_metadata))
         .with_state(pool);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8000").await.unwrap();

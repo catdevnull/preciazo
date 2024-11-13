@@ -11,6 +11,8 @@ import {
   index,
   pgMaterializedView,
   pgView,
+  timestamp,
+  boolean,
 } from "drizzle-orm/pg-core";
 
 export const datasets = pgTable(
@@ -209,5 +211,24 @@ export const productos_descripcion_index = pgTable(
     tableSearchIndex: index(
       "productos_descripcion_index_search_descripcion"
     ).using("gin", sql`to_tsvector('spanish', ${table.productos_descripcion})`),
+  })
+);
+
+// véase scripts/refresh-scrapped-metadata.ts
+export const productos_metadata_scrapped = pgTable(
+  "productos_metadata_scrapped",
+  {
+    ean: bigint("ean", { mode: "bigint" }),
+    fetchedAt: timestamp("fetched_at").notNull(),
+    precioCentavos: integer("precio_centavos"),
+    inStock: boolean("in_stock"),
+    url: text("url").notNull(),
+    name: text("name"),
+    imageUrl: text("image_url"),
+  },
+  (table) => ({
+    productos_metadata_scrapped_ean_idx: index(
+      "productos_metadata_scrapped_ean_idx"
+    ).on(table.ean),
   })
 );
