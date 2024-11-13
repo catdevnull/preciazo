@@ -29,6 +29,13 @@ export const pesosFormatter = new Intl.NumberFormat('es-AR', {
 	currency: 'ARS'
 });
 
+export const dateFormatter = Intl.DateTimeFormat('es-AR', {
+	year: 'numeric',
+	month: '2-digit',
+	day: '2-digit',
+	weekday: 'long'
+});
+
 export function parseMarcas(marcas: readonly string[]) {
 	const x = marcas
 		.map((m) => m.trim().replaceAll(/['`´]/g, ''))
