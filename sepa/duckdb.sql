@@ -8,11 +8,11 @@ CREATE SEQUENCE seq_datasets START 1;
 
 
 CREATE TABLE precios (
-    id_dataset INTEGER,
-    id_comercio INTEGER,
-    id_bandera INTEGER,
-    id_sucursal INTEGER,
-    id_producto BIGINT,
+    id_dataset INTEGER not null,
+    id_comercio INTEGER not null,
+    id_bandera INTEGER not null,
+    id_sucursal INTEGER not null,
+    id_producto BIGINT not null,
     productos_ean INTEGER,
     productos_descripcion TEXT,
     productos_cantidad_presentacion DECIMAL(10,2),
@@ -36,16 +36,16 @@ CREATE TABLE productos_descripcion_index (
 );
 
 CREATE TABLE sucursales (
-    id_dataset INTEGER,
-    id_comercio INTEGER,
-    id_bandera INTEGER, 
-    id_sucursal INTEGER,
+    id_dataset INTEGER not null,
+    id_comercio INTEGER not null,
+    id_bandera INTEGER not null, 
+    id_sucursal INTEGER not null,
     sucursales_nombre TEXT,
     sucursales_tipo TEXT,
     sucursales_calle TEXT,
     sucursales_numero TEXT,
-    sucursales_latitud DECIMAL,
-    sucursales_longitud DECIMAL,
+    sucursales_latitud DECIMAL(18, 15),
+    sucursales_longitud DECIMAL(18, 15),
     sucursales_observaciones TEXT,
     sucursales_barrio TEXT,
     sucursales_codigo_postal TEXT,
@@ -63,7 +63,7 @@ CREATE TABLE sucursales (
 );
 
 CREATE TABLE banderas (
-    id_dataset INTEGER,
+    id_dataset INTEGER not null,
     id_comercio INTEGER NOT NULL,
     id_bandera INTEGER NOT NULL,
     comercio_cuit TEXT NOT NULL,

@@ -76,8 +76,18 @@ async function importSucursales(connection, datasetId, dir) {
       appender.appendVarchar(data.sucursales_tipo);
       appender.appendVarchar(data.sucursales_calle);
       appender.appendVarchar(data.sucursales_numero);
-      appender.appendInteger(parseFloat(data.sucursales_latitud));
-      appender.appendInteger(parseFloat(data.sucursales_longitud));
+      /** @type {[number, number]} */
+      let [lat, lon] = [
+        parseFloat(data.sucursales_latitud),
+        parseFloat(data.sucursales_longitud),
+      ];
+      if (isNaN(lat) || isNaN(lon)) {
+        appender.appendNull();
+        appender.appendNull();
+      } else {
+        appender.appendDouble(lat);
+        appender.appendDouble(lon);
+      }
       appender.appendVarchar(data.sucursales_observaciones);
       appender.appendVarchar(data.sucursales_barrio);
       appender.appendVarchar(data.sucursales_codigo_postal);
