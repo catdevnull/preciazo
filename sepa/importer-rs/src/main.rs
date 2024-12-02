@@ -1,8 +1,11 @@
+use rayon::prelude::*;
 use std::{
     env::args,
     io::{self, BufRead},
     path::{Path, PathBuf},
 };
+use tar::Archive;
+use zstd::Decoder;
 
 use duckdb::Connection;
 
@@ -232,13 +235,30 @@ fn import_dataset(conn: &Connection, dir_path: PathBuf) -> anyhow::Result<()> {
 
 fn main() {
     let conn = Connection::open("importer-rs.db").unwrap();
+
+    // let decoded = Decoder::new(
+    //     std::fs::File::open("/d076720f-a7f0-4af8-b1d6-1b99d5a90c14-revID-a3de6c6a-8795-4348-a16d-bc626e9f1b2e-sepa_jueves.zip-repackaged.tar.zst").unwrap(),
+    // )
+    // .unwrap();
+    // let mut archive = Archive::new(decoded);
+    // archive
+    //     .entries()
+    //     .unwrap()
+    //     .filter_map(|e| e.ok())
+    //     .filter(|e| e.path().unwrap().ends_with("comercio.csv"))
+    //     .collect::<Vec<_>>()
+    //     .par_iter()
+    //     .for_each(|entry| {
+    //         let path = entry.path().unwrap();
+    //         let parent = path.parent().unwrap();
+    //         import_dataset(&conn.try_clone().unwrap(), parent.to_path_buf()).unwrap();
+    //     });
+
     import_dataset(
         &conn.try_clone().unwrap(),
         args()
             .nth(1)
-            .unwrap_or(
-                "/Users/diablo/Downloads/sepa_1_comercio-sepa-10_2024-11-23_09-05-11/".to_owned(),
-            )
+            .unwrap_or("/sepa_1_comercio-sepa-10_2024-11-23_09-05-11/".to_owned())
             .into(),
     )
     .unwrap();
