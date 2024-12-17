@@ -63,6 +63,7 @@ ORDER BY d1.id_comercio)
 		.leftJoin(
 			banderas,
 			and(
+				eq(banderas.id_dataset, precios.id_dataset),
 				eq(banderas.id_comercio, precios.id_comercio),
 				eq(banderas.id_bandera, precios.id_bandera)
 			)
