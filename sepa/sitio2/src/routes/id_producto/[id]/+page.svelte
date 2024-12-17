@@ -30,20 +30,18 @@
 	const query = $page.url.searchParams.get('query');
 
 	function generateGeoJSON(precios: (typeof data)['precios']): GeoJSONType {
-		const prices = data.precios.map((p) => p.productos_precio_lista);
-		const sortedPrices = prices.sort((a, b) => a - b);
-		const q1Index = Math.floor(sortedPrices.length * 0.1);
-		const q3Index = Math.floor(sortedPrices.length * 0.9);
-		const iqr = sortedPrices[q3Index] - sortedPrices[q1Index];
-		const lowerBound = sortedPrices[q1Index] - 1.5 * iqr;
-		const upperBound = sortedPrices[q3Index] + 1.5 * iqr;
-		const filteredPrices = sortedPrices.filter((p) => p >= lowerBound && p <= upperBound);
-		const min = Math.min(...filteredPrices);
-		const max = Math.max(...filteredPrices);
+		// const prices = precios.map((p) => p.productos_precio_lista);
+		// const sortedPrices = prices.sort((a, b) => a - b);
+		// const q1Index = Math.floor(sortedPrices.length * 0.1);
+		// const q3Index = Math.floor(sortedPrices.length * 0.9);
+		// const iqr = sortedPrices[q3Index] - sortedPrices[q1Index];
+		// const lowerBound = sortedPrices[q1Index] - 1.5 * iqr;
+		// const upperBound = sortedPrices[q3Index] + 1.5 * iqr;
+		// const filteredPrices = sortedPrices.filter((p) => p >= lowerBound && p <= upperBound);
 
 		return {
 			type: 'FeatureCollection',
-			features: data.precios.map((precio) => ({
+			features: precios.map((precio) => ({
 				type: 'Feature',
 				geometry: {
 					type: 'Point',
