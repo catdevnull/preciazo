@@ -260,9 +260,9 @@
 						['linear'],
 						['get', 'precio'],
 						Math.min(...data.precios.map((p) => p.productos_precio_lista)),
-						'rgba(0,255,0,0)',
+						'rgba(0,255,0,0.9)',
 						Math.max(...data.precios.map((p) => p.productos_precio_lista)),
-						'rgba(255,0,0,1)'
+						'rgba(255,0,0,0.7)'
 					],
 					'circle-radius': ['interpolate', ['linear'], ['zoom'], 3, 4, 10, 6],
 					'circle-stroke-width': 1,
