@@ -1,19 +1,14 @@
 import { db } from '$lib/server/db';
 import type { PageServerLoad } from './$types';
 import { banderas, datasets, precios, sucursales } from '$lib/server/db/schema';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, sql, SQL } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
 import * as Sentry from '@sentry/sveltekit';
 import { formatISO, subDays } from 'date-fns';
 import { z } from 'zod';
-export const load: PageServerLoad = async ({ params, setHeaders }) => {
-	const { success, data } = z.object({ id: z.coerce.bigint() }).safeParse(params);
-	if (!success) {
-		return error(400, `Esta URL es inválida`);
-	}
-	const id = data.id;
-	const aWeekAgo = subDays(new Date(), 5);
-	const preciosQuery = db
+
+function getProduct(id: bigint, filterDatasetBy: SQL) {
+	const q = db
 		.select({
 			id_comercio: precios.id_comercio,
 			id_bandera: precios.id_bandera,
@@ -35,7 +30,7 @@ export const load: PageServerLoad = async ({ params, setHeaders }) => {
 		.from(precios)
 		.where(
 			and(
-				eq(precios.id_producto, BigInt(params.id)),
+				eq(precios.id_producto, BigInt(id)),
 				sql`${precios.id_dataset} IN (
 
 
@@ -44,7 +39,7 @@ FROM datasets d1
 JOIN (
     SELECT id_comercio, MAX(date) as max_date
     FROM datasets
-	WHERE date > ${formatISO(aWeekAgo, { representation: 'date' })}
+	WHERE ${filterDatasetBy}
     GROUP BY id_comercio
 ) d2 ON d1.id_comercio = d2.id_comercio AND d1.date = d2.max_date
 ORDER BY d1.id_comercio)
@@ -68,14 +63,35 @@ ORDER BY d1.id_comercio)
 				eq(banderas.id_bandera, precios.id_bandera)
 			)
 		);
-	const preciosRes = await Sentry.startSpan(
+	return Sentry.startSpan(
 		{
 			op: 'db.query',
-			name: preciosQuery.toSQL().sql,
+			name: q.toSQL().sql,
 			data: { 'db.system': 'postgresql' }
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		} as any,
-		() => preciosQuery
+		() =>
+			q.then((x) =>
+				x.map((p) => ({
+					...p,
+					productos_precio_lista: parseFloat(p.productos_precio_lista ?? '0'),
+					sucursales_latitud: parseFloat(p.sucursales_latitud ?? '0'),
+					sucursales_longitud: parseFloat(p.sucursales_longitud ?? '0')
+				}))
+			)
+	);
+}
+
+export const load: PageServerLoad = async ({ params, setHeaders }) => {
+	const { success, data } = z.object({ id: z.coerce.bigint() }).safeParse(params);
+	if (!success) {
+		return error(400, `Esta URL es inválida`);
+	}
+	const id = data.id;
+	const aWeekAgo = subDays(new Date(), 5);
+	const preciosRes = await getProduct(
+		id,
+		sql`date > ${formatISO(aWeekAgo, { representation: 'date' })}`
 	);
 
 	setHeaders({
@@ -83,16 +99,22 @@ ORDER BY d1.id_comercio)
 	});
 
 	if (preciosRes.length == 0) {
-		return error(404, `Producto ${params.id} no encontrado`);
+		const preciosOldRes = await getProduct(id, sql`TRUE`);
+
+		if (preciosOldRes.length == 0) {
+			return error(404, `Producto ${params.id} no encontrado`);
+		}
+
+		return {
+			precios: preciosOldRes,
+			id_producto: id,
+			old: true
+		};
 	}
 
 	return {
-		precios: preciosRes.map((p) => ({
-			...p,
-			productos_precio_lista: parseFloat(p.productos_precio_lista ?? '0'),
-			sucursales_latitud: parseFloat(p.sucursales_latitud ?? '0'),
-			sucursales_longitud: parseFloat(p.sucursales_longitud ?? '0')
-		})),
-		id_producto: id
+		precios: preciosRes,
+		id_producto: id,
+		old: false
 	};
 };

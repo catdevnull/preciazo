@@ -23,6 +23,9 @@
 	import type { GeoJSON as GeoJSONType } from 'geojson';
 	import type { DataDrivenPropertyValueSpecification } from 'maplibre-gl';
 	import Button from '$lib/components/ui/button/button.svelte';
+	import { TriangleAlert } from 'lucide-svelte';
+	import * as Dialog from '$lib/components/ui/dialog';
+	import { differenceInDays } from 'date-fns';
 
 	export let data: PageData;
 
@@ -61,8 +64,19 @@
 			}))
 		};
 	}
-
 	$: geoJSON = generateGeoJSON(data.precios);
+	$: newest = new Date(
+		data.precios.sort((a, b) => {
+			const dateA = b.dataset_date ? new Date(b.dataset_date) : new Date(0);
+			const dateB = a.dataset_date ? new Date(a.dataset_date) : new Date(0);
+			return dateA.getTime() - dateB.getTime();
+		})[0].dataset_date ?? new Date(0)
+	);
+
+	const relativeTimeFormatter = new Intl.RelativeTimeFormat('es-AR', {
+		style: 'long',
+		numeric: 'auto'
+	});
 
 	function hoverStateFilter(
 		offValue: number,
@@ -86,12 +100,32 @@
 		>
 			<ArrowLeft class="size-8 flex-shrink-0" />
 		</button>
-		<div class="flex flex-wrap items-center gap-x-2 overflow-hidden p-1">
+		<div class="flex flex-wrap items-center gap-x-2 gap-y-1 overflow-hidden p-1">
 			<h1 class="overflow-hidden text-ellipsis whitespace-nowrap pb-1 text-2xl font-bold">
 				{data.precios[0].productos_descripcion}
 			</h1>
 			<Badge>{data.precios.length} precios</Badge>
 			<Badge variant="outline">EAN {data.id_producto}</Badge>
+			{#if data.old}
+				<Dialog.Root>
+					<Dialog.Trigger>
+						<Badge variant="destructive" class="flex items-center gap-1">
+							<TriangleAlert class="size-4" />
+							Precios antiguos
+						</Badge>
+					</Dialog.Trigger>
+					<Dialog.Content>
+						<Dialog.Title>Precios antiguos</Dialog.Title>
+						<Dialog.Description>
+							Los datos de esta pagina son de hace al menos {relativeTimeFormatter.format(
+								-differenceInDays(new Date(), new Date(newest)),
+								'days'
+							)}. Es muy probable que este producto especifico este descontinuado. Revisa las fechas
+							de cada precio para confirmar.
+						</Dialog.Description>
+					</Dialog.Content>
+				</Dialog.Root>
+			{/if}
 		</div>
 	</div>
 	<MapLibre
