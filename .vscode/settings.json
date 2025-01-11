@@ -1,5 +1,6 @@
 {
   "spellright.language": ["es_AR"],
   "spellright.documentTypes": ["markdown", "latex", "plaintext"],
-  "editor.formatOnSave": true
+  "editor.formatOnSave": true,
+  "rust-analyzer.trace.server": "verbose"
 }
