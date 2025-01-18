@@ -42,8 +42,8 @@ pnpm migrate
 después, escrapea un sample de productos de Carrefour a una BD:
 
 ```
-cd ../scraper-rs/
-cargo run -- fetch-list ../data/samples/Carrefour.50.txt
+cd ../rust/
+cargo run --bin scraper -- fetch-list ../data/samples/Carrefour.50.txt
 ```
 
 ahora miralo en el sitio:
