@@ -29,7 +29,7 @@ el [sitio](./sitio/) renderiza páginas a partir de la base de datos y hace grá
 
 ## setup
 
-para el schema de la base de datos y el sitio, es necesario [Node.js](https://nodejs.org/) y [pnpm](https://pnpm.io/). para el scraper, es necesario [Rust](https://www.rust-lang.org/) estable.
+para el schema de la base de datos y el sitio, es necesario [Node.js v22](https://nodejs.org/) y [pnpm](https://pnpm.io/). para el scraper, es necesario [Rust](https://www.rust-lang.org/) estable.
 
 crea la base de datos:
 
