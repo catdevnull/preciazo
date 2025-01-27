@@ -36,18 +36,28 @@ function getS3Client() {
     },
   });
 }
-
 export async function listDirectory(directoryName: string) {
   const { B2_BUCKET_NAME } = getVariables();
   const s3 = getS3Client();
-  const command = new ListObjectsV2Command({
-    Bucket: B2_BUCKET_NAME,
-    Prefix: directoryName ? `${directoryName}/` : "",
-    Delimiter: "/",
-  });
+  let allContents: string[] = [];
+  let continuationToken: string | undefined;
 
-  const response = await s3.send(command);
-  return response.Contents?.map((item) => item.Key ?? "") ?? [];
+  do {
+    const command = new ListObjectsV2Command({
+      Bucket: B2_BUCKET_NAME,
+      Prefix: directoryName ? `${directoryName}/` : "",
+      Delimiter: "/",
+      ContinuationToken: continuationToken,
+    });
+
+    const response = await s3.send(command);
+    allContents = allContents.concat(
+      response.Contents?.map((item) => item.Key ?? "") ?? []
+    );
+    continuationToken = response.NextContinuationToken;
+  } while (continuationToken);
+
+  return allContents;
 }
 
 export async function getFileContent(fileName: string) {
