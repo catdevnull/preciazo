@@ -115,6 +115,7 @@ esto esta automáticamente generado por sepa-index-gen dentro de preciazo.`;
     month: "2-digit",
     day: "2-digit",
     weekday: "long",
+    timeZone: "America/Argentina/Buenos_Aires",
   });
   const dateTimeFormatter = Intl.DateTimeFormat("es-AR", {
     year: "numeric",
@@ -122,6 +123,7 @@ esto esta automáticamente generado por sepa-index-gen dentro de preciazo.`;
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: "America/Argentina/Buenos_Aires",
   });
 
   let jsonIndex: IndexJson = {};
