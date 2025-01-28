@@ -49,7 +49,11 @@ async function getRawDatasetInfo(attempts = 0) {
     return await $`curl ${CURL_PROXY_ARG} -L ${url}`.json();
   } catch (error) {
     if (attempts >= 4) {
-      console.error(`❌ Error fetching dataset info`, error);
+      console.error(
+        `❌ Error fetching dataset info`,
+        error,
+        (error as { stderr: { toString: () => string } }).stderr.toString()
+      );
       process.exit(1);
     }
     console.error(
