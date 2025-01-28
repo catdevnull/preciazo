@@ -46,10 +46,6 @@ async function getRawDatasetInfo(attempts = 0) {
   } catch (error) {
     if (attempts >= 4) {
       console.error(`❌ Error fetching dataset info`, error);
-      if (process.env.GITHUB_RUN_ID) {
-        console.info(`🔄 Retrying action`);
-        await $`gh run rerun ${process.env.GITHUB_RUN_ID} --workflow sepa-precios-archiver`;
-      }
       process.exit(1);
     }
     console.error(
