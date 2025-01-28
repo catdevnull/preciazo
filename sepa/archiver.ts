@@ -37,16 +37,12 @@ const s3 = new S3Client({
   },
 });
 
-const CURL_PROXY_ARG = process.env.PROXY_URI
-  ? { raw: `-x ${process.env.PROXY_URI}` }
-  : "";
-
 async function getRawDatasetInfo(attempts = 0) {
   try {
     const url = processUrl(
       "https://datos.produccion.gob.ar/api/3/action/package_show?id=sepa-precios"
     );
-    return await $`curl ${CURL_PROXY_ARG} -L ${url}`.json();
+    return await $`curl -L ${url}`.json();
   } catch (error) {
     if (attempts >= 4) {
       console.error(
@@ -150,7 +146,7 @@ for (const resource of datasetInfo.result.resources) {
     try {
       const zip = join(dir, "zip");
       const url = processUrl(resource.url);
-      await $`curl ${CURL_PROXY_ARG} --retry 8 --retry-delay 5 --retry-all-errors -L -o ${zip} ${url}`;
+      await $`curl --retry 8 --retry-delay 5 --retry-all-errors -L -o ${zip} ${url}`;
       await $`unzip ${zip} -d ${dir}`;
       await rm(zip);
 
@@ -178,7 +174,7 @@ for (const resource of datasetInfo.result.resources) {
     const fileName = `${resource.id}-${basename(resource.url)}`;
     if (await checkFileExistsInB2(fileName)) continue;
     console.log(`⬇️ Downloading and reuploading ${resource.url}`);
-    const response = await $`curl ${CURL_PROXY_ARG} -L ${resource.url}`.blob();
+    const response = await $`curl -L ${resource.url}`.blob();
 
     await uploadToB2Bucket(fileName, response);
   }
