@@ -6,6 +6,7 @@ import { $ } from "bun";
 import { S3Client, HeadObjectCommand } from "@aws-sdk/client-s3";
 import { Upload } from "@aws-sdk/lib-storage";
 import { generateIndexes } from "./index-gen";
+import { lstat } from "fs/promises";
 
 function checkEnvVariable(variableName: string) {
   const value = process.env[variableName];
@@ -151,15 +152,24 @@ for (const resource of datasetInfo.result.resources) {
       await $`curl ${CURL_PROXY_ARG} --retry 8 --retry-delay 5 --retry-all-errors -L -o ${zip} ${url}`;
       await $`unzip ${zip} -d ${dir}`;
       await rm(zip);
+      async function unzipRecursively(dir: string) {
+        for (const file of await readdir(dir)) {
+          const path = join(dir, file);
+          const stat = await lstat(path);
 
-      for (const file of await readdir(dir)) {
-        const path = join(dir, file);
-        if (extname(file) !== ".zip") continue;
-        const extractDir = join(dir, basename(file, ".zip"));
-        await mkdir(extractDir, { recursive: true });
-        await $`cd ${dir} && unzip ${path} -d ${extractDir}`;
-        await rm(path);
+          if (stat.isDirectory()) {
+            await unzipRecursively(path);
+          } else if (extname(file) === ".zip") {
+            const extractDir = join(dir, basename(file, ".zip"));
+            await mkdir(extractDir, { recursive: true });
+            await $`cd ${dir} && unzip ${path} -d ${extractDir}`;
+            await rm(path);
+            await unzipRecursively(extractDir);
+          }
+        }
       }
+
+      await unzipRecursively(dir);
 
       await writeFile(
         join(dir, "dataset-info.json"),
