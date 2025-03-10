@@ -6,39 +6,41 @@
 	import Loading from '$lib/components/Loading.svelte';
 
 	export let producto: {
-		id_producto: string;
-		marcas: Set<string>;
-		in_datasets_count: number;
-		descriptions: string[];
+		id_producto: bigint;
+		productos_marca: readonly string[];
+		productos_descripcion: readonly string[];
+		productos_unidad_medida_referencia: string | null;
+		score: number;
+		count_comercios: bigint;
 	};
 	export let query: string | undefined;
 
 	let loading = false;
 	beforeNavigate((x) => {
-		if (x.to?.params?.id === producto.id_producto) {
+		if (x.to?.params?.id === producto.id_producto.toString()) {
 			loading = true;
 		}
 	});
 </script>
 
 <a
-	href={`/id_producto/${producto.id_producto}?query=${encodeURIComponent(query ?? producto.descriptions[0])}`}
+	href={`/id_producto/${producto.id_producto}?query=${encodeURIComponent(query ?? producto.productos_descripcion[0])}`}
 	class="my-2 block"
 >
 	<Card.Root class="relative transition-colors duration-200 hover:bg-gray-100">
 		<Loading {loading}>
 			<Card.Header class="block px-3 py-2 pb-0">
-				<Badge>{parseMarcas(Array.from(producto.marcas)).join('/')}</Badge>
+				<Badge>{parseMarcas(producto.productos_marca).join('/')}</Badge>
 				<Badge variant="outline"
 					>en
-					{producto.in_datasets_count} cadena{#if producto.in_datasets_count > 1}s{/if}
+					{producto.count_comercios} cadena{#if producto.count_comercios > 1}s{/if}
 				</Badge>
 				<Badge variant="outline">EAN {producto.id_producto}</Badge>
 			</Card.Header>
 			<Card.Content class="px-3 py-2">
-				{#each producto.descriptions as description}
+				{#each producto.productos_descripcion as description}
 					<span>{description}</span>
-					{#if description !== producto.descriptions[producto.descriptions.length - 1]}
+					{#if description !== producto.productos_descripcion[producto.productos_descripcion.length - 1]}
 						<span class="text-gray-500">⋅</span>{' '}
 					{/if}
 				{/each}

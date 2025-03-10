@@ -1,0 +1,28 @@
+# fly.toml app configuration file generated for preciazo-sitio2 on 2025-03-09T23:52:31-03:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'preciazo-sitio2'
+primary_region = 'gru'
+
+[build]
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = 'suspend'
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ['app']
+
+[[vm]]
+  memory = '1gb'
+  cpu_kind = 'shared'
+  cpus = 2
+
+[mounts]
+  source = 'preciazo_sepa_data'
+  destination = '/data'
+[env]
+  DATA_PATH = '/data'

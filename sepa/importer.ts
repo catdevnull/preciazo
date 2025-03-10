@@ -1,13 +1,17 @@
 import * as fs from "fs/promises";
 import Papa from "papaparse";
 import { basename, join, dirname } from "path";
-import { $, Glob } from "bun";
 import { extname } from "node:path";
 import { DuckDBConnection, DuckDBInstance } from "@duckdb/node-api";
 import { mkdir, stat, writeFile } from "node:fs/promises";
-
+import cliProgress from "cli-progress";
 import PQueue from "p-queue";
 import { cpus } from "os";
+import { execFile as execFileSync } from "node:child_process";
+import { promisify } from "node:util";
+import fg from "fast-glob";
+import { z } from "zod";
+const execFile = promisify(execFileSync);
 
 const metadataInstance = await DuckDBInstance.create();
 {
@@ -429,10 +433,12 @@ class PreciosImporter {
 }
 
 async function importDump(dumpDir: string) {
-  const glob = new Glob("**/productos.csv");
+  const glob = await fg("**/productos.csv", { cwd: dumpDir });
   let datasetNames: string[] = [];
 
-  const instance = await DuckDBInstance.create(":memory:");
+  const instance = await DuckDBInstance.create(":memory:", {
+    threads: "1",
+  });
   const connection = await instance.connect();
   const preciosImporter = new PreciosImporter(connection);
   const banderasImporter = new BanderasImporter(connection);
@@ -441,7 +447,7 @@ async function importDump(dumpDir: string) {
   await banderasImporter.setupTable();
   await sucursalesImporter.setupTable();
   console.time("import");
-  for await (const file of glob.scan(dumpDir)) {
+  for (const file of glob) {
     const datasetDir = join(dumpDir, dirname(file));
     const datasetName = dirname(file);
     datasetNames.push(datasetName);
@@ -482,7 +488,7 @@ async function importDatasetTar(tarPath: string) {
   console.log(`importing tar ${tarPath}`);
   const dir = await fs.mkdtemp("/tmp/sepa-precios-importer-");
   try {
-    await $`tar -x -C ${dir} -f ${tarPath}`;
+    await execFile("tar", ["-x", "-C", dir, "-f", tarPath]);
     async function unzipRecursively(dir: string) {
       for (const file of await fs.readdir(dir)) {
         const path = join(dir, file);
@@ -493,7 +499,7 @@ async function importDatasetTar(tarPath: string) {
         } else if (extname(file) === ".zip") {
           const extractDir = join(dir, basename(file, ".zip"));
           await fs.mkdir(extractDir, { recursive: true });
-          await $`cd ${dir} && unzip ${path} -d ${extractDir}`.quiet();
+          await execFile("unzip", ["-d", extractDir, path]);
           await fs.rm(path);
           await unzipRecursively(extractDir);
         }
@@ -509,26 +515,65 @@ async function importDatasetTar(tarPath: string) {
 }
 
 try {
-  const file = await stat(process.argv[2]);
-  if (file.isDirectory()) {
-    const tarGlob = new Glob("**/*.tar.zst");
-    const tasks: string[] = [];
-    for await (const file of tarGlob.scan(process.argv[2])) {
-      tasks.push(join(process.argv[2], file));
-    }
-
-    if (tasks.length > 0) {
-      const numCPUs = cpus().length;
-      const queue = new PQueue({ concurrency: numCPUs / 2 });
-
-      await Promise.all(
-        tasks.map((tar) => queue.add(() => importDatasetTar(tar)))
-      );
-    } else {
-      await importDump(process.argv[2]);
-    }
+  if (process.argv[2].startsWith("http")) {
+    const res = await fetch(process.argv[2]);
+    const json = await res.json();
+    const Entry = z.object({
+      id: z.string(),
+      warnings: z.string(),
+      name: z.string().optional(),
+      link: z.string().optional(),
+      firstSeenAt: z.coerce.date(),
+    });
+    const obj = z.record(z.string(), z.array(Entry)).parse(json);
+    const newest = Object.values(obj).map(
+      (v) =>
+        v
+          .filter(
+            (v): v is z.infer<typeof Entry> & { name: string } => !!v.name
+          )
+          .sort((a, b) => a.firstSeenAt.getTime() - b.firstSeenAt.getTime())[0]
+    );
+    const tasks = newest.map((v) => join(process.argv[3], v.name));
+    const queue = new PQueue({ concurrency: cpus().length });
+    const bar1 = new cliProgress.SingleBar(
+      { forceRedraw: true },
+      cliProgress.Presets.shades_classic
+    );
+    bar1.start(tasks.length, 0);
+    await Promise.all(
+      tasks.map((tar) =>
+        queue.add(() => importDatasetTar(tar).finally(() => bar1.increment()))
+      )
+    );
   } else {
-    await importDatasetTar(process.argv[2]);
+    const file = await stat(process.argv[2]);
+    if (file.isDirectory()) {
+      const tarGlob = await fg("**/*.tar.zst", { cwd: process.argv[2] });
+      const tasks: string[] = tarGlob.map((f) => join(process.argv[2], f));
+      if (tasks.length > 0) {
+        const queue = new PQueue({ concurrency: cpus().length });
+
+        const bar1 = new cliProgress.SingleBar(
+          { forceRedraw: true },
+          cliProgress.Presets.shades_classic
+        );
+        bar1.start(tasks.length, 0);
+
+        await Promise.all(
+          tasks.map((tar) =>
+            queue.add(() =>
+              importDatasetTar(tar).finally(() => bar1.increment())
+            )
+          )
+        );
+        bar1.stop();
+      } else {
+        await importDump(process.argv[2]);
+      }
+    } else {
+      await importDatasetTar(process.argv[2]);
+    }
   }
 } finally {
 }

@@ -14,7 +14,9 @@
 		preciazo<small class="text-sm">alpha</small>
 	</h1>
 	<h2 class="my-4 text-lg font-medium text-gray-700">
-		¡actualmente tengo {numberFormat.format(data.count)} registros de precios!
+		¡actualmente tengo {numberFormat.format(data.total)} registros de precios para {numberFormat.format(
+			data.unique
+		)} productos!
 	</h2>
 	<SearchBar />
 	<footer class="prose my-4 text-sm text-gray-700">
