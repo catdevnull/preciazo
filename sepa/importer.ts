@@ -6,6 +6,27 @@ import { extname } from "node:path";
 import { DuckDBConnection, DuckDBInstance } from "@duckdb/node-api";
 import { mkdir, stat, writeFile } from "node:fs/promises";
 
+import PQueue from "p-queue";
+import { cpus } from "os";
+
+const metadataInstance = await DuckDBInstance.create();
+{
+  const conn = await metadataInstance.connect();
+  await conn.run(`
+    CREATE TABLE metadata (
+      id_comercio INTEGER,
+      id_producto BIGINT,
+      productos_descripcion TEXT,
+      productos_marca TEXT,
+      productos_unidad_medida_presentacion TEXT,
+      productos_unidad_medida_referencia TEXT,
+      productos_cantidad_presentacion DECIMAL(10,2),
+      productos_cantidad_referencia DECIMAL(10,2),
+      PRIMARY KEY (id_comercio, id_producto)
+    );
+  `);
+}
+
 // TODO: verificar que pasa cuando hay varios datasets del mismo día (como los suele haber cuando actualizan el dataset con nuevos comercios)
 
 async function readFile(path: string) {
@@ -283,12 +304,10 @@ class PreciosImporter {
       id_producto BIGINT not null,
       productos_ean INTEGER,
       --productos_descripcion TEXT,
-      productos_cantidad_presentacion DECIMAL(10,2),
       --productos_unidad_medida_presentacion TEXT,
       --productos_marca TEXT,
       productos_precio_lista DECIMAL(10,2),
       productos_precio_referencia DECIMAL(10,2),
-      productos_cantidad_referencia DECIMAL(10,2),
       --productos_unidad_medida_referencia TEXT,
       --productos_precio_unitario_promo1 DECIMAL(10,2),
       --productos_leyenda_promo1 TEXT,
@@ -308,10 +327,8 @@ class PreciosImporter {
         id_sucursal,
         id_producto,
         productos_ean,
-        REPLACE(TRIM(REPLACE(productos_descripcion, '\t', ' ')), '\t', ' ') AS productos_descripcion,
         productos_cantidad_presentacion,
         productos_unidad_medida_presentacion,
-        TRIM(productos_marca) AS productos_marca,
         productos_precio_lista,
         productos_precio_referencia,
         productos_cantidad_referencia,
@@ -348,20 +365,65 @@ class PreciosImporter {
       id_sucursal,
       id_producto,
       productos_ean,
-      --productos_descripcion,
-      productos_cantidad_presentacion,
-      --productos_unidad_medida_presentacion,
-      --productos_marca,
       productos_precio_lista,
-      productos_precio_referencia,
-      productos_cantidad_referencia
-    FROM cleaned_data;
+      productos_precio_referencia
+    FROM cleaned_data
+    ORDER BY id_producto, id_sucursal, id_bandera, id_comercio;
+    `);
+    const metadataConn = await metadataInstance.connect();
+    await metadataConn.run(`
+    WITH cleaned_data AS (
+      SELECT
+        id_comercio,
+        id_producto,
+        REPLACE(TRIM(REPLACE(productos_descripcion, '\t', ' ')), '\t', ' ') AS productos_descripcion,
+        TRIM(productos_marca) AS productos_marca,
+        productos_unidad_medida_presentacion,
+        productos_unidad_medida_referencia,
+        productos_cantidad_presentacion,
+        productos_cantidad_referencia
+      FROM read_csv('${file}',
+        header=true, columns={
+          'id_comercio': 'INTEGER',
+          'id_bandera': 'INTEGER',
+          'id_sucursal': 'INTEGER',
+          'id_producto': 'BIGINT',
+          'productos_ean': 'INTEGER',
+          'productos_descripcion': 'TEXT',
+          'productos_cantidad_presentacion': 'DECIMAL(10,2)',
+          'productos_unidad_medida_presentacion': 'TEXT',
+          'productos_marca': 'TEXT',
+          'productos_precio_lista': 'DECIMAL(10,2)',
+          'productos_precio_referencia': 'DECIMAL(10,2)',
+          'productos_cantidad_referencia': 'DECIMAL(10,2)',
+          'productos_unidad_medida_referencia': 'TEXT',
+          'productos_precio_unitario_promo1': 'DECIMAL(10,2)',
+          'productos_leyenda_promo1': 'TEXT',
+          'productos_precio_unitario_promo2': 'DECIMAL(10,2)',
+          'productos_leyenda_promo2': 'TEXT',
+        }
+      )
+    )
+    INSERT INTO metadata
+    SELECT
+      id_comercio,
+      id_producto,
+      FIRST(productos_descripcion),
+      FIRST(productos_marca),
+      FIRST(productos_unidad_medida_presentacion),
+      FIRST(productos_unidad_medida_referencia),
+      FIRST(productos_cantidad_presentacion),
+      FIRST(productos_cantidad_referencia)
+    FROM cleaned_data
+    GROUP BY id_comercio, id_producto
+    ORDER BY id_producto
+    ON CONFLICT (id_comercio, id_producto) DO NOTHING;
     `);
   }
 
   async writeParquet(file: string) {
     await this.connection.run(`
-    COPY precios TO '${file}' (FORMAT parquet, COMPRESSION zstd);
+    COPY precios TO '${file}' (FORMAT parquet, COMPRESSION zstd, ROW_GROUP_SIZE 100000);
     `);
   }
 }
@@ -431,7 +493,7 @@ async function importDatasetTar(tarPath: string) {
         } else if (extname(file) === ".zip") {
           const extractDir = join(dir, basename(file, ".zip"));
           await fs.mkdir(extractDir, { recursive: true });
-          await $`cd ${dir} && unzip ${path} -d ${extractDir}`;
+          await $`cd ${dir} && unzip ${path} -d ${extractDir}`.quiet();
           await fs.rm(path);
           await unzipRecursively(extractDir);
         }
@@ -442,7 +504,7 @@ async function importDatasetTar(tarPath: string) {
 
     await importDump(dir);
   } finally {
-    // await fs.rm(dir, { recursive: true });
+    await fs.rm(dir, { recursive: true });
   }
 }
 
@@ -450,18 +512,30 @@ try {
   const file = await stat(process.argv[2]);
   if (file.isDirectory()) {
     const tarGlob = new Glob("**/*.tar.zst");
-    let hasTars = false;
+    const tasks: string[] = [];
     for await (const file of tarGlob.scan(process.argv[2])) {
-      hasTars = true;
-      const tar = join(process.argv[2], file);
-      await importDatasetTar(tar);
+      tasks.push(join(process.argv[2], file));
     }
 
-    if (!hasTars) {
+    if (tasks.length > 0) {
+      const numCPUs = cpus().length;
+      const queue = new PQueue({ concurrency: numCPUs / 2 });
+
+      await Promise.all(
+        tasks.map((tar) => queue.add(() => importDatasetTar(tar)))
+      );
+    } else {
       await importDump(process.argv[2]);
     }
   } else {
     await importDatasetTar(process.argv[2]);
   }
 } finally {
+}
+
+{
+  const conn = await metadataInstance.connect();
+  await conn.run(`
+    COPY metadata TO 'metadata.parquet' (FORMAT parquet, COMPRESSION zstd);
+  `);
 }
