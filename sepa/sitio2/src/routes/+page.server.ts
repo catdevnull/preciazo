@@ -8,17 +8,26 @@ let cachedCount: null | {
 	lastUpdated: Date;
 } = null;
 
-async function getCount() {
-	if (cachedCount && +cachedCount.lastUpdated + 1000 * 60 * 60 > +new Date()) {
-		return cachedCount;
+(async () => {
+	try {
+		await getCount();
+	} catch (error) {
+		console.error('Background count fetch failed:', error);
 	}
-	const conn = await instance.connect();
-	const res = await conn.runAndReadAll(`
-		select count(*) as count, count(distinct id_producto) as unique from '${DATA_PATH}/20*/precios.parquet';
-	`);
-	const { count, unique } = res.getRowObjects()[0];
-	cachedCount = { total: count as number, unique: unique as number, lastUpdated: new Date() };
-	return cachedCount;
+})();
+
+async function getCount() {
+	try {
+		const conn = await instance.connect();
+		const res = await conn.runAndReadAll(`
+			select count(*) as count, count(distinct id_producto) as unique from '${DATA_PATH}/20*/precios.parquet';
+		`);
+		const { count, unique } = res.getRowObjects()[0];
+		cachedCount = { total: count as number, unique: unique as number, lastUpdated: new Date() };
+		console.log('cached', cachedCount);
+	} catch (error) {
+		console.error('Error fetching count data:', error);
+	}
 }
 
 export const load: PageServerLoad = async ({ setHeaders }) => {
@@ -26,12 +35,21 @@ export const load: PageServerLoad = async ({ setHeaders }) => {
 		setHeaders({
 			'Cache-Control': 'public, max-age=600'
 		});
-	console.time('count');
-	const { total, unique } = await getCount();
-	console.timeEnd('count');
+
+	if (!cachedCount) {
+		// Trigger a background fetch
+		getCount().catch((error) => console.error('Error fetching count:', error));
+
+		return { status: 'loading' };
+	}
+
+	if (+cachedCount.lastUpdated + 1000 * 60 * 60 < +new Date()) {
+		getCount().catch((error) => console.error('Error refreshing count:', error));
+	}
 
 	return {
-		total,
-		unique
+		status: 'success',
+		total: cachedCount.total,
+		unique: cachedCount.unique
 	};
 };

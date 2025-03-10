@@ -14,9 +14,13 @@
 		preciazo<small class="text-sm">alpha</small>
 	</h1>
 	<h2 class="my-4 text-lg font-medium text-gray-700">
-		¡actualmente tengo {numberFormat.format(data.total)} registros de precios para {numberFormat.format(
-			data.unique
-		)} productos!
+		{#if data.status === 'loading'}
+			<span class="animate-pulse">Cargando estadísticas...</span>
+		{:else if data.status === 'success'}
+			¡actualmente tengo {numberFormat.format(data.total)} registros de precios para {numberFormat.format(
+				data.unique
+			)} productos!
+		{/if}
 	</h2>
 	<SearchBar />
 	<footer class="prose my-4 text-sm text-gray-700">
