@@ -8,13 +8,7 @@ let cachedCount: null | {
 	lastUpdated: Date;
 } = null;
 
-(async () => {
-	try {
-		await getCount();
-	} catch (error) {
-		console.error('Background count fetch failed:', error);
-	}
-})();
+getCount().catch((error) => console.error('Error fetching count:', error));
 
 async function getCount() {
 	try {
