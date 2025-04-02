@@ -1,10 +1,10 @@
 # preciazo
 
-scrapeo "masivo" de precios y datos en supermercados argentinos
+precios y datos de supermercados argentinos
 
-## [¡entrá a la demo!](https://preciazo.experimentos.nulo.ar/)
+## [¡entrá a la demo!](https://preciazo.nulo.lol/)
 
-¿te interesa colaborar con el proyecto? hablame [por Twitter](https://twitter.com/esoesnulo), por [email](mailto:preciazo@nulo.ar) o por GitHub :)
+¿te interesa colaborar con el proyecto? hablame [por Twitter](https://twitter.com/esoesnulo), por [email](mailto:hola@nulo.lol) o por GitHub :)
 
 ## proyectos similares
 
@@ -15,7 +15,7 @@ scrapeo "masivo" de precios y datos en supermercados argentinos
 - [@canastita_bot](https://twitter.com/canastita_bot) y [@asadito_bot](https://twitter.com/asadito_bot) de [Charly Maslaton](https://twitter.com/charlymasla)
 - [Yoper](https://www.yoper.com.ar/) ([@YoperLATAM](https://x.com/YoperLATAM))
 
-## componentes
+## componentes VIEJOS (lo nuevo está en `sepa/`)
 
 ### scraper-rs
 

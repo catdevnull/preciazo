@@ -10,7 +10,7 @@
 	{#if import.meta.env.PROD}
 		<script
 			defer
-			src="https://umami.experimentos.nulo.ar/script.js"
+			src="https://umami.nulo.lol/script.js"
 			data-website-id="3d9215d1-f15c-4797-abff-d621da254930"
 		></script>
 	{/if}

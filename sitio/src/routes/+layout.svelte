@@ -20,7 +20,7 @@
   <div class="text-sm opacity-80">
     <strong>¡Ey!</strong> Preciazo todavía está en beta, y todavía estamos
     buscando su lugar en el mundo :) Si notas algún problema,
-    <a class="underline" href="mailto:preciazo@nulo.ar">contactame :)</a>
+    <a class="underline" href="mailto:hola@nulo.lol">contactame :)</a>
   </div>
 </div>
 
