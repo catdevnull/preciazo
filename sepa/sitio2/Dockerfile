@@ -1,7 +1,7 @@
 # syntax = docker/dockerfile:1
 
-ARG BUN_VERSION=1.2.4
-FROM node:22 AS base
+ARG BUN_VERSION=1.2.19
+FROM node:23 AS base
 
 RUN npm install -g bun@${BUN_VERSION}
 

@@ -13,7 +13,6 @@ export const instance = await DuckDBInstance.create(':memory:');
 	`);
 	await conn.run(`set enable_http_metadata_cache = true;`);
 	await conn.run(`set parquet_metadata_cache = true;`);
-	conn.close();
 }
 
 export const DATA_PATH = env.DATA_PATH ?? 's3://preciazo-sepa';
@@ -30,6 +29,7 @@ export const DATA_PATH = env.DATA_PATH ?? 's3://preciazo-sepa';
 export async function ensureMetadataTable() {
 	const conn = await instance.connect();
 	try {
+		console.info('Creating metadata table');
 		await conn.run(`begin;`);
 		await conn.run(`install fts;`);
 		await conn.run(`load fts;`);
@@ -40,7 +40,6 @@ export async function ensureMetadataTable() {
 		await conn.run(`commit;`);
 		console.info('Metadata table created');
 	} finally {
-		conn.close();
 	}
 }
 await ensureMetadataTable();
