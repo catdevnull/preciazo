@@ -12,11 +12,5 @@ export default defineConfig({
 			}
 		}),
 		sveltekit()
-	],
-	optimizeDeps: {
-		exclude: ['svelte-maplibre', 'bits-ui', 'layerchart']
-	},
-	ssr: {
-		noExternal: ['bits-ui', 'svelte-maplibre', 'layerchart']
-	}
+	]
 });
