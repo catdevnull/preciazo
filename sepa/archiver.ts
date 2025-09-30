@@ -150,8 +150,14 @@ for (const resource of datasetInfo.result.resources) {
       const zip = join(dir, "zip");
       const url = processUrl(resource.url);
       await $`curl ${CURL_PROXY_ARG} --retry 8 --retry-delay 5 --retry-all-errors -L -o ${zip} ${url}`;
-      await $`unzip ${zip} -d ${dir}`;
-      await rm(zip);
+      let topLevelUnzipOk = true;
+      try {
+        await $`unzip ${zip} -d ${dir}`;
+        await rm(zip);
+      } catch (e) {
+        topLevelUnzipOk = false;
+        console.error(`⚠️ Failed to unzip top-level archive ${zip}. Keeping original and proceeding.`, e);
+      }
       async function unzipRecursively(dir: string) {
         for (const file of await readdir(dir)) {
           const path = join(dir, file);
@@ -162,9 +168,13 @@ for (const resource of datasetInfo.result.resources) {
           } else if (extname(file) === ".zip") {
             const extractDir = join(dir, basename(file, ".zip"));
             await mkdir(extractDir, { recursive: true });
-            await $`cd ${dir} && unzip ${path} -d ${extractDir}`;
-            await rm(path);
-            await unzipRecursively(extractDir);
+            try {
+              await $`cd ${dir} && unzip ${path} -d ${extractDir}`;
+              await rm(path);
+              await unzipRecursively(extractDir);
+            } catch (e) {
+              console.error(`⚠️ Failed to unzip nested archive ${path}. Keeping original and continuing.`, e);
+            }
           }
         }
       }
