@@ -67,9 +67,9 @@ async function getRawDatasetInfo(attempts = 0) {
 async function saveFileIntoRepo(fileName: string, fileContent: string) {
   const dir = await mkdtemp("/tmp/sepa-precios-archiver-metadata-repo-");
   try {
-    await $`git clone https://catdevnull:${GITHUB_TOKEN}@github.com/catdevnull/sepa-precios-metadata.git ${dir}`;
+    await $`git clone https://catdevnull-bot:${GITHUB_TOKEN}@github.com/catdevnull/sepa-precios-metadata.git ${dir}`;
     await writeFile(join(dir, fileName), fileContent);
-    await $`cd ${dir} && git config user.email "git@nulo.in" && git config user.name "github actions"`;
+    await $`cd ${dir} && git config user.email "bot@nulo.lol" && git config user.name "github actions"`;
     await $`cd ${dir} && git add ${fileName}`;
     await $`cd ${dir} && git diff --staged --quiet || git commit -m "Update ${fileName}"`;
     await $`cd ${dir} && git push origin main`;
@@ -156,7 +156,10 @@ for (const resource of datasetInfo.result.resources) {
         await rm(zip);
       } catch (e) {
         topLevelUnzipOk = false;
-        console.error(`⚠️ Failed to unzip top-level archive ${zip}. Keeping original and proceeding.`, e);
+        console.error(
+          `⚠️ Failed to unzip top-level archive ${zip}. Keeping original and proceeding.`,
+          e
+        );
       }
       async function unzipRecursively(dir: string) {
         for (const file of await readdir(dir)) {
@@ -173,7 +176,10 @@ for (const resource of datasetInfo.result.resources) {
               await rm(path);
               await unzipRecursively(extractDir);
             } catch (e) {
-              console.error(`⚠️ Failed to unzip nested archive ${path}. Keeping original and continuing.`, e);
+              console.error(
+                `⚠️ Failed to unzip nested archive ${path}. Keeping original and continuing.`,
+                e
+              );
             }
           }
         }
