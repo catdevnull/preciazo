@@ -31,7 +31,6 @@ jobs:
           B2_BUCKET_NAME: ${{ secrets.B2_BUCKET_NAME }}
           B2_BUCKET_KEY_ID: ${{ secrets.B2_BUCKET_KEY_ID }}
           B2_BUCKET_KEY: ${{ secrets.B2_BUCKET_KEY }}
-          PROXY_URI: ${{ secrets.PROXY_URI }}
         run: |
           cd sepa
           bun install --frozen-lockfile
