@@ -9,8 +9,8 @@
     "@types/cli-progress": "^3.11.6",
     "@types/papaparse": "^5.3.14",
     "bun-types": "^1.1.30",
-    "drizzle-kit": "^0.24.2",
-    "tsx": "^4.19.2"
+    "drizzle-kit": "^0.31.9",
+    "tsx": "^4.21.0"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"

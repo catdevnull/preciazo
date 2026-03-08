@@ -33,5 +33,5 @@ jobs:
           B2_BUCKET_KEY: ${{ secrets.B2_BUCKET_KEY }}
         run: |
           cd sepa
-          bun install --frozen-lockfile
+          bun install --frozen-lockfile --production --linker=isolated
           bun archiver.ts
