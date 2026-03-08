@@ -8,6 +8,34 @@ import { Upload } from "@aws-sdk/lib-storage";
 import { generateIndexes } from "./index-gen";
 import { lstat } from "fs/promises";
 
+function sanitizeLogText(text: string) {
+  return text
+    .replace(
+      /\b\d{1,3}(?:\.\d{1,3}){3}\b/g,
+      "[redacted-ipv4]"
+    )
+    .replace(
+      /\b(?:[0-9a-f]{0,4}:){2,7}[0-9a-f]{0,4}\b/gi,
+      "[redacted-ipv6]"
+    );
+}
+
+function extractStderr(error: unknown) {
+  const stderr = (error as { stderr?: { toString: () => string } }).stderr;
+  return stderr ? sanitizeLogText(stderr.toString().trim()) : undefined;
+}
+
+function logCommandError(prefix: string, error: unknown) {
+  const stderr = extractStderr(error);
+  if (stderr) {
+    console.error(`${prefix}: ${stderr}`);
+    return;
+  }
+  const message =
+    error instanceof Error ? sanitizeLogText(error.message) : "unknown error";
+  console.error(`${prefix}: ${message}`);
+}
+
 function checkEnvVariable(variableName: string) {
   const value = process.env[variableName];
   if (value) {
@@ -48,18 +76,10 @@ async function getRawDatasetInfo(attempts = 0) {
     return await $`curl ${CURL_PROXY_ARG} -L ${url}`.json();
   } catch (error) {
     if (attempts >= 4) {
-      console.error(
-        `❌ Error fetching dataset info`,
-        error,
-        (error as { stderr: { toString: () => string } }).stderr.toString()
-      );
+      logCommandError(`❌ Error fetching dataset info`, error);
       process.exit(1);
     }
-    console.error(
-      `❌ Error fetching dataset info`,
-      error,
-      `retrying in 30s...`
-    );
+    logCommandError(`❌ Error fetching dataset info, retrying in 30s`, error);
     await new Promise((resolve) => setTimeout(resolve, 30 * 1000));
     return await getRawDatasetInfo(attempts + 1);
   }
@@ -125,7 +145,7 @@ function checkRes(
   res: Response
 ): res is Response & { body: ReadableStream<Uint8Array> } {
   if (!res.ok) {
-    console.error(`❌ Error downloading ${res.url}`);
+    console.error(`❌ Error downloading resource`);
     errored = true;
     return false;
   }
@@ -143,22 +163,18 @@ for (const resource of datasetInfo.result.resources) {
   if (extname(resource.url) === ".zip") {
     const fileName = `${resource.id}-revID-${resource.revision_id}-${basename(resource.url)}-repackaged.tar.zst`;
     if (await checkFileExistsInB2(fileName)) continue;
-    console.log(`⬇️ Downloading, repackaging and uploading ${resource.url}`);
+    console.log(`⬇️ Downloading, repackaging and uploading ${fileName}`);
     const dir = await mkdtemp("/tmp/sepa-precios-archiver-repackage-");
-    console.info(dir);
     try {
       const zip = join(dir, "zip");
       const url = processUrl(resource.url);
       await $`curl ${CURL_PROXY_ARG} --retry 8 --retry-delay 5 --retry-all-errors -L -o ${zip} ${url}`;
-      let topLevelUnzipOk = true;
       try {
         await $`unzip ${zip} -d ${dir}`;
         await rm(zip);
-      } catch (e) {
-        topLevelUnzipOk = false;
+      } catch {
         console.error(
-          `⚠️ Failed to unzip top-level archive ${zip}. Keeping original and proceeding.`,
-          e
+          `⚠️ Failed to unzip top-level archive ${basename(zip)}. Keeping original and proceeding.`
         );
       }
       async function unzipRecursively(dir: string) {
@@ -175,10 +191,9 @@ for (const resource of datasetInfo.result.resources) {
               await $`cd ${dir} && unzip ${path} -d ${extractDir}`;
               await rm(path);
               await unzipRecursively(extractDir);
-            } catch (e) {
+            } catch {
               console.error(
-                `⚠️ Failed to unzip nested archive ${path}. Keeping original and continuing.`,
-                e
+                `⚠️ Failed to unzip nested archive ${basename(path)}. Keeping original and continuing.`
               );
             }
           }
@@ -201,7 +216,7 @@ for (const resource of datasetInfo.result.resources) {
   } else {
     const fileName = `${resource.id}-${basename(resource.url)}`;
     if (await checkFileExistsInB2(fileName)) continue;
-    console.log(`⬇️ Downloading and reuploading ${resource.url}`);
+    console.log(`⬇️ Downloading and reuploading ${fileName}`);
     const response = await $`curl ${CURL_PROXY_ARG} -L ${resource.url}`.blob();
 
     await uploadToB2Bucket(fileName, response);
