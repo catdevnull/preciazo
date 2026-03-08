@@ -4,6 +4,23 @@ import { listDirectory } from "./b2";
 import { isSameDay } from "date-fns";
 import { indexResources } from "./index-resources";
 
+function makeUtcNoonDate(year: number, month: number, day: number) {
+  return new Date(Date.UTC(year, month - 1, day, 12));
+}
+
+function dateKey(date: Date) {
+  return [
+    date.getUTCFullYear(),
+    String(date.getUTCMonth() + 1).padStart(2, "0"),
+    String(date.getUTCDate()).padStart(2, "0"),
+  ].join("-");
+}
+
+function parseDateKey(value: string) {
+  const [year, month, day] = value.split("-").map(Number);
+  return makeUtcNoonDate(year, month, day);
+}
+
 export const IndexEntry = z.object({
   id: z.string(),
   warnings: z.string(),
@@ -44,9 +61,9 @@ export async function generateIndexes() {
     {
       const matches = resource.name.match(/precios_(\d{4})(\d{2})(\d{2})/);
       if (matches) {
-        return new Date(
+        return makeUtcNoonDate(
           parseInt(matches[1]),
-          parseInt(matches[2]) - 1,
+          parseInt(matches[2]),
           parseInt(matches[3])
         );
       }
@@ -57,9 +74,9 @@ export async function generateIndexes() {
       );
       if (matches) {
         const { day, month, year, day2, month2, year2 } = matches.groups!;
-        return new Date(
+        return makeUtcNoonDate(
           parseInt(year || year2),
-          parseInt(month || month2) - 1,
+          parseInt(month || month2),
           parseInt(day || day2)
         );
       }
@@ -75,19 +92,19 @@ export async function generateIndexes() {
   );
   const dates = [
     ...new Set(
-      zipResources.map((r) => getDate(r).toISOString().split("T")[0]).sort()
+      zipResources.map((r) => dateKey(getDate(r))).sort()
     ),
   ];
 
   // check if dates are missing in between min and max date
   const minDate = new Date(
-    Math.min(...[...dates].map((d) => new Date(d).getTime()))
+    Math.min(...[...dates].map((d) => parseDateKey(d).getTime()))
   );
   const maxDate = new Date(
-    Math.max(...[...dates].map((d) => new Date(d).getTime()))
+    Math.max(...[...dates].map((d) => parseDateKey(d).getTime()))
   );
-  for (let d = minDate; d <= maxDate; d.setDate(d.getDate() + 1)) {
-    const dateStr = d.toISOString().split("T")[0];
+  for (let d = minDate; d <= maxDate; d.setUTCDate(d.getUTCDate() + 1)) {
+    const dateStr = dateKey(d);
     if (!dates.includes(dateStr)) dates.push(dateStr);
   }
   dates.sort();
@@ -129,7 +146,7 @@ esto esta automáticamente generado por sepa-index-gen dentro de preciazo.`;
   let jsonIndex: IndexJson = {};
 
   for (const dateStr of dates) {
-    const date = new Date(dateStr);
+    const date = parseDateKey(dateStr);
     markdown += `\n* ${formatter.format(date)}:`;
     const resourcesInDate = zipResources.filter((r) =>
       isSameDay(getDate(r), date)
@@ -147,7 +164,7 @@ esto esta automáticamente generado por sepa-index-gen dentro de preciazo.`;
       let warnings = "";
       if (
         getWeekDayInResource(resource) &&
-        date.getDay() !== getWeekDayInResource(resource)
+        date.getUTCDay() !== getWeekDayInResource(resource)
       ) {
         warnings +=
           "⁉️⚠️ dia de semana incorrecto, puede haberse subido incorrectamente ";
