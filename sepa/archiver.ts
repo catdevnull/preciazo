@@ -7,6 +7,8 @@ import { S3Client, HeadObjectCommand } from "@aws-sdk/client-s3";
 import { Upload } from "@aws-sdk/lib-storage";
 import { generateIndexes } from "./index-gen";
 import { lstat } from "fs/promises";
+import { createReadStream } from "fs";
+import type { Readable } from "stream";
 
 function sanitizeLogText(text: string) {
   return text
@@ -118,7 +120,7 @@ async function checkFileExistsInB2(fileName: string): Promise<boolean> {
 
 async function uploadToB2Bucket(
   fileName: string,
-  fileContent: ReadableStream | Blob | string
+  fileContent: ReadableStream | Readable | Blob | string
 ) {
   const upload = new Upload({
     client: s3,
@@ -168,9 +170,9 @@ for (const resource of datasetInfo.result.resources) {
     try {
       const zip = join(dir, "zip");
       const url = processUrl(resource.url);
-      await $`curl ${CURL_PROXY_ARG} --retry 8 --retry-delay 5 --retry-all-errors -L -o ${zip} ${url}`;
+      await $`curl ${CURL_PROXY_ARG} --retry 8 --retry-delay 5 --retry-all-errors -L -o ${zip} ${url}`.quiet();
       try {
-        await $`unzip ${zip} -d ${dir}`;
+        await $`unzip -q ${zip} -d ${dir}`;
         await rm(zip);
       } catch {
         console.error(
@@ -188,7 +190,7 @@ for (const resource of datasetInfo.result.resources) {
             const extractDir = join(dir, basename(file, ".zip"));
             await mkdir(extractDir, { recursive: true });
             try {
-              await $`cd ${dir} && unzip ${path} -d ${extractDir}`;
+              await $`cd ${dir} && unzip -q ${path} -d ${extractDir}`;
               await rm(path);
               await unzipRecursively(extractDir);
             } catch {
@@ -207,9 +209,13 @@ for (const resource of datasetInfo.result.resources) {
         JSON.stringify(rawDatasetInfo, null, 2)
       );
 
-      const compressed =
-        await $`tar -c -C ${dir} . | zstd -15 --long -T0`.blob();
-      await uploadToB2Bucket(fileName, compressed);
+      const compressedPath = `${dir}.tar.zst`;
+      try {
+        await $`tar -c -C ${dir} . | zstd -15 --long -T0 -o ${compressedPath}`.quiet();
+        await uploadToB2Bucket(fileName, createReadStream(compressedPath));
+      } finally {
+        await rm(compressedPath, { force: true });
+      }
     } finally {
       await $`rm -rf ${dir}`;
     }
@@ -217,9 +223,14 @@ for (const resource of datasetInfo.result.resources) {
     const fileName = `${resource.id}-${basename(resource.url)}`;
     if (await checkFileExistsInB2(fileName)) continue;
     console.log(`⬇️ Downloading and reuploading ${fileName}`);
-    const response = await $`curl ${CURL_PROXY_ARG} -L ${resource.url}`.blob();
-
-    await uploadToB2Bucket(fileName, response);
+    const downloadDir = await mkdtemp("/tmp/sepa-precios-archiver-download-");
+    try {
+      const downloadPath = join(downloadDir, "download");
+      await $`curl ${CURL_PROXY_ARG} -L -o ${downloadPath} ${resource.url}`.quiet();
+      await uploadToB2Bucket(fileName, createReadStream(downloadPath));
+    } finally {
+      await rm(downloadDir, { recursive: true, force: true });
+    }
   }
 }
 const { markdown, jsonIndex } = await generateIndexes();
