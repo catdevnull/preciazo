@@ -35,3 +35,10 @@ jobs:
           cd sepa
           bun install --frozen-lockfile --production --linker=isolated
           bun archiver.ts
+
+      - name: Notify Uptime Kuma
+        env:
+          UPTIME_KUMA_PUSH_URL: ${{ secrets.UPTIME_KUMA_PUSH_URL }}
+        run: |
+          curl --fail --silent --show-error --retry 3 \
+            "$UPTIME_KUMA_PUSH_URL"
