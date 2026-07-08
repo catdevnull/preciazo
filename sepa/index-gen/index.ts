@@ -1,8 +1,10 @@
 import { zResource, type Resource } from "../ckan/schemas";
 import { z } from "zod";
-import { listDirectory } from "./b2";
+import { listFiles } from "./b2";
 import { isSameDay } from "date-fns";
 import { indexResources } from "./index-resources";
+
+const MIN_VALID_REPACKAGED_ARCHIVE_SIZE = 1024 * 1024;
 
 function makeUtcNoonDate(year: number, month: number, day: number) {
   return new Date(Date.UTC(year, month - 1, day, 12));
@@ -85,7 +87,7 @@ export async function generateIndexes() {
     throw new Error(`No date found for ${resource.name}`);
   }
 
-  const fileList = await listDirectory("");
+  const fileList = await listFiles("");
 
   const zipResources = [...latestResources.values()].filter(
     (r) => r.format === "ZIP"
@@ -157,11 +159,17 @@ esto esta automáticamente generado por sepa-index-gen dentro de preciazo.`;
     jsonIndex[dateStr] = [];
     for (const resource of resourcesInDate) {
       const id = `${resource.id}-revID-${resource.revision_id}`;
-      const fileExists = fileList.find((file) => file.startsWith(id));
+      const fileExists = fileList.find((file) => file.key.startsWith(id));
+      const fileIsTooSmall =
+        fileExists && fileExists.size < MIN_VALID_REPACKAGED_ARCHIVE_SIZE;
       const link =
-        fileExists &&
-        `https://f004.backblazeb2.com/file/precios-justos-datasets/${fileExists}`;
+        fileExists && !fileIsTooSmall
+          ? `https://f004.backblazeb2.com/file/precios-justos-datasets/${fileExists.key}`
+          : undefined;
       let warnings = "";
+      if (fileIsTooSmall) {
+        warnings += "❌ archivo archivado demasiado chico ";
+      }
       if (
         getWeekDayInResource(resource) &&
         date.getUTCDay() !== getWeekDayInResource(resource)
@@ -169,12 +177,12 @@ esto esta automáticamente generado por sepa-index-gen dentro de preciazo.`;
         warnings +=
           "⁉️⚠️ dia de semana incorrecto, puede haberse subido incorrectamente ";
       }
-      markdown += `\n  * ${id} ${warnings} ${fileExists ? `[✅ descargar](${link})` : "❌"} (primera vez visto: ${dateTimeFormatter.format(resource.firstSeenAt)})`;
+      markdown += `\n  * ${id} ${warnings} ${link ? `[✅ descargar](${link})` : "❌"} (primera vez visto: ${dateTimeFormatter.format(resource.firstSeenAt)})`;
 
       jsonIndex[dateStr].push({
         id,
         warnings: warnings.trim(),
-        name: fileExists,
+        name: fileExists && !fileIsTooSmall ? fileExists.key : undefined,
         link,
         firstSeenAt: resource.firstSeenAt,
       });

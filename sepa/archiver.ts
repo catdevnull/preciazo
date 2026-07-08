@@ -1,12 +1,19 @@
 import { z } from "zod";
 import { zDatasetInfo } from "./ckan/schemas";
-import { mkdtemp, writeFile, readdir, mkdir, rm } from "fs/promises";
-import { basename, extname, join } from "path";
+import {
+  mkdtemp,
+  writeFile,
+  readdir,
+  mkdir,
+  rm,
+  stat,
+  lstat,
+} from "fs/promises";
+import { basename, extname, join, relative } from "path";
 import { $ } from "bun";
 import { S3Client, HeadObjectCommand } from "@aws-sdk/client-s3";
 import { Upload } from "@aws-sdk/lib-storage";
 import { generateIndexes } from "./index-gen";
-import { lstat } from "fs/promises";
 import { createReadStream } from "fs";
 import type { Readable } from "stream";
 
@@ -57,9 +64,15 @@ const B2_BUCKET_KEY = checkEnvVariable("B2_BUCKET_KEY");
 const DATOS_PRODUCCION_GOB_AR =
   process.env.DATOS_PRODUCCION_GOB_AR || "https://datos.produccion.gob.ar";
 const PROXY_URI = process.env.PROXY_URI;
-const CURL_PROXY_ARG = PROXY_URI ? `-x${PROXY_URI}` : "";
+const CURL_PROXY_ARGS = PROXY_URI ? ["-x", PROXY_URI] : [];
 const processUrl = (url: string) =>
   url.replace(/^https:\/\/datos\.produccion\.gob\.ar/, DATOS_PRODUCCION_GOB_AR);
+const MIN_VALID_REPACKAGED_ARCHIVE_SIZE = 1024 * 1024;
+const REQUIRED_DATASET_FILES = [
+  "productos.csv",
+  "sucursales.csv",
+  "comercio.csv",
+];
 
 const s3 = new S3Client({
   endpoint: "https://s3.us-west-004.backblazeb2.com",
@@ -75,7 +88,7 @@ async function getRawDatasetInfo(attempts = 0) {
     const url = processUrl(
       "https://datos.produccion.gob.ar/api/3/action/package_show?id=sepa-precios"
     );
-    return await $`curl ${CURL_PROXY_ARG} -L ${url}`.json();
+    return await $`curl ${CURL_PROXY_ARGS} -L ${url}`.json();
   } catch (error) {
     if (attempts >= 4) {
       logCommandError(`❌ Error fetching dataset info`, error);
@@ -103,12 +116,21 @@ async function saveFileIntoRepo(fileName: string, fileContent: string) {
 
 async function checkFileExistsInB2(fileName: string): Promise<boolean> {
   try {
-    await s3.send(
+    const result = await s3.send(
       new HeadObjectCommand({
         Bucket: B2_BUCKET_NAME,
         Key: fileName,
       })
     );
+    if (
+      fileName.endsWith("-repackaged.tar.zst") &&
+      (result.ContentLength ?? 0) < MIN_VALID_REPACKAGED_ARCHIVE_SIZE
+    ) {
+      console.warn(
+        `⚠️ ${fileName} exists but is only ${result.ContentLength ?? 0} bytes; repackaging again.`
+      );
+      return false;
+    }
     return true;
   } catch (error) {
     if ((error as any).name === "NotFound") {
@@ -155,6 +177,44 @@ function checkRes(
   return true;
 }
 
+async function listFilesRecursively(dir: string): Promise<string[]> {
+  const entries = await readdir(dir, { withFileTypes: true });
+  const files = await Promise.all(
+    entries.map(async (entry) => {
+      const path = join(dir, entry.name);
+      if (entry.isDirectory()) return await listFilesRecursively(path);
+      return [path];
+    })
+  );
+  return files.flat();
+}
+
+async function validateExtractedDataset(dir: string) {
+  const files = await listFilesRecursively(dir);
+  const relativeFiles = files.map((file) => relative(dir, file));
+  const datasetDirs = new Set<string>();
+
+  for (const file of relativeFiles) {
+    if (REQUIRED_DATASET_FILES.includes(basename(file))) {
+      datasetDirs.add(file.slice(0, -basename(file).length));
+    }
+  }
+
+  const completeDatasetDirs = [...datasetDirs].filter((datasetDir) =>
+    REQUIRED_DATASET_FILES.every((requiredFile) =>
+      relativeFiles.includes(`${datasetDir}${requiredFile}`)
+    )
+  );
+
+  if (completeDatasetDirs.length === 0) {
+    throw new Error(
+      `No extracted SEPA datasets found. Expected directories containing ${REQUIRED_DATASET_FILES.join(", ")}. Extracted files: ${relativeFiles.slice(0, 20).join(", ") || "(none)"}`
+    );
+  }
+
+  return completeDatasetDirs.length;
+}
+
 await uploadToB2Bucket(
   `timestamped-metadata/${new Date().toISOString()}.json`,
   JSON.stringify(rawDatasetInfo, null, 2)
@@ -170,15 +230,18 @@ for (const resource of datasetInfo.result.resources) {
     try {
       const zip = join(dir, "zip");
       const url = processUrl(resource.url);
-      await $`curl ${CURL_PROXY_ARG} --retry 8 --retry-delay 5 --retry-all-errors -L -o ${zip} ${url}`.quiet();
-      try {
-        await $`unzip -q ${zip} -d ${dir}`;
-        await rm(zip);
-      } catch {
-        console.error(
-          `⚠️ Failed to unzip top-level archive ${basename(zip)}. Keeping original and proceeding.`
+      await $`curl ${CURL_PROXY_ARGS} --fail --show-error --retry 8 --retry-delay 5 --retry-all-errors -L -o ${zip} ${url}`.quiet();
+      const downloadedZipSize = (await stat(zip)).size;
+      if (
+        resource.size > MIN_VALID_REPACKAGED_ARCHIVE_SIZE &&
+        downloadedZipSize < resource.size * 0.9
+      ) {
+        throw new Error(
+          `Downloaded ${downloadedZipSize} bytes for ${fileName}, expected about ${resource.size}`
         );
       }
+      await $`unzip -q ${zip} -d ${dir}`;
+      await rm(zip);
       async function unzipRecursively(dir: string) {
         for (const file of await readdir(dir)) {
           const path = join(dir, file);
@@ -203,6 +266,8 @@ for (const resource of datasetInfo.result.resources) {
       }
 
       await unzipRecursively(dir);
+      const datasetCount = await validateExtractedDataset(dir);
+      console.log(`✅ Extracted ${datasetCount} SEPA dataset directories`);
 
       await writeFile(
         join(dir, "dataset-info.json"),
@@ -212,6 +277,12 @@ for (const resource of datasetInfo.result.resources) {
       const compressedPath = `${dir}.tar.zst`;
       try {
         await $`tar -c -C ${dir} . | zstd -15 --long -T0 -o ${compressedPath}`.quiet();
+        const compressedSize = (await stat(compressedPath)).size;
+        if (compressedSize < MIN_VALID_REPACKAGED_ARCHIVE_SIZE) {
+          throw new Error(
+            `Refusing to upload ${fileName}: compressed archive is only ${compressedSize} bytes`
+          );
+        }
         await uploadToB2Bucket(fileName, createReadStream(compressedPath));
       } finally {
         await rm(compressedPath, { force: true });
@@ -226,7 +297,7 @@ for (const resource of datasetInfo.result.resources) {
     const downloadDir = await mkdtemp("/tmp/sepa-precios-archiver-download-");
     try {
       const downloadPath = join(downloadDir, "download");
-      await $`curl ${CURL_PROXY_ARG} -L -o ${downloadPath} ${resource.url}`.quiet();
+      await $`curl ${CURL_PROXY_ARGS} --fail --show-error -L -o ${downloadPath} ${resource.url}`.quiet();
       await uploadToB2Bucket(fileName, createReadStream(downloadPath));
     } finally {
       await rm(downloadDir, { recursive: true, force: true });

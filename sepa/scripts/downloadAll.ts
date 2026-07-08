@@ -14,14 +14,14 @@ const index = await getIndex();
 
 const latestResources = Object.values(index)
   .filter((a) => a.length > 0)
-  .map(
-    (a) =>
-      a
-        .filter(
-          (r): r is IndexEntry & { link: string } => !!(!r.warnings && r.link)
-        )
-        .sort((a, b) => +b.firstSeenAt - +a.firstSeenAt)[0]
-  );
+  .flatMap((a) => {
+    const latestResource = a
+      .filter(
+        (r): r is IndexEntry & { link: string } => !!(!r.warnings && r.link)
+      )
+      .sort((a, b) => +b.firstSeenAt - +a.firstSeenAt)[0];
+    return latestResource ? [latestResource] : [];
+  });
 
 const queue = new PQueue({ concurrency: 10 });
 

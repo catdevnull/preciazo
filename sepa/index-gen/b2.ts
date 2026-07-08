@@ -38,9 +38,13 @@ function getS3Client() {
   });
 }
 export async function listDirectory(directoryName: string) {
+  return (await listFiles(directoryName)).map((item) => item.key);
+}
+
+export async function listFiles(directoryName: string) {
   const { B2_BUCKET_NAME } = getVariables();
   const s3 = getS3Client();
-  let allContents: string[] = [];
+  let allContents: { key: string; size: number }[] = [];
   let continuationToken: string | undefined;
 
   do {
@@ -53,7 +57,10 @@ export async function listDirectory(directoryName: string) {
 
     const response = await s3.send(command);
     allContents = allContents.concat(
-      response.Contents?.map((item) => item.Key ?? "") ?? []
+      response.Contents?.map((item) => ({
+        key: item.Key ?? "",
+        size: item.Size ?? 0,
+      })) ?? []
     );
     continuationToken = response.NextContinuationToken;
   } while (continuationToken);
