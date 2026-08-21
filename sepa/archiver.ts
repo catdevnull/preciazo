@@ -16,6 +16,7 @@ import { Upload } from "@aws-sdk/lib-storage";
 import { generateIndexes } from "./index-gen";
 import { createReadStream } from "fs";
 import type { Readable } from "stream";
+import pRetry from "p-retry";
 
 function sanitizeLogText(text: string) {
   return text
@@ -83,6 +84,24 @@ const s3 = new S3Client({
   },
 });
 
+const retryB2Operation = <T>(
+  operation: () => Promise<T>,
+  shouldRetry: (error: Error) => boolean = () => true
+) =>
+  pRetry(operation, {
+    retries: 4,
+    minTimeout: 2_000,
+    maxTimeout: 30_000,
+    shouldRetry,
+    onFailedAttempt: (error) => {
+      if (error.retriesLeft > 0) {
+        console.warn(
+          `⚠️ B2 request failed (attempt ${error.attemptNumber}); retrying: ${sanitizeLogText(error.message)}`
+        );
+      }
+    },
+  });
+
 async function getRawDatasetInfo(attempts = 0) {
   try {
     const url = processUrl(
@@ -116,11 +135,15 @@ async function saveFileIntoRepo(fileName: string, fileContent: string) {
 
 async function checkFileExistsInB2(fileName: string): Promise<boolean> {
   try {
-    const result = await s3.send(
-      new HeadObjectCommand({
-        Bucket: B2_BUCKET_NAME,
-        Key: fileName,
-      })
+    const result = await retryB2Operation(
+      () =>
+        s3.send(
+          new HeadObjectCommand({
+            Bucket: B2_BUCKET_NAME,
+            Key: fileName,
+          })
+        ),
+      (error) => error.name !== "NotFound"
     );
     if (
       fileName.endsWith("-repackaged.tar.zst") &&
@@ -142,18 +165,20 @@ async function checkFileExistsInB2(fileName: string): Promise<boolean> {
 
 async function uploadToB2Bucket(
   fileName: string,
-  fileContent: ReadableStream | Readable | Blob | string
+  createFileContent: () => ReadableStream | Readable | Blob | string
 ) {
-  const upload = new Upload({
-    client: s3,
-    params: {
-      Bucket: B2_BUCKET_NAME,
-      Key: fileName,
-      Body: fileContent,
-    },
-  });
+  await retryB2Operation(async () => {
+    const upload = new Upload({
+      client: s3,
+      params: {
+        Bucket: B2_BUCKET_NAME,
+        Key: fileName,
+        Body: createFileContent(),
+      },
+    });
 
-  await upload.done();
+    await upload.done();
+  });
 }
 
 const rawDatasetInfo = await getRawDatasetInfo();
@@ -217,7 +242,7 @@ async function validateExtractedDataset(dir: string) {
 
 await uploadToB2Bucket(
   `timestamped-metadata/${new Date().toISOString()}.json`,
-  JSON.stringify(rawDatasetInfo, null, 2)
+  () => JSON.stringify(rawDatasetInfo, null, 2)
 );
 
 const datasetInfo = z.object({ result: zDatasetInfo }).parse(rawDatasetInfo);
@@ -283,7 +308,9 @@ for (const resource of datasetInfo.result.resources) {
             `Refusing to upload ${fileName}: compressed archive is only ${compressedSize} bytes`
           );
         }
-        await uploadToB2Bucket(fileName, createReadStream(compressedPath));
+        await uploadToB2Bucket(fileName, () =>
+          createReadStream(compressedPath)
+        );
       } finally {
         await rm(compressedPath, { force: true });
       }
@@ -298,7 +325,7 @@ for (const resource of datasetInfo.result.resources) {
     try {
       const downloadPath = join(downloadDir, "download");
       await $`curl ${CURL_PROXY_ARGS} --fail --show-error -L -o ${downloadPath} ${resource.url}`.quiet();
-      await uploadToB2Bucket(fileName, createReadStream(downloadPath));
+      await uploadToB2Bucket(fileName, () => createReadStream(downloadPath));
     } finally {
       await rm(downloadDir, { recursive: true, force: true });
     }
