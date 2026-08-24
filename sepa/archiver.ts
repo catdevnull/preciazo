@@ -107,7 +107,7 @@ async function getRawDatasetInfo(attempts = 0) {
     const url = processUrl(
       "https://datos.produccion.gob.ar/api/3/action/package_show?id=sepa-precios"
     );
-    return await $`curl ${CURL_PROXY_ARGS} -L ${url}`.json();
+    return await $`curl ${CURL_PROXY_ARGS} --ipv4 --fail --silent --show-error --connect-timeout 10 --max-time 30 -L ${url}`.json();
   } catch (error) {
     if (attempts >= 4) {
       logCommandError(`❌ Error fetching dataset info`, error);
