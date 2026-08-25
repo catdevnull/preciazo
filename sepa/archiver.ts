@@ -16,7 +16,7 @@ import { Upload } from "@aws-sdk/lib-storage";
 import { generateIndexes } from "./index-gen";
 import { createReadStream } from "fs";
 import type { Readable } from "stream";
-import pRetry from "p-retry";
+import { retry } from "./retry";
 
 function sanitizeLogText(text: string) {
   return text
@@ -88,7 +88,7 @@ const retryB2Operation = <T>(
   operation: () => Promise<T>,
   shouldRetry: (error: Error) => boolean = () => true
 ) =>
-  pRetry(operation, {
+  retry(operation, {
     retries: 4,
     minTimeout: 2_000,
     maxTimeout: 30_000,
