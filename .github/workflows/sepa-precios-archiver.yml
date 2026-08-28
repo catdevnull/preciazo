@@ -2,7 +2,7 @@ name: Sepa Precios Archiver
 
 on:
   schedule:
-    - cron: "0 */3 * * *" # Run every 3 hours
+    - cron: "23 */2 * * *" # Run every 2 hours, away from GitHub's top-of-hour peak
   workflow_dispatch: # Allow manual trigger
 
 jobs:
