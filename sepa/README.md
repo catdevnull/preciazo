@@ -20,6 +20,46 @@ bun install
 bun run archiver.ts
 ```
 
+### Contenedor y despliegue con Uncloud
+
+El contenedor del archivador ejecuta una pasada inmediatamente y, al terminar,
+espera dos horas antes de la siguiente. Si una pasada falla, reintenta después
+de cinco minutos. Solo hay que desplegar una réplica.
+
+Para probar exactamente la misma ejecución que se usa en producción:
+
+```bash
+docker build -f sepa/archiver.Dockerfile -t preciazo-archiver:test sepa
+docker run --rm --env-file sepa/.env \
+  --entrypoint bun preciazo-archiver:test run /app/archiver.ts
+```
+
+Los secretos del despliegue se leen de un Secure Note de Bitwarden llamado
+`preciazo-archiver`. Cada secreto es un custom field oculto. Para importar o
+actualizar el item desde el `.env` local:
+
+```bash
+bw login
+export BW_SESSION="$(bw unlock --raw)"
+./scripts/bitwarden-import-archiver-env.sh sepa/.env
+```
+
+Se puede usar otro nombre o ID de item exportando `BW_ARCHIVER_ITEM_ID`. El URL
+de Uptime Kuma es opcional para el contenedor, pero debe existir como campo
+`UPTIME_KUMA_PUSH_URL` (puede estar vacío) para que Uncloud resuelva el secreto.
+
+Con el CLI de Uncloud conectado a un cluster:
+
+```bash
+export BW_SESSION="$(bw unlock --raw)"
+uc deploy -f compose.archiver.yaml
+uc logs preciazo-archiver
+```
+
+`uc deploy` ejecuta localmente `scripts/bitwarden-secret.sh` para resolver cada
+valor y lo entrega al contenedor como variable de entorno. El `.env` queda solo
+como copia local ignorada por Git y no forma parte de la imagen.
+
 ## sepa-dataset-validator
 
 un script para validar los datasets de SEPA automaticamente

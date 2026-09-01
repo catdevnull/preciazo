@@ -1,0 +1,35 @@
+services:
+  preciazo-archiver:
+    build:
+      context: ./sepa
+      dockerfile: archiver.Dockerfile
+      platforms:
+        - linux/amd64
+    image: preciazo-archiver:{{gitdate "20060102-150405"}}.{{gitsha 7}}{{if .Git.IsDirty}}.dirty{{end}}
+    environment:
+      GITHUB_TOKEN: secret://archiver_github_token
+      B2_BUCKET_NAME: secret://archiver_b2_bucket_name
+      B2_BUCKET_KEY_ID: secret://archiver_b2_bucket_key_id
+      B2_BUCKET_KEY: secret://archiver_b2_bucket_key
+      UPTIME_KUMA_PUSH_URL: secret://archiver_uptime_kuma_push_url
+      ARCHIVER_INTERVAL_SECONDS: ${ARCHIVER_INTERVAL_SECONDS:-7200}
+      ARCHIVER_RETRY_SECONDS: ${ARCHIVER_RETRY_SECONDS:-300}
+      DATOS_PRODUCCION_GOB_AR: ${DATOS_PRODUCCION_GOB_AR:-https://datos.produccion.gob.ar}
+      PROXY_URI: ${PROXY_URI:-}
+    init: true
+    deploy:
+      replicas: 1
+      update_config:
+        order: stop-first
+
+secrets:
+  archiver_github_token:
+    x-command: ./scripts/bitwarden-secret.sh GITHUB_TOKEN
+  archiver_b2_bucket_name:
+    x-command: ./scripts/bitwarden-secret.sh B2_BUCKET_NAME
+  archiver_b2_bucket_key_id:
+    x-command: ./scripts/bitwarden-secret.sh B2_BUCKET_KEY_ID
+  archiver_b2_bucket_key:
+    x-command: ./scripts/bitwarden-secret.sh B2_BUCKET_KEY
+  archiver_uptime_kuma_push_url:
+    x-command: ./scripts/bitwarden-secret.sh UPTIME_KUMA_PUSH_URL

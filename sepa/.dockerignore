@@ -10,6 +10,12 @@ LICENSE
 Makefile
 helm-charts
 .env
+.env.*
+!.env.example
 .editorconfig
 .idea
 coverage*
+sitio2/node_modules
+sitio2/build
+*.db*
+.DS_Store
